@@ -61,10 +61,10 @@
 ---
 
 ## 📱 Phase 6 : Optimisation & PWA
-- [ ] **Adaptation PC :** Sidebar fixe à gauche + Header technique (`Tech Mono`).
-- [ ] **Adaptation Mobile :** TabBar en bas (style Insta) pour accès pouce facile.
-- [ ] **Manifest PWA :** Permettre l'installation sur mobile (icône Gowrax, splashscreen).
-- [ ] **Sécurité :** `robots.txt` (no-index) et obfuscation des routes sensibles.
+- [x] **Adaptation PC :** Sidebar fixe à gauche + Header technique (`Tech Mono`).
+- [x] **Adaptation Mobile :** TabBar en bas (style Insta) pour accès pouce facile.
+- [x] **Manifest PWA :** Permettre l'installation sur mobile (icône Gowrax, splashscreen).
+- [x] **Sécurité :** `robots.txt` (no-index) et obfuscation des routes sensibles.
 
 ---
 
