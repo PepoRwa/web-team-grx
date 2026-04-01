@@ -4,14 +4,31 @@ import { usePermissions } from './hooks/usePermissions'
 import Calendar from './components/Calendar'
 import Dossiers from './components/Dossiers' // NOUVEAU IMPORT
 import Availability from './components/Availability' // PHASE 4
+import Stratbook from './components/Stratbook' // PHASE 7
+import Vods from './components/Vods' // NOUVEAU IMPORT VODS
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers' ou 'availability'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods'
 
   // NOUVEAU: Système de Notifications
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  
+  // NOUVEAU: Profil Utilisateur Local
+  const [myStats, setMyStats] = useState({ absent: 0 });
+
+  useEffect(() => {
+    const loadMyStats = async () => {
+      const { data } = await supabase
+        .from('check_ins')
+        .select('status')
+        .eq('user_id', session.user.id)
+        .eq('status', 'absent');
+      if (data) setMyStats({ absent: data.length });
+    };
+    loadMyStats();
+  }, [session.user.id]);
 
   useEffect(() => {
     if (!rolesLoading) {
@@ -162,6 +179,22 @@ function Dashboard({ session, signOut }) {
                         Disponibilités
                     </button>
 
+                    <button 
+                        onClick={() => setActiveTab('stratbook')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg ${activeTab === 'stratbook' ? 'bg-gradient-to-r from-gowrax-purple/40 to-transparent bg-gowrax-purple/10 border-l-4 border-gowrax-neon text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                        Strat-Book
+                    </button>
+
+                    <button 
+                        onClick={() => setActiveTab('vods')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg ${activeTab === 'vods' ? 'bg-gradient-to-r from-blue-600/40 to-transparent bg-blue-600/10 border-l-4 border-blue-400 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        VODs & Replays
+                    </button>
+
                     {(isStaff || isCoach) && (
                         <button 
                             onClick={() => setActiveTab('dossiers')}
@@ -203,6 +236,18 @@ function Dashboard({ session, signOut }) {
                   )}
                   <div>
                     <h1 className="font-rajdhani text-lg font-bold truncate w-32">{session.user.user_metadata.full_name || session.user.email}</h1>
+                    
+                    {/* Jauge de tolerance Mobile */}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex-1 w-20 bg-white/5 h-1 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${myStats.absent > 2 ? 'bg-red-500' : myStats.absent > 0 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                          style={{ width: `${Math.min((myStats.absent) * 33.33, 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className={`text-[8px] font-techMono ${myStats.absent > 2 ? 'text-red-500' : myStats.absent > 0 ? 'text-yellow-500' : 'text-green-500'}`}>{myStats.absent}/3</span>
+                    </div>
+                    
                   </div>
                 </div>
 
@@ -275,7 +320,7 @@ function Dashboard({ session, signOut }) {
                 {/* HEADER TECHNIQUE : Affichage du Mode Actuel */}
                 <div className="flex items-center gap-3 mb-2 opacity-80">
                     <h2 className="font-rajdhani text-3xl md:text-5xl font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
-                      {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : 'DOSSIERS STAFF'}
+                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : 'DOSSIERS STAFF'}
                     </h2>
                     <div className="h-px bg-white/20 flex-1 ml-4 hidden md:block"></div>
                 </div>
@@ -307,6 +352,8 @@ function Dashboard({ session, signOut }) {
                 )}
 
                 {activeTab === 'availability' && <Availability session={session} isStaff={isStaff} isCoach={isCoach} />}
+                {activeTab === 'stratbook' && <Stratbook isStaff={isStaff} isCoach={isCoach} />}
+                {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
             </main>
         </div>
@@ -314,48 +361,68 @@ function Dashboard({ session, signOut }) {
         {/* =========================================
             BOTTOM NAV MOBILE (INSTA STYLE)
             ========================================= */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full h-[72px] bg-black/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
+        <nav className="md:hidden fixed bottom-0 left-0 w-full h-[72px] bg-black/90 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-between px-1 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
             <button 
                 onClick={() => setActiveTab('calendar')}
-                className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${activeTab === 'calendar' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'calendar' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
             >
-                <div className={`p-1.5 rounded-full ${activeTab === 'calendar' ? 'bg-gowrax-purple/20' : ''}`}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'calendar' ? '2.5' : '2'} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <div className={`p-1 rounded-full ${activeTab === 'calendar' ? 'bg-gowrax-purple/20' : ''}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'calendar' ? '2.5' : '2'} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
-                <span className="text-[9px] font-techMono uppercase mt-1">Events</span>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Events</span>
             </button>
 
             <button 
                 onClick={() => setActiveTab('availability')}
-                className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${activeTab === 'availability' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'availability' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
             >
-                <div className={`p-1.5 rounded-full ${activeTab === 'availability' ? 'bg-gowrax-purple/20' : ''}`}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'availability' ? '2.5' : '2'} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div className={`p-1 rounded-full ${activeTab === 'availability' ? 'bg-gowrax-purple/20' : ''}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'availability' ? '2.5' : '2'} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-                <span className="text-[9px] font-techMono uppercase mt-1">Dispos</span>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Dispos</span>
+            </button>
+
+            <button 
+                onClick={() => setActiveTab('stratbook')}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'stratbook' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                <div className={`p-1 rounded-full ${activeTab === 'stratbook' ? 'bg-gowrax-purple/20' : ''}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'stratbook' ? '2.5' : '2'} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Strats</span>
+            </button>
+
+            <button 
+                onClick={() => setActiveTab('vods')}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'vods' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                <div className={`p-1 rounded-full ${activeTab === 'vods' ? 'bg-blue-600/20' : ''}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'vods' ? '2.5' : '2'} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">VODs</span>
             </button>
 
             {(isStaff || isCoach) && (
                 <button 
                     onClick={() => setActiveTab('dossiers')}
-                    className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${activeTab === 'dossiers' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'dossiers' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    <div className={`p-1.5 rounded-full ${activeTab === 'dossiers' ? 'bg-blue-500/20' : ''}`}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'dossiers' ? '2.5' : '2'} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <div className={`p-1 rounded-full ${activeTab === 'dossiers' ? 'bg-blue-500/20' : ''}`}>
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'dossiers' ? '2.5' : '2'} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
-                    <span className="text-[9px] font-techMono uppercase mt-1">Staff</span>
+                    <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Staff</span>
                 </button>
             )}
 
             {/* Bouton Settings / Déco Mobile */}
             <button 
                 onClick={signOut}
-                className="flex flex-col items-center justify-center w-16 h-full transition-colors text-gray-500 hover:text-red-400"
+                className="flex flex-col items-center justify-center flex-1 h-full transition-colors text-gray-500 hover:text-red-400"
             >
-                <div className="p-1.5 rounded-full">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <div className="p-1 rounded-full">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </div>
-                <span className="text-[9px] font-techMono uppercase mt-1">Quitter</span>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Quitter</span>
             </button>
         </nav>
     </div>
@@ -484,7 +551,7 @@ function App() {
 
       {/* ASTUCE iOS (SAFARI NE SUPPORTE PAS LE BOUTON D'INSTALLATION DIRECTE) */}
       {isIos && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white text-black p-4 rounded-2xl z-50 shadow-2xl flex flex-col gap-2 border-b-4 border-blue-500 animate-pulse">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white text-black p-4 rounded-2xl z-50 shadow-2xl flex flex-col gap-2 border-b-4 border-blue-500 animate-pulse">
             <div>
               <h3 className="font-rajdhani font-bold text-lg leading-tight text-blue-600">Astuce iOS 📱</h3>
               <p className="text-xs font-poppins mt-1 text-gray-800">Pour installer l'application complète, appuie sur le bouton <b>Partager</b> <svg className="inline w-4 h-4 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> en bas de ton écran, puis sélectionne <b>"Sur l'écran d'accueil"</b>.</p>
@@ -553,34 +620,44 @@ function App() {
 
       {/* Features Overview (Vitrine) */}
       <div className="w-full max-w-6xl mx-auto z-10 px-6 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/[0.02] border border-white/5 p-8 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-purple/50 transition-all duration-500 group">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-purple/50 transition-all duration-500 group">
             <div className="w-12 h-12 bg-gowrax-purple/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg className="w-6 h-6 text-gowrax-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </div>
-            <h3 className="font-rajdhani text-2xl font-bold text-white mb-3">Calendrier Officiel</h3>
-            <p className="font-poppins text-sm text-gray-400 leading-relaxed">
-              Consultez les matchs, les entraînements et les tournois. Confirmez votre présence en un clic et restez synchronisé avec votre roster.
+            <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Calendrier Actif</h3>
+            <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+              Consultez tous les praccs, matchs officiels et tournois à venir. Maintenez-vous à jour avec le planning de votre escouade.
             </p>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/5 p-8 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-neon/50 transition-all duration-500 group relative overflow-hidden">
+          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-neon/50 transition-all duration-500 group relative overflow-hidden">
             <div className="w-12 h-12 bg-gowrax-neon/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <svg className="w-6 h-6 text-gowrax-neon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              <svg className="w-6 h-6 text-gowrax-neon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 className="font-rajdhani text-2xl font-bold text-white mb-3">Heatmap des Dispos</h3>
-            <p className="font-poppins text-sm text-gray-400 leading-relaxed">
-              Renseignez vos jours de disponibilité. Le système génère automatiquement une carte de chaleur pour trouver les meilleurs créneaux communs.
+            <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Heatmap & Absences</h3>
+            <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+              Grille de disponibilité hyper-précise (intervalles de 30 mins) complétée par un workflow complet style "Pronote" pour justifier vos absences.
             </p>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/5 p-8 rounded-2xl hover:bg-white/[0.04] hover:border-blue-500/50 transition-all duration-500 group">
+          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-teal-500/50 transition-all duration-500 group relative overflow-hidden">
+            <div className="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+            </div>
+            <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Gowrax Strat-Book</h3>
+            <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+              L'armoirie tactique de l'équipe : upload et lecture plein-écran de Setups et retakes avec filtrage par Map et Side (Défense/Attaque).
+            </p>
+          </div>
+
+          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-blue-500/50 transition-all duration-500 group">
             <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             </div>
-            <h3 className="font-rajdhani text-2xl font-bold text-white mb-3">Outils Staff</h3>
-            <p className="font-poppins text-sm text-gray-400 leading-relaxed">
-              (Coachs & Admin) Accédez aux statistiques de ponctualité, forcez les appels (Roll-Call), et lisez les dossiers confidentiels des joueurs.
+            <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Accréditation Staff</h3>
+            <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+              Dossiers classifiés par membre. Suivi de l'autorité, historique d'implication, Heatmap pour fixer des rosters, validation/refus des congés.
             </p>
           </div>
         </div>

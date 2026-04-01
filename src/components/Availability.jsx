@@ -2,32 +2,107 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-const CRENEAUX = [
-    { key: 'matin', label: 'Matin (09-12h)' },
-    { key: 'midi', label: 'Midi (12-14h)' },
-    { key: 'aprem', label: 'Aprèm (14-18h)' },
-    { key: 'soir', label: 'Soir (18-23h)' },
-    { key: 'nuit', label: 'Nuit (23h-02h+)' }
-];
+
+// Génère les créneaux par palier de 30 mins de 00h à 23h30
+const generateHalfHours = () => {
+    const times = [];
+    for (let i = 0; i <= 23; i++) {
+        const hourStr = i < 10 ? `0${i}` : `${i}`;
+        times.push(`${hourStr}:00`);
+        times.push(`${hourStr}:30`);
+    }
+    return times;
+};
+const HALF_HOURS = generateHalfHours();
 
 export default function Availability({ session, isStaff, isCoach }) {
+  const [activeTab, setActiveTab] = useState('grille'); // 'grille' ou 'absences'
   const [viewMode, setViewMode] = useState('perso'); // 'perso' ou 'heatmap'
   
   // Pour ma grille perso
   const [mySchedule, setMySchedule] = useState({});
   const [loadingMySchedule, setLoadingMySchedule] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Variables Drag & Drop
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragAction, setDragAction] = useState(true); // true = ajoute dispo, false = retire dispo
 
   // Pour le heatmap et les dispos des autres
   const [allSchedules, setAllSchedules] = useState([]);
   const [loadingHeatmap, setLoadingHeatmap] = useState(true);
 
+  // --- LOGIQUE ABSENCES ---
+  const [absences, setAbsences] = useState([]);
+  const [newAbsence, setNewAbsence] = useState({ date_start: '', date_end: '', reason: '' });
+  const [isSavingAbsence, setIsSavingAbsence] = useState(false);
+
   useEffect(() => {
-    fetchMySchedule();
-    if (viewMode === 'heatmap') {
-      fetchAllSchedules();
+    if (activeTab === 'grille') {
+      fetchMySchedule();
+      if (viewMode === 'heatmap') {
+        fetchAllSchedules();
+      }
+    } else if (activeTab === 'absences') {
+      fetchAbsences();
     }
-  }, [viewMode]);
+  }, [viewMode, activeTab]);
+
+  const fetchAbsences = async () => {
+    let query = supabase.from('absences').select('*');
+    
+    if (!isStaff && !isCoach) {
+      query = query.eq('user_id', session.user.id);
+    }
+    
+    const { data: absencesData, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Erreur de récupération des absences :", error);
+    } else if (absencesData) {
+      // Pour afficher le pseudo : On récupère directement les profils correspondants
+      const userIds = [...new Set(absencesData.map(a => a.user_id))];
+      
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', userIds);
+        
+      const profilesMap = (profilesData || []).reduce((acc, p) => ({...acc, [p.id]: p.username}), {});
+      
+      const augmentedData = absencesData.map(a => ({
+        ...a,
+        user_name: profilesMap[a.user_id] || 'Utilisateur introuvable'
+      }));
+      
+      setAbsences(augmentedData);
+    }
+  };
+
+  const handleCreateAbsence = async (e) => {
+    e.preventDefault();
+    setIsSavingAbsence(true);
+    const { error } = await supabase.from('absences').insert({
+      user_id: session.user.id,
+      date_start: new Date(newAbsence.date_start).toISOString(),
+      date_end: new Date(newAbsence.date_end).toISOString(),
+      reason: newAbsence.reason
+    });
+    setIsSavingAbsence(false);
+    
+    if (!error) {
+      setNewAbsence({ date_start: '', date_end: '', reason: '' });
+      fetchAbsences();
+    } else {
+      console.error("Erreur ajout:", error);
+      alert("Erreur lors de l'ajout de l'absence: " + error.message);
+    }
+  };
+
+  const updateAbsenceStatus = async (id, status) => {
+    const { error } = await supabase.from('absences').update({ status }).eq('id', id);
+    if (!error) fetchAbsences();
+  };
 
   // --- LOGIQUE MA GRILLE PERSO ---
   const fetchMySchedule = async () => {
@@ -59,6 +134,45 @@ export default function Availability({ session, isStaff, isCoach }) {
     });
   };
 
+  // NOUVEAUX HANDLERS POUR LE DRAG SUR LA GRILLE PRONOTE
+  const handleMouseDown = (jour, time) => {
+    setIsDragging(true);
+    const dayData = mySchedule[jour] || {};
+    const willBeAvailable = !dayData[time];
+    setDragAction(willBeAvailable);
+    
+    // Modifie immédiatement la cellule cliquée
+    setMySchedule(prev => ({
+      ...prev,
+      [jour]: {
+        ...(prev[jour] || {}),
+        [time]: willBeAvailable
+      }
+    }));
+  };
+
+  const handleMouseEnter = (jour, time) => {
+    if (!isDragging) return;
+    setMySchedule(prev => ({
+      ...prev,
+      [jour]: {
+        ...(prev[jour] || {}),
+        [time]: dragAction
+      }
+    }));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Sécurité: si on sort le clic de la grille, on stop le drag
+  useEffect(() => {
+    const handleGlobalMouseUp = () => setIsDragging(false);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
   const handleSaveSchedule = async () => {
     setIsSaving(true);
     const { error } = await supabase
@@ -72,10 +186,49 @@ export default function Availability({ session, isStaff, isCoach }) {
     if (error) {
       console.error("Erreur d'enregistrement:", error);
       alert("Erreur lors de la sauvegarde de ta grille.");
-    } else {
-      // Petite animation ou notif visuelle possible ici
     }
     setIsSaving(false);
+  };
+
+  // Gestion du sélecteur "Macro" de disponibilité de la journée 
+  const handleMacroChange = (jour, value) => {
+    setMySchedule(prev => {
+      const dayData = { ...(prev[jour] || {}) };
+      dayData.macro = value;
+      
+      // Autocomplete magique selon le choix
+      if (value === 'allday') {
+        HALF_HOURS.forEach(t => dayData[t] = true);
+      } else if (value === 'indispo') {
+        HALF_HOURS.forEach(t => dayData[t] = false);
+      } else if (value === 'matin') {
+        HALF_HOURS.forEach(t => {
+            const h = parseInt(t.split(':')[0], 10);
+            // Matin de 08:00 à 12:30 (exclu 13:00)
+            dayData[t] = !!(h >= 8 && h < 13);
+        });
+      } else if (value === 'aprem') {
+        HALF_HOURS.forEach(t => {
+            const h = parseInt(t.split(':')[0], 10);
+            // Aprem de 14:00 à 18:30
+            dayData[t] = !!(h >= 14 && h < 19);
+        });
+      } else if (value === 'soir') {
+        HALF_HOURS.forEach(t => {
+            const h = parseInt(t.split(':')[0], 10);
+            // Soirée de 19:00 à 23:30
+            dayData[t] = !!(h >= 19 && h <= 23);
+        });
+      } else if (value === 'nuit') {
+         HALF_HOURS.forEach(t => {
+            const h = parseInt(t.split(':')[0], 10);
+            // Nuit de 00:00 à 05:00
+            dayData[t] = !!(h >= 0 && h < 6);
+        });
+      }
+
+      return { ...prev, [jour]: dayData };
+    });
   };
 
   // --- LOGIQUE HEATMAP (COACH/STAFF) ---
@@ -92,9 +245,8 @@ export default function Availability({ session, isStaff, isCoach }) {
   };
 
   const getHeatmapColor = (jour, creneau) => {
-    if (allSchedules.length === 0) return 'bg-black/40 border-gray-700 text-gray-500';
+    if (allSchedules.length === 0) return 'bg-black/40 text-gray-500';
     
-    // Compter le nombre de personnes ayant "true" pour ce jour et ce créneau
     const count = allSchedules.reduce((acc, user) => {
       if (user.schedule[jour] && user.schedule[jour][creneau]) return acc + 1;
       return acc;
@@ -102,25 +254,43 @@ export default function Availability({ session, isStaff, isCoach }) {
 
     const percentage = count / allSchedules.length;
     
-    if (percentage === 0) return 'bg-black/40 border-red-500/20 text-gray-500';
-    if (percentage < 0.3) return 'bg-gowrax-neon/20 border-gowrax-neon/40 text-white';
-    if (percentage < 0.7) return 'bg-gowrax-purple/50 border-gowrax-purple text-white';
-    return 'bg-green-500 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)] text-white font-bold'; // Meilleur créneau
+    if (percentage === 0) return 'bg-black/40 text-gray-500';
+    if (percentage < 0.3) return 'bg-gowrax-neon/20 text-white';
+    if (percentage < 0.7) return 'bg-gowrax-purple/50 text-white';
+    return 'bg-green-500 shadow-[inset_0_0_15px_rgba(34,197,94,0.6)] text-white font-bold'; 
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-gowrax-cyan/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
       
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-white/20 pb-4 gap-4">
-        <div>
-            <h2 className="text-3xl font-rajdhani text-white tracking-widest drop-shadow-[0_2px_4px_rgba(255,255,255,0.2)]">
-               DÉTECTION RADAR (DISPONIBILITÉS)
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-white/20 pb-4 gap-4">
+        <div className="flex-1">
+            <h2 className="text-2xl md:text-3xl font-rajdhani text-white tracking-widest drop-shadow-[0_2px_4px_rgba(255,255,255,0.2)] flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+               PLANIFICATION GLOBALE
+               {activeTab === 'grille' && viewMode === 'perso' && (
+                 <button 
+                   onClick={handleSaveSchedule}
+                   disabled={isSaving}
+                   className="hidden md:flex px-4 py-2 bg-gowrax-purple text-white font-rajdhani text-sm font-bold rounded shadow-[0_0_15px_rgba(111,45,189,0.5)] hover:bg-gowrax-neon transition-all uppercase disabled:opacity-50 ml-auto items-center justify-center"
+                 >
+                   {isSaving ? "ÉMISSION..." : "VALIDER"}
+                 </button>
+               )}
             </h2>
-            <p className="text-gray-400 font-techMono text-xs uppercase mt-1">Coche tes créneaux de raid</p>
+            <div className="flex gap-4 mt-2">
+                <button 
+                  onClick={() => setActiveTab('grille')}
+                  className={`font-techMono text-xs uppercase px-3 py-1 rounded transition-colors ${activeTab === 'grille' ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+                >Disponibilités</button>
+                <button 
+                  onClick={() => setActiveTab('absences')}
+                  className={`font-techMono text-xs uppercase px-3 py-1 rounded transition-colors ${activeTab === 'absences' ? 'bg-red-500/20 text-red-300' : 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'}`}
+                >Absences (Congés/Imprévus)</button>
+            </div>
         </div>
 
-        {/* Boutons de switch de vue (Staff/Coach uniquement pour le heatmap, ou tout le monde si on le veut public) */}
-        {(isStaff || isCoach) && (
+        {/* Boutons de switch de vue (Staff/Coach uniquement pour le heatmap) - Seulement dans l'onglet Grille */}
+        {activeTab === 'grille' && (isStaff || isCoach) && (
             <div className="flex border border-gray-600 rounded bg-black/50 p-1">
                 <button 
                    onClick={() => setViewMode('perso')}
@@ -138,58 +308,108 @@ export default function Availability({ session, isStaff, isCoach }) {
         )}
       </div>
 
-      {viewMode === 'perso' ? (
+      {activeTab === 'grille' ? (
+        viewMode === 'perso' ? (
           /* ================= VUE: GRILLE PERSONNELLE ================= */
           <div className="flex flex-col gap-6">
               {loadingMySchedule ? (
                   <p className="text-gowrax-purple font-techMono animate-pulse">Extraction de ta grille en cours...</p>
               ) : (
                   <>
-                    <div className="overflow-x-auto pb-4 custom-scrollbar">
-                        <table className="w-full text-center border-collapse min-w-[600px]">
-                            <thead>
+                    <div className="overflow-x-auto pb-4 custom-scrollbar select-none" onMouseLeave={handleMouseUp}>
+                        <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
+                            <thead className="sticky top-0 z-30 bg-[#1A1C2E] shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
                                 <tr>
-                                    <th className="p-3 border text-gray-400 font-techMono text-xs bg-black/50">Jours &#8594;<br/>Heures &#8595;</th>
+                                    <th className="p-2 border border-gray-700 text-gray-400 font-techMono text-xs bg-black/80 w-16 md:w-24 align-middle sticky left-0 z-40">
+                                        Horaire
+                                    </th>
                                     {JOURS.map(jour => (
-                                        <th key={jour} className="p-3 border border-gray-700 font-rajdhani text-lg text-white bg-black/30 w-32 uppercase">
+                                        <th key={jour} className="p-2 md:p-3 border-l border-r border-t border-gray-700 font-rajdhani text-sm md:text-lg text-white bg-black/30 capitalize min-w-[100px] md:min-w-[120px]">
                                             {jour}
                                         </th>
                                     ))}
                                 </tr>
+                                <tr className="bg-[#1A1C2E]">
+                                    <td className="p-1 border border-gray-700 font-techMono text-[10px] text-gowrax-purple uppercase tracking-widest bg-black/80 align-middle sticky left-0 z-40 w-16 md:w-24">
+                                        Tendance
+                                    </td>
+                                    {JOURS.map(jour => {
+                                        const mac = mySchedule[jour]?.macro || '';
+                                        return (
+                                            <td key={`macro-${jour}`} className="p-1.5 border-l border-r border-b border-gray-700 bg-black/30">
+                                                <select 
+                                                    value={mac}
+                                                    onChange={e => handleMacroChange(jour, e.target.value)}
+                                                    className={`w-full bg-black/80 border p-1 rounded text-[10px] sm:text-xs font-techMono cursor-pointer outline-none transition-colors
+                                                        ${mac === 'allday' ? 'text-green-400 border-green-500/50' : 
+                                                          mac === 'indispo' ? 'text-red-400 border-red-500/50' : 
+                                                          mac !== '' ? 'text-gowrax-neon border-gowrax-neon/50' : 'text-gray-400 border-gray-700'}
+                                                    `}
+                                                >
+                                                    <option value="">Sélection libre</option>
+                                                    <option value="allday">🟢 Toute la journée</option>
+                                                    <option value="matin">🌅 Matin</option>
+                                                    <option value="aprem">☕ Après-midi</option>
+                                                    <option value="soir">🌙 Soirée</option>
+                                                    <option value="nuit">🦉 Nuit</option>
+                                                    <option value="indispo">🔴 Indisponible</option>
+                                                </select>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
                             </thead>
                             <tbody>
-                                {CRENEAUX.map(creneau => (
-                                    <tr key={creneau.key}>
-                                        <td className="p-3 border border-gray-700 bg-black/50 text-gray-300 font-techMono text-xs text-left">
-                                            {creneau.label}
-                                        </td>
-                                        {JOURS.map(jour => {
-                                            const isAvailable = mySchedule[jour]?.[creneau.key] === true;
-                                            return (
-                                                <td 
-                                                    key={`${jour}-${creneau.key}`} 
-                                                    onClick={() => handleCellClick(jour, creneau.key)}
-                                                    className={`p-1 border border-gray-700 cursor-pointer transition-all hover:border-white ${isAvailable ? 'bg-green-500/20 border-green-500 shadow-[inset_0_0_15px_rgba(34,197,94,0.3)]' : 'bg-black/40 hover:bg-white/5'}`}
-                                                >
-                                                    <div className="h-10 w-full flex items-center justify-center">
-                                                        {isAvailable && <span className="text-green-500 font-bold">&#10003;</span>}
-                                                    </div>
+                                {HALF_HOURS.map((time, index) => {
+                                    // La bordure du bas est rouge tous les 1h pour bien séparer
+                                    const isFullHour = time.endsWith(':00');
+                                    const isEndOfHour = time.endsWith(':30');
+
+                                    return (
+                                        <tr key={time} className="h-8 group">
+                                            {isFullHour && (
+                                                <td rowSpan="2" className="p-1 border border-gray-700 bg-black/80 text-gray-300 font-techMono text-[10px] md:text-xs shadow-inner align-top pt-2 sticky left-0 z-20 w-16 md:w-24">
+                                                    {time.split(':')[0]}h
                                                 </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                                            )}
+                                            {JOURS.map(jour => {
+                                                const isAvailable = mySchedule[jour]?.[time] === true;
+                                                return (
+                                                    <td 
+                                                        key={`${jour}-${time}`} 
+                                                        onMouseDown={() => handleMouseDown(jour, time)}
+                                                        onMouseEnter={() => handleMouseEnter(jour, time)}
+                                                        className={`border-l border-r border-gray-700 cursor-pointer transition-colors
+                                                            ${isEndOfHour ? 'border-b border-gray-800' : 'border-b border-gray-800/30'}
+                                                            ${isAvailable ? 'bg-green-500/20 border-green-500 shadow-[inset_0_0_15px_rgba(34,197,94,0.3)]' : 'bg-black/20 hover:bg-white/5'}
+                                                        `}
+                                                    >
+                                                        <div className="w-full h-full min-h-[30px] flex items-center justify-center">
+                                                            
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
 
-                    <button 
-                        onClick={handleSaveSchedule}
-                        disabled={isSaving}
-                        className="px-6 py-3 bg-gowrax-purple text-white font-rajdhani font-bold text-xl rounded shadow-[0_0_15px_rgba(111,45,189,0.5)] hover:bg-gowrax-neon hover:shadow-[0_0_20px_rgba(214,47,127,0.8)] transition-all w-full md:w-auto self-end uppercase disabled:opacity-50"
-                    >
-                        {isSaving ? "Émission des données..." : "VALIDER MA GRILLE"}
-                    </button>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
+                      <p className="text-gray-400 font-poppins text-xs italic bg-black/30 p-3 rounded-lg border border-white/5 flex-1">
+                         � <strong>Sur mobile ou PC :</strong> Utilise les onglets "Tendance" (Matin/Aprem/Soir...) pour pré-remplir instantanément la journée sans t'embêter !<br/>
+                         🖱️ <strong>Sur PC :</strong> Tu peux aussi maintenir le clic enfoncé et balayer la zone pour cocher/décocher rapidement.
+                      </p>
+                      <button 
+                          onClick={handleSaveSchedule}
+                          disabled={isSaving}
+                          className="px-6 py-3 bg-gowrax-purple text-white font-rajdhani font-bold text-xl rounded shadow-[0_0_15px_rgba(111,45,189,0.5)] hover:bg-gowrax-neon hover:shadow-[0_0_20px_rgba(214,47,127,0.8)] transition-all w-full md:w-auto uppercase disabled:opacity-50 shrink-0"
+                      >
+                          {isSaving ? "Émission des données..." : "VALIDER MA GRILLE"}
+                      </button>
+                    </div>
                   </>
               )}
           </div>
@@ -206,50 +426,175 @@ export default function Availability({ session, isStaff, isCoach }) {
                         Base de calcul : {allSchedules.length} agents détectés.
                     </p>
 
-                    <div className="overflow-x-auto pb-4 custom-scrollbar">
-                        <table className="w-full text-center border-collapse min-w-[600px]">
-                            <thead>
+                    <div className="overflow-x-auto pb-4 custom-scrollbar select-none">
+                        <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
+                            <thead className="sticky top-0 z-30 bg-[#1A1C2E] shadow-md shadow-black/50">
                                 <tr>
-                                    <th className="p-3 border border-gray-700 text-gray-400 font-techMono text-xs bg-black/50">Jours &#8594;<br/>Heures &#8595;</th>
+                                    <th className="p-2 border border-gray-700 text-gray-400 font-techMono text-xs bg-black/80 w-16 md:w-24 sticky left-0 z-40">Horaire</th>
                                     {JOURS.map(jour => (
-                                        <th key={jour} className="p-3 border border-gray-700 font-rajdhani text-lg text-white bg-black/30 w-32 uppercase">
+                                        <th key={jour} className="p-2 md:p-3 border border-gray-700 font-rajdhani text-sm md:text-lg text-white bg-black/30 capitalize min-w-[100px] md:min-w-[120px]">
                                             {jour}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {CRENEAUX.map(creneau => (
-                                    <tr key={creneau.key}>
-                                        <td className="p-3 border border-gray-700 bg-black/50 text-gray-300 font-techMono text-xs text-left">
-                                            {creneau.label}
-                                        </td>
-                                        {JOURS.map(jour => {
-                                            // Calcul du nombre de dispos pour l'affichage de la bulle
-                                            const count = allSchedules.reduce((acc, user) => {
-                                                if (user.schedule[jour] && user.schedule[jour][creneau.key]) return acc + 1;
-                                                return acc;
-                                            }, 0);
-                                            
-                                            return (
-                                                <td 
-                                                    key={`heatmap-${jour}-${creneau.key}`} 
-                                                    className={`p-1 border border-gray-700 transition-colors ${getHeatmapColor(jour, creneau.key)}`}
-                                                >
-                                                    <div className="h-10 w-full flex items-center justify-center font-techMono text-sm">
-                                                        {count > 0 ? `${count}/${allSchedules.length}` : '-'}
-                                                    </div>
+                                {HALF_HOURS.map((time, index) => {
+                                    const isFullHour = time.endsWith(':00');
+                                    const isEndOfHour = time.endsWith(':30');
+
+                                    return (
+                                        <tr key={time} className="h-8">
+                                            {isFullHour && (
+                                                <td rowSpan="2" className="p-1 border border-gray-700 bg-black/80 text-gray-300 font-techMono text-[10px] md:text-xs shadow-inner align-top pt-2 sticky left-0 z-20 w-16 md:w-24">
+                                                    {time.split(':')[0]}h
                                                 </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                                            )}
+                                            {JOURS.map(jour => {
+                                                const count = allSchedules.reduce((acc, user) => {
+                                                    if (user.schedule[jour] && user.schedule[jour][time]) return acc + 1;
+                                                    return acc;
+                                                }, 0);
+                                                
+                                                return (
+                                                    <td 
+                                                        key={`heatmap-${jour}-${time}`} 
+                                                        className={`border-l border-r border-gray-700 transition-colors
+                                                            ${isEndOfHour ? 'border-b border-gray-800' : 'border-b border-gray-800/30'}
+                                                            ${getHeatmapColor(jour, time)}
+                                                        `}
+                                                    >
+                                                        <div className="w-full h-full min-h-[30px] flex items-center justify-center font-techMono text-xs opacity-80">
+                                                            {count > 0 ? `${count}/${allSchedules.length}` : ''}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                   </>
               )}
           </div>
+        )
+      ) : (
+        /* ================= VUE: GESTION DES ABSENCES ================= */
+        <div className="flex flex-col gap-8 animate-fade-in">
+          
+          {/* Nouveau Formulaire d'absence */}
+          <div className="bg-black/30 border border-red-500/20 rounded-xl p-6">
+            <h3 className="font-rajdhani text-xl font-bold text-red-400 mb-4 inline-flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              DÉCLARER UNE ABSENCE
+            </h3>
+            
+            <form onSubmit={handleCreateAbsence} className="flex flex-col md:flex-row gap-4 align-top">
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-techMono text-gray-500 uppercase">Début de l'absence</label>
+                <input 
+                  type="datetime-local" 
+                  required
+                  value={newAbsence.date_start}
+                  onChange={e => setNewAbsence({...newAbsence, date_start: e.target.value})}
+                  className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-red-500 outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-techMono text-gray-500 uppercase">Fin de l'absence</label>
+                <input 
+                  type="datetime-local" 
+                  required
+                  value={newAbsence.date_end}
+                  onChange={e => setNewAbsence({...newAbsence, date_end: e.target.value})}
+                  className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-red-500 outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 flex-[2]">
+                <label className="text-xs font-techMono text-gray-500 uppercase">Justificatif / Motif</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Ex: Voyage scolaire, panne PC, RDV médical..."
+                  value={newAbsence.reason}
+                  onChange={e => setNewAbsence({...newAbsence, reason: e.target.value})}
+                  className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-red-500 outline-none w-full"
+                />
+              </div>
+
+              <button 
+                type="submit"
+                disabled={isSavingAbsence}
+                className="self-end px-6 py-2 bg-red-600/20 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white rounded-lg font-rajdhani font-bold transition-all disabled:opacity-50 h-[40px] whitespace-nowrap"
+              >
+                SOUMETTRE
+              </button>
+            </form>
+          </div>
+
+          <div className="h-px w-full bg-white/10"></div>
+
+          {/* Liste des absences */}
+          <div>
+            <h3 className="font-rajdhani text-xl text-white mb-4">HISTORIQUE DES ABSENCES</h3>
+            
+            {absences.length === 0 ? (
+              <p className="text-gray-500 font-poppins text-sm italic p-4 bg-black/20 rounded">Aucune absence déclarée pour le moment.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {absences.map(abs => {
+                  const statusMap = {
+                    'en_attente': { color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30', label: 'En attente' },
+                    'valide': { color: 'text-green-500 bg-green-500/10 border-green-500/30', label: 'Validée' },
+                    'refuse': { color: 'text-red-500 bg-red-500/10 border-red-500/30', label: 'Refusée' }
+                  };
+                  const ds = new Date(abs.date_start);
+                  const de = new Date(abs.date_end);
+
+                  let userName = abs.user_id === session.user.id ? 'Moi' : abs.user_name;
+
+                  return (
+                    <div key={abs.id} className={`bg-black/50 border border-white/5 rounded-xl p-4 flex flex-col gap-2 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] ${abs.status === 'refuse' ? 'opacity-70' : ''}`}>
+                      <div className="flex justify-between items-start">
+                         <div className="flex items-center gap-2">
+                           <span className="font-rajdhani font-bold text-white text-lg">{userName}</span>
+                           {abs.user_id !== session.user.id && (
+                             <span className="text-[10px] text-gray-500 font-techMono uppercase px-1 border border-gray-600 rounded">Agent</span>
+                           )}
+                         </div>
+                         <span className={`px-2 py-0.5 text-xs font-techMono uppercase border rounded ${statusMap[abs.status]?.color || statusMap['en_attente'].color}`}>
+                           {statusMap[abs.status]?.label || 'En attente'}
+                         </span>
+                      </div>
+                      
+                      <div className="text-xs font-techMono text-gray-400">
+                        Du <span className="text-white">{ds.toLocaleDateString()} à {ds.getHours()}h{ds.getMinutes() < 10 ? '0'+ds.getMinutes() : ds.getMinutes()}</span><br/>
+                        Au <span className="text-white">{de.toLocaleDateString()} à {de.getHours()}h{de.getMinutes() < 10 ? '0'+de.getMinutes() : de.getMinutes()}</span>
+                      </div>
+                      
+                      <p className="text-sm font-poppins text-gray-300 mt-1 italic border-l-2 border-red-500/50 pl-3">
+                        "{abs.reason}"
+                      </p>
+
+                      {/* Outils Staff */}
+                      {(isStaff || isCoach) && abs.status === 'en_attente' && (
+                        <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 justify-end">
+                          <button onClick={() => updateAbsenceStatus(abs.id, 'valide')} className="text-xs font-bold text-green-500 hover:text-green-400 hover:bg-green-500/10 px-3 py-1 rounded transition-colors border border-green-500/20">✓ VALIDER</button>
+                          <button onClick={() => updateAbsenceStatus(abs.id, 'refuse')} className="text-xs font-bold text-red-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1 rounded transition-colors border border-red-500/20">✗ REFUSER</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
       )}
 
     </div>

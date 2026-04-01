@@ -68,6 +68,26 @@
 
 ---
 
+## 🗺 Phase 7 : Strat-Book (Bibliothèque Tactique)
+- [x] **Interface Strat-Book :** Nouvel onglet réservé aux joueurs pour voir les stratégies.
+- [x] **Catégorisation (Jeux/Maps) :** Trier les strats par map (ex: Mirage, Ascent...) et par side (Attaque/Défense).
+- [x] **Table Supabase `strats` & Storage :** 
+    * Stocker le titre, la description, la map, et le rôle visé en BDD.
+    * Configuration d'un "Bucket" Supabase Storage pour upload d'images tactiques (Plans/Croquis/Screenshots In-Game).
+- [x] **Modal Création & Upload :** Créer une fenêtre modale d'ajout de stratégie avec champ File `type="file"`. Autoriser uniquement les Coachs/Staff.
+
+---
+
+## ⏱ Phase 8 : Absences & Grille Horaires Avancée (Style Pronote)
+- [x] **Refonte Grille des Dispos :** 
+    * Passage à un format "Emploi du temps" (Lundi - Dimanche).
+    * Créneaux natifs de 2h avec possibilité d'affiner à la demi-heure (30 min) via un drag/scroll.
+- [x] **Table Supabase `absences` :**
+    * Date de début / Date de fin.
+    * Motif de l'absence (Congés, Perso, Matériel, etc.).
+    * Statut (En attente d'approbation Staff, Validé, Refusé).
+- [ ] **Synchronisation Calendrier :** Un joueur ayant une absence validée apparaît automatiquement "Absent (Justifié)" sur les events concernés.
+
 ### 💡 Conseils pour ton code (avec Copilot)
 
 1.  **Pour le Glassmorphism en Tailwind :**

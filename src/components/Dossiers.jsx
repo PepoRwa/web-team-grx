@@ -13,6 +13,7 @@ export default function Dossiers({ isStaff, isCoach }) {
 
   // Stats System
   const [stats, setStats] = useState(null);
+  const [declaredAbsences, setDeclaredAbsences] = useState([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
   // Add search/filter
@@ -62,8 +63,22 @@ export default function Dossiers({ isStaff, isCoach }) {
     setSelectedUser(user);
     setNotes([]);
     setStats(null);
+    setDeclaredAbsences([]);
     fetchNotes(user.id);
     fetchStats(user.id);
+    fetchDeclaredAbsences(user.id);
+  };
+
+  const fetchDeclaredAbsences = async (userId) => {
+    const { data, error } = await supabase
+      .from('absences')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date_start', { ascending: false });
+    
+    if (!error && data) {
+      setDeclaredAbsences(data);
+    }
   };
 
   const fetchStats = async (userId) => {
@@ -242,6 +257,41 @@ export default function Dossiers({ isStaff, isCoach }) {
                             </div>
                         </div>
                     ) : null}
+
+                    {/* Section Congés et Tolérance */}
+                    {selectedUser && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div className="bg-red-900/10 border border-red-500/30 rounded-lg p-4">
+                                <h4 className="text-red-400 font-rajdhani text-sm font-bold uppercase mb-2">TOLÉRANCE ABSENCES</h4>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 bg-black/50 h-3 rounded-full overflow-hidden border border-white/5">
+                                        <div 
+                                          className={`h-full ${stats?.absent > 2 ? 'bg-red-500 animate-pulse' : stats?.absent > 0 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                                          style={{ width: `${Math.min((stats?.absent || 0) * 33.33, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    <span className="text-white font-techMono text-xs">{stats?.absent || 0} / 3 Strikes</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 font-poppins mt-2 italic">Basé sur le nombre d'absences injustifiées (non validées).</p>
+                            </div>
+
+                            <div className="bg-purple-900/10 border border-purple-500/30 rounded-lg p-4 max-h-[100px] overflow-y-auto hidden-scrollbar">
+                                <h4 className="text-purple-400 font-rajdhani text-sm font-bold uppercase mb-2 sticky top-0 bg-black/60 rounded px-1">CONGÉS / ABSENCES DÉCLARÉES</h4>
+                                {declaredAbsences.length === 0 ? (
+                                    <p className="text-[10px] text-gray-500 font-poppins italic">Aucune absence justifiée.</p>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        {declaredAbsences.map(abs => (
+                                            <div key={abs.id} className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1">
+                                                <span className="text-gray-300 truncate w-3/4">{new Date(abs.date_start).toLocaleDateString()} - {abs.reason}</span>
+                                                <span className={`${abs.status === 'valide' ? 'text-green-400' : abs.status === 'refuse' ? 'text-red-400' : 'text-yellow-400'} uppercase font-bold`}>{abs.status}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Section Formulaire d'ajout de note */}
                     <form onSubmit={handleAddNote} className="mb-6">

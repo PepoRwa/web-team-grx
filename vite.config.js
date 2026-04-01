@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt'],
+      includeAssets: ['logo-team-esport.png', 'robots.txt'],
       manifest: {
         name: 'Gowrax Team Hub',
         short_name: 'Gowrax',
