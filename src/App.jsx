@@ -366,6 +366,10 @@ function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // NOUVEAU : State pour gérer l'installation PWA
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [isIos, setIsIos] = useState(false)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -378,8 +382,35 @@ function App() {
       setSession(session)
     })
 
-    return () => subscription.unsubscribe()
+    // 📱 DÉTECTION PWA
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Détection iOS (Safari) qui ne supporte pas l'event ci-dessus
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (isIosDevice && !isStandalone) {
+      setIsIos(true);
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }
   }, [])
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   async function signInWithDiscord() {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -406,11 +437,62 @@ function App() {
 
   if (session) {
     // Si connecté, on renvoit le Dashboard contenant nos rôles !
-    return <Dashboard session={session} signOut={signOut} />
+    return (
+      <>
+        <Dashboard session={session} signOut={signOut} />
+        
+        {/* BANNIÈRE D'INSTALLATION ANDROID / DESKTOP (Si connecté) */}
+        {deferredPrompt && (
+          <div className="fixed bottom-24 md:bottom-10 right-4 left-4 md:left-auto md:w-80 bg-black/90 backdrop-blur-xl border border-gowrax-purple p-4 rounded-2xl z-[100] shadow-[0_0_30px_rgba(111,45,189,0.5)] flex flex-col gap-3 transition-all animate-bounce-short">
+            <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-gowrax-purple/20 rounded-xl flex items-center justify-center text-gowrax-neon font-bold shrink-0 border border-gowrax-purple/50">GRX</div>
+                <div>
+                  <h3 className="font-rajdhani font-bold text-white text-lg leading-tight">Installer l'Application</h3>
+                  <p className="text-[10px] text-white/70 font-poppins mt-1">Ajoute GOWRAX Hub à ton écran d'accueil pour un accès ultra-rapide.</p>
+                </div>
+            </div>
+            <div className="flex gap-2 w-full mt-1">
+              <button onClick={() => setDeferredPrompt(null)} className="flex-1 py-2 text-xs font-techMono text-white/50 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10">Plus tard</button>
+              <button onClick={handleInstallPWA} className="flex-1 py-2 text-xs font-techMono font-bold text-white bg-gradient-to-r from-gowrax-purple to-gowrax-neon hover:to-pink-500 rounded-lg transition-colors shadow-[0_0_15px_rgba(214,47,127,0.4)]">Installer</button>
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gowrax-abyss text-white flex flex-col relative overflow-y-auto font-poppins selection:bg-gowrax-neon selection:text-white">
+      {/* BANNIÈRES D'INSTALLATION PWA GLOBALES */}
+
+      {/* BANNIÈRE ANDROID / DESKTOP (SUR PAGE DE CONNEXION) */}
+      {deferredPrompt && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-black/80 backdrop-blur-xl border border-gowrax-neon p-4 rounded-2xl z-50 shadow-[0_0_40px_rgba(214,47,127,0.3)] flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-gowrax-neon/20 rounded-xl flex items-center justify-center text-gowrax-neon font-bold shrink-0 border border-gowrax-neon/50">APP</div>
+              <div>
+                <h3 className="font-rajdhani font-bold text-white text-lg leading-tight">Installer l'Application</h3>
+                <p className="text-xs text-white/80 font-poppins mt-1">Ajoute GOWRAX Hub sur ton appareil !</p>
+              </div>
+          </div>
+          <div className="flex gap-2 w-full mt-1">
+            <button onClick={() => setDeferredPrompt(null)} className="flex-1 py-2 text-xs font-techMono text-white/60 bg-white/5 rounded-lg border border-white/10">Plus tard</button>
+            <button onClick={handleInstallPWA} className="flex-1 py-2 text-xs font-techMono font-bold text-white bg-gowrax-neon hover:bg-pink-600 rounded-lg shadow-[0_0_15px_rgba(214,47,127,0.6)]">Installer Maintentant</button>
+          </div>
+        </div>
+      )}
+
+      {/* ASTUCE iOS (SAFARI NE SUPPORTE PAS LE BOUTON D'INSTALLATION DIRECTE) */}
+      {isIos && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white text-black p-4 rounded-2xl z-50 shadow-2xl flex flex-col gap-2 border-b-4 border-blue-500 animate-pulse">
+            <div>
+              <h3 className="font-rajdhani font-bold text-lg leading-tight text-blue-600">Astuce iOS 📱</h3>
+              <p className="text-xs font-poppins mt-1 text-gray-800">Pour installer l'application complète, appuie sur le bouton <b>Partager</b> <svg className="inline w-4 h-4 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> en bas de ton écran, puis sélectionne <b>"Sur l'écran d'accueil"</b>.</p>
+            </div>
+            <button onClick={() => setIsIos(false)} className="mt-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg w-full">J'ai compris</button>
+        </div>
+      )}
+
       {/* Background glowing effects */}
       <div className="fixed top-0 left-1/4 w-[40rem] h-[40rem] bg-gowrax-purple/20 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
       <div className="fixed bottom-0 right-1/4 w-[50rem] h-[50rem] bg-gowrax-neon/10 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>

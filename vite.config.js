@@ -18,7 +18,7 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'favicon.svg', // Idéalement à remplacer par pwa-192x192.png et 512x512.png
+            src: 'logo-team-esport.png', // Idéalement à remplacer par pwa-192x192.png et 512x512.png
             sizes: '192x192 512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable'
