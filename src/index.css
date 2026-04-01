@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gowrax-abyss text-white font-poppins;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-gowrax-void/60 backdrop-blur-md border border-gowrax-purple/30 shadow-[0_0_15px_rgba(111,45,189,0.3)] rounded-xl p-6;
+  }
+}
