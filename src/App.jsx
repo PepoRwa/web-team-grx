@@ -14,7 +14,9 @@ function Dashboard({ session, signOut }) {
   const [showNotifs, setShowNotifs] = useState(false);
 
   useEffect(() => {
-    fetchNotifications();
+    if (!rolesLoading) {
+      fetchNotifications();
+    }
 
     // Souscription temps réel aux notifications
     const channel = supabase.channel('public:notifications')
@@ -32,27 +34,73 @@ function Dashboard({ session, signOut }) {
         table: 'notifications',
         filter: `user_id=is.null` 
       }, payload => {
-        setNotifications(prev => [payload.new, ...prev]);
+        // Filtrage strict : si l'event a un target_roster précis, vérifier que l'user l'a ou est Staff
+        const roster = payload.new.target_roster;
+        if (!roster || roster === 'Tous' || isStaff || isCoach || roles.includes(roster)) {
+            setNotifications(prev => [payload.new, ...prev]);
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [rolesLoading, roles]);
 
   const fetchNotifications = async () => {
+    // Si pas l'autorisation de tout voir
+    let globalFilters = [`target_roster.eq.Tous`];
+    if (isStaff || isCoach) {
+      globalFilters = []; // Peuvent tout voir
+    } else {
+      const userRosters = roles.filter(r => ['High Roster', 'Academy', 'Chill', 'Tryhard'].includes(r));
+      userRosters.forEach(r => globalFilters.push(`target_roster.eq."${r}"`));
+    }
+
+    let globalQuery = 'user_id.is.null';
+    if (globalFilters.length > 0) {
+      globalQuery = `and(user_id.is.null,or(${globalFilters.join(',')}))`;
+    } 
+
     const { data } = await supabase
       .from('notifications')
       .select('*')
-      .or(`user_id.eq.${session.user.id},user_id.is.null`)
+      .or(`user_id.eq.${session.user.id},${globalQuery}`)
       .order('created_at', { ascending: false })
       .limit(10);
-    if (data) setNotifications(data);
+      
+    if (data) {
+      // Récupère les IDs des notifications globales déjà lues en local
+      const readGlobals = JSON.parse(localStorage.getItem('read_global_notifs') || '[]');
+      
+      const mappedData = data.map(n => {
+        if (!n.user_id && readGlobals.includes(n.id)) {
+          return { ...n, is_read: true };
+        }
+        return n;
+      });
+      
+      setNotifications(mappedData);
+    }
   };
 
   const markAsRead = async (id) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const notif = notifications.find(n => n.id === id);
+    if (!notif) return;
+
+    if (notif.user_id) {
+      // Vraie mise à jour dans la base de données pour les notifications personnelles
+      await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    } else {
+      // Notification Globale (user_id === null) : impossible à modifier dans la DB car on n'en est pas le propriétaire unique.
+      // On sauvegarde la lecture en local pour cet appareil !
+      const readGlobals = JSON.parse(localStorage.getItem('read_global_notifs') || '[]');
+      if (!readGlobals.includes(id)) {
+        readGlobals.push(id);
+        localStorage.setItem('read_global_notifs', JSON.stringify(readGlobals));
+      }
+    }
+    
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 

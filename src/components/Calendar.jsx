@@ -6,7 +6,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import EventCard from './EventCard';
 
 export default function Calendar({ session }) {
-  const { isStaff, isCoach } = usePermissions(session);
+  const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all'); // NOUVEAU : État pour le filtre
@@ -21,16 +21,26 @@ export default function Calendar({ session }) {
   const [newEndTime, setNewEndTime] = useState(''); // NOUVEAU
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    if (!rolesLoading) {
+      fetchEvents();
+    }
+  }, [rolesLoading, roles]);
 
   const fetchEvents = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('events')
       .select('*')
       .order('start_time', { ascending: true })
       .gte('start_time', new Date().toISOString()); // On ne récupère que les events à venir
+
+    // Restreindre la visibilité au roster du joueur (sauf s'il est Staff/Coach)
+    if (!isStaff && !isCoach) {
+       const userRosters = roles.filter(r => ['High Roster', 'Academy', 'Chill', 'Tryhard'].includes(r));
+       query = query.in('roster_type', ['Tous', ...userRosters]);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Erreur de récupération des événements:", error);
@@ -65,9 +75,10 @@ export default function Calendar({ session }) {
     if (!error && data) {
       setEvents(prev => [...prev, data].sort((a,b) => new Date(a.start_time) - new Date(b.start_time)));
       
-      // Envoi d'une notification globale (user_id IS NULL)
+      // Envoi d'une notification globale ciblée
       await supabase.from('notifications').insert({
         user_id: null,
+        target_roster: newRoster, 
         type: 'event',
         title: `Nouvel évènement : ${newTitle} [${newRoster}]`,
         message: `Un évènement (${newType}) a été planifié le ${newDate} à ${newTime}. N'oublie pas de signifier ta présence !`
