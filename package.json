@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://PepoRwa.github.io/web-team-grx",
+  "homepage": "https://team.gowrax.me",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
