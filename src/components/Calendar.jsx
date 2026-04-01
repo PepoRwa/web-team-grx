@@ -15,6 +15,7 @@ export default function Calendar({ session }) {
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState('training');
+  const [newRoster, setNewRoster] = useState('Tous'); // NOUVEAU: Type de roster
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [newEndTime, setNewEndTime] = useState(''); // NOUVEAU
@@ -54,20 +55,27 @@ export default function Calendar({ session }) {
           title: newTitle, 
           event_type: newType, 
           start_time: start_time,
-          end_time: end_time
+          end_time: end_time,
+          roster_type: newRoster
         }
-      ]);
+      ])
+      .select()
+      .single();
 
-    if (error) {
-      console.error("Erreur création d'événement:", error);
-      alert("Erreur lors de la création.");
-    } else {
+    if (!error && data) {
+      setEvents(prev => [...prev, data].sort((a,b) => new Date(a.start_time) - new Date(b.start_time)));
+      
+      // Envoi d'une notification globale (user_id IS NULL)
+      await supabase.from('notifications').insert({
+        user_id: null,
+        type: 'event',
+        title: `Nouvel évènement : ${newTitle} [${newRoster}]`,
+        message: `Un évènement (${newType}) a été planifié le ${newDate} à ${newTime}. N'oublie pas de signifier ta présence !`
+      });
+
       setShowForm(false);
-      setNewTitle(''); // Reset
-      setNewDate('');
-      setNewTime('');
-      setNewEndTime(''); // Reset
-      fetchEvents(); // Rafraîchir la liste
+    } else {
+      console.error("Erreur de création:", error);
     }
   };
 
@@ -108,38 +116,59 @@ export default function Calendar({ session }) {
 
       {/* FORMULAIRE DE CRÉATION D'ÉVÉNEMENT (COACH ONLY) */}
       {showForm && (isStaff || isCoach) && (
-        <form onSubmit={handleCreateEvent} className="bg-black/60 p-6 rounded-lg border border-gowrax-neon/50 mb-8 shadow-[0_0_15px_rgba(214,47,127,0.2)]">
-          <h3 className="text-gowrax-neon font-rajdhani text-xl mb-4 uppercase">Créer une nouvelle opération</h3>
+        <form onSubmit={handleCreateEvent} className="bg-gowrax-void/60 border border-gowrax-purple p-6 rounded-lg shadow-lg mb-8">
+          <h3 className="font-rajdhani text-2xl text-gowrax-neon mb-4 border-b border-gowrax-purple pb-2">PLANIFIER UN ÉVÉNEMENT</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-gray-400 font-techMono text-xs mb-1">TITRE DE L'OPÉRATION</label>
-              <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-gowrax-void border border-gowrax-purple rounded p-2 text-white outline-none focus:border-gowrax-neon font-poppins" placeholder="Ex: Entraînement VCT..." />
-            </div>
-            
-            <div>
-              <label className="block text-gray-400 font-techMono text-xs mb-1">TYPE D'OPÉRATION</label>
-              <select value={newType} onChange={e => setNewType(e.target.value)} className="w-full bg-gowrax-void border border-gowrax-purple rounded p-2 text-white outline-none focus:border-gowrax-neon font-poppins">
-                <option value="training">Entraînement</option>
-                <option value="match">Match Officiel</option>
-                <option value="meeting">Réunion (Debrief/Théorie)</option>
-                <option value="tournament">Tournoi</option>
-              </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <input 
+              type="text" placeholder="Titre de la session..." required
+              value={newTitle} onChange={e => setNewTitle(e.target.value)}
+              className="p-2 bg-black border border-gray-600 rounded text-white"
+            />
+            <select 
+              value={newType} onChange={e => setNewType(e.target.value)}
+              className="p-2 bg-black border border-gray-600 rounded text-white"
+            >
+              <option value="training">Entraînement</option>
+              <option value="match">Match Officiel</option>
+              <option value="tournament">Tournoi / Qualif</option>
+              <option value="meeting">Réunion Tactique</option>
+            </select>
+            <select 
+              value={newRoster} onChange={e => setNewRoster(e.target.value)}
+              className="p-2 bg-black border border-gray-600 rounded text-white"
+            >
+              <option value="Tous">Tous les Rosters</option>
+              <option value="High Roster">High Roster</option>
+              <option value="Academy">Academy</option>
+              <option value="Chill">Chill</option>
+              <option value="Tryhard">Tryhard</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-400 mb-1">Date</label>
+              <input 
+                type="date" required value={newDate} onChange={e => setNewDate(e.target.value)} 
+                className="p-2 bg-black border border-gray-600 rounded text-white [color-scheme:dark]"
+              />
             </div>
 
-            <div>
-              <label className="block text-gray-400 font-techMono text-xs mb-1">DATE</label>
-              <input type="date" required value={newDate} onChange={e => setNewDate(e.target.value)} className="w-full bg-gowrax-void border border-gowrax-purple rounded p-2 text-white outline-none focus:border-gowrax-neon font-poppins [color-scheme:dark]" />
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-400 mb-1">Heure de début</label>
+              <input 
+                type="time" required value={newTime} onChange={e => setNewTime(e.target.value)} 
+                className="p-2 bg-black border border-gray-600 rounded text-white [color-scheme:dark]"
+              />
             </div>
 
-            <div>
-              <label className="block text-gray-400 font-techMono text-xs mb-1">HEURE (Début)</label>
-              <input type="time" required value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full bg-gowrax-void border border-gowrax-purple rounded p-2 text-white outline-none focus:border-gowrax-neon font-poppins [color-scheme:dark]" />
-            </div>
-
-            <div>
-              <label className="block text-gray-400 font-techMono text-xs mb-1">HEURE MAXIMALE (Fin de Check-in)</label>
-              <input type="time" required value={newEndTime} onChange={e => setNewEndTime(e.target.value)} className="w-full bg-gowrax-void border border-gowrax-purple rounded p-2 text-white outline-none focus:border-gowrax-neon font-poppins [color-scheme:dark]" />
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-400 mb-1">Heure de fin</label>
+              <input 
+                type="time" required value={newEndTime} onChange={e => setNewEndTime(e.target.value)} 
+                className="p-2 bg-black border border-gray-600 rounded text-white [color-scheme:dark]"
+              />
             </div>
           </div>
 

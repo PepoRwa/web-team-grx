@@ -9,6 +9,55 @@ function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers' ou 'availability'
 
+  // NOUVEAU: Système de Notifications
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+
+  useEffect(() => {
+    fetchNotifications();
+
+    // Souscription temps réel aux notifications
+    const channel = supabase.channel('public:notifications')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${session.user.id}` 
+      }, payload => {
+        setNotifications(prev => [payload.new, ...prev]);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=is.null` 
+      }, payload => {
+        setNotifications(prev => [payload.new, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .or(`user_id.eq.${session.user.id},user_id.is.null`)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (data) setNotifications(data);
+  };
+
+  const markAsRead = async (id) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   return (
     <div className="min-h-screen bg-gowrax-abyss text-white flex flex-col p-4 md:p-8 relative overflow-y-auto font-poppins selection:bg-gowrax-neon selection:text-white">
         {/* LUEURS D'ARRIÈRE-PLAN DYNAMIQUES (GLASSMORPHISM) */}
@@ -45,19 +94,65 @@ function Dashboard({ session, signOut }) {
             </div>
 
             <div className="flex flex-col items-center md:items-end gap-3">
-                {/* RÔLES AVEC UN STYLE BADGE PREMIUM */}
-                <div className="flex flex-wrap gap-2 text-[10px] font-techMono font-bold tracking-widest">
-                    {rolesLoading ? (
-                        <span className="text-gray-500 bg-white/5 px-3 py-1 rounded-full border border-white/10 animate-pulse">SCANNING...</span>
-                    ) : roles.length > 0 ? (
-                        roles.map((role) => (
-                            <span key={role} className="px-3 py-1 bg-gradient-to-r from-gowrax-purple/20 to-gowrax-neon/20 text-white rounded-full border border-white/10 shadow-[0_2px_10px_rgba(111,45,189,0.3)] backdrop-blur-sm">
-                                {role}
-                            </span>
-                        ))
-                    ) : (
-                        <span className="text-gray-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">OPÉRATEUR</span>
-                    )}
+                <div className="flex items-center justify-end gap-3 w-full">
+                    {/* CLOCHE DE NOTIFICATIONS */}
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowNotifs(!showNotifs)}
+                            className="relative flex items-center justify-center p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                        >
+                            <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* MENU DÉROULANT DES NOTIFICATIONS */}
+                        {showNotifs && (
+                            <div className="absolute right-0 mt-3 w-80 max-h-96 overflow-y-auto bg-black/90 backdrop-blur-2xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 p-2">
+                                <div className="p-2 border-b border-white/5 flex justify-between items-center mb-2">
+                                  <span className="font-rajdhani text-sm font-bold text-gray-300 uppercase tracking-widest">ALERTS</span>
+                                  {unreadCount > 0 && <span className="text-[10px] text-gowrax-neon font-techMono">{unreadCount} NEW</span>}
+                                </div>
+                                {notifications.length === 0 ? (
+                                    <p className="text-gray-500 text-xs text-center py-4 font-poppins italic">Aucune alerte récente.</p>
+                                ) : (
+                                    <div className="flex flex-col gap-1.5">
+                                        {notifications.map(n => (
+                                            <div 
+                                              key={n.id} 
+                                              onClick={() => markAsRead(n.id)}
+                                              className={`p-3 rounded-lg text-left text-sm transition-colors cursor-pointer border ${n.is_read ? 'bg-white/5 border-transparent opacity-60' : 'bg-gowrax-purple/10 border-gowrax-purple/30 hover:border-gowrax-purple'}`}
+                                            >
+                                                <h4 className={`font-rajdhani font-bold flex items-center justify-between ${n.is_read ? 'text-gray-400' : 'text-white'}`}>
+                                                  {n.title}
+                                                  {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-gowrax-neon"></span>}
+                                                </h4>
+                                                <p className="text-xs text-gray-400 mt-1 font-poppins">{n.message}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RÔLES AVEC UN STYLE BADGE PREMIUM */}
+                    <div className="flex flex-wrap gap-2 text-[10px] font-techMono font-bold tracking-widest">
+                        {rolesLoading ? (
+                            <span className="text-gray-500 bg-white/5 px-3 py-1 rounded-full border border-white/10 animate-pulse">SCANNING...</span>
+                        ) : roles.length > 0 ? (
+                            roles.map((role) => (
+                                <span key={role} className="px-3 py-1 bg-gradient-to-r from-gowrax-purple/20 to-gowrax-neon/20 text-white rounded-full border border-white/10 shadow-[0_2px_10px_rgba(111,45,189,0.3)] backdrop-blur-sm">
+                                    {role}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-gray-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">OPÉRATEUR</span>
+                        )}
+                    </div>
                 </div>
                 
                 <button 

@@ -78,7 +78,8 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
         *,
         profiles (
           username,
-          avatar_url
+          avatar_url,
+          discord_id
         )
       `)
       .eq('event_id', event.id);
@@ -105,7 +106,8 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
         *,
         profiles (
           username,
-          avatar_url
+          avatar_url,
+          discord_id
         )
       `)
       .single();
@@ -113,6 +115,15 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
     if (!error && data) {
       // Mettre à jour l'entrée locale sans re-fetch tout
       setRollCallData(prev => prev.map(c => c.user_id === userId ? data : c));
+      
+      // Notifier le joueur que le staff a modifié sa présence
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        target_discord_id: data.profiles.discord_id,
+        type: 'alerte',
+        title: 'Check-in Modifié par le Staff',
+        message: `Ton statut pour l'évènement [${event.title}] a été forcé sur "${newStatus}" par le Coach.`
+      });
     }
   };
 
@@ -167,7 +178,15 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
                 <span className={`text-[10px] font-techMono uppercase px-2 py-0.5 rounded border ${getTypeBadge(event.event_type)}`}>
                     {event.event_type}
                 </span>
-                <h3 className="text-xl font-rajdhani text-white font-bold tracking-wide">{event.title}</h3>
+                
+                {/* Badge Roster */}
+                {event.roster_type && event.roster_type !== 'Tous' && (
+                    <span className="text-[10px] font-techMono uppercase px-2 py-0.5 rounded border bg-blue-900/30 text-blue-300 border-blue-500/50">
+                        {event.roster_type}
+                    </span>
+                )}
+                
+                <h3 className="font-rajdhani text-2xl font-bold text-white tracking-widest leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{event.title}</h3>
             </div>
             <p className="text-gray-400 font-techMono text-sm">
                 📅 {dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} &nbsp;|&nbsp; 
