@@ -7,10 +7,5 @@ export default defineConfig({
   base: '/web-team-grx/', // Indispensable pour un bon routage sur Github Pages
   build: {
     sourcemap: false, // Désactive la génération des source maps pour la prod (sécurité)
-    target: 'esnext',
-    minify: 'esbuild',
-  },
-  esbuild: {
-    drop: ['console', 'debugger'], // Supprime automatiquement les console.log en prod
   }
 })
