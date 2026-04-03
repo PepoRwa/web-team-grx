@@ -41,7 +41,7 @@ export function usePermissions(session) {
     
     // Raccourcis pour les vérifs récurrentes
     const isFounder = hasRole('Fondateurs');
-    const isStaff = isFounder || hasRole('Staff') || hasRole('Chef Staff');
+    const isStaff = isFounder || hasRole('Staff') || hasRole('Chef du Staff');
     const isCoach = isFounder || hasRole('Coach') || hasRole('Head Coach') || isStaff;
 
     return { roles, hasRole, isFounder, isStaff, isCoach, loading };
