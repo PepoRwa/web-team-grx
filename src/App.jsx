@@ -6,10 +6,11 @@ import Dossiers from './components/Dossiers' // NOUVEAU IMPORT
 import Availability from './components/Availability' // PHASE 4
 import Stratbook from './components/Stratbook' // PHASE 7
 import Vods from './components/Vods' // NOUVEAU IMPORT VODS
+import CoachingHub from './components/CoachingHub' // PHASE 9
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods', 'coaching'
 
   // NOUVEAU: Système de Notifications
   const [notifications, setNotifications] = useState([]);
@@ -17,6 +18,7 @@ function Dashboard({ session, signOut }) {
   
   // NOUVEAU: Profil Utilisateur Local
   const [myStats, setMyStats] = useState({ absent: 0 });
+  const [myGoalsStats, setMyGoalsStats] = useState({ inProgress: 0, completed: 0 });
 
   useEffect(() => {
     const loadMyStats = async () => {
@@ -27,7 +29,22 @@ function Dashboard({ session, signOut }) {
         .eq('status', 'absent');
       if (data) setMyStats({ absent: data.length });
     };
+
+    const loadGoalsStats = async () => {
+      const { data } = await supabase
+        .from('coaching_goals')
+        .select('status')
+        .eq('player_id', session.user.id);
+      if (data) {
+        setMyGoalsStats({
+          inProgress: data.filter(g => g.status === 'in_progress').length,
+          completed: data.filter(g => g.status === 'completed').length
+        });
+      }
+    };
+
     loadMyStats();
+    loadGoalsStats();
   }, [session.user.id]);
 
   useEffect(() => {
@@ -193,6 +210,14 @@ function Dashboard({ session, signOut }) {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>                                                                                             VODs & Replays
                     </button>
 
+                    <button 
+                        onClick={() => setActiveTab('coaching')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-2 ${activeTab === 'coaching' ? 'bg-gradient-to-r from-orange-500/40 to-transparent bg-orange-500/10 border-l-4 border-orange-400 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Mentorat
+                    </button>
+
                     {(isStaff || isCoach) && (
                         <button 
                             onClick={() => setActiveTab('dossiers')}
@@ -337,21 +362,57 @@ function Dashboard({ session, signOut }) {
                                   </button>
                               </div>
 
-                              <div className="bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-blue-500/50 transition-colors shadow-lg">
-                                  <h3 className="font-rajdhani text-2xl text-blue-500 font-bold mb-2 tracking-wide">TACTICAL DASHBOARD</h3>
-                                  <p className="font-poppins text-gray-400 text-sm mb-4">Analyse des présences (Heatmaps) et stratégies globales.</p>
-                                  <button onClick={() => setActiveTab('availability')} className="px-6 py-2.5 bg-blue-500/10 font-rajdhani text-blue-400 font-bold border border-blue-500/50 rounded-xl hover:bg-blue-500 hover:text-white transition-all uppercase w-full tracking-widest">
-                                    Voir les Heatmaps
-                                  </button>
-                              </div>
-                          </div>
-                        )}
-                    </>
-                )}
+                                <div className="bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-blue-500/50 transition-colors shadow-lg">
+                                    <h3 className="font-rajdhani text-2xl text-blue-500 font-bold mb-2 tracking-wide">TACTICAL DASHBOARD</h3>
+                                    <p className="font-poppins text-gray-400 text-sm mb-4">Analyse des présences (Heatmaps) et stratégies globales.</p>
+                                    <button onClick={() => setActiveTab('availability')} className="px-6 py-2.5 bg-blue-500/10 font-rajdhani text-blue-400 font-bold border border-blue-500/50 rounded-xl hover:bg-blue-500 hover:text-white transition-all uppercase w-full tracking-widest">
+                                      Voir les Heatmaps
+                                    </button>
+                                </div>
 
-                {activeTab === 'availability' && <Availability session={session} isStaff={isStaff} isCoach={isCoach} />}
+                                <div className="bg-orange-900/10 border border-orange-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-orange-500/50 transition-colors shadow-lg md:col-span-2">
+                                    <h3 className="font-rajdhani text-2xl text-orange-500 font-bold mb-2 tracking-wide">COACHING HUB</h3>
+                                    <p className="font-poppins text-gray-400 text-sm mb-4">Assigner des objectifs personnalisés ou examiner les VODs des recrues.</p>
+                                    <button onClick={() => setActiveTab('coaching')} className="px-6 py-2.5 bg-orange-500/10 font-rajdhani text-orange-400 font-bold border border-orange-500/50 rounded-xl hover:bg-orange-500 hover:text-white transition-all uppercase w-full tracking-widest">
+                                      Ouvrir le Mentorat
+                                    </button>
+                                </div>
+                            </div>
+                          )}                          {(!isStaff && !isCoach) && (
+                            <div className="grid grid-cols-1 mt-4">
+                                <div 
+                                    onClick={() => setActiveTab('coaching')}
+                                    className="bg-orange-900/10 border border-orange-500/20 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center hover:bg-orange-900/20 hover:border-orange-500/50 transition-all cursor-pointer shadow-[0_0_20px_rgba(249,115,22,0.1)] group"
+                                >
+                                    <div className="flex items-center gap-4 text-left">
+                                        <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/50 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-rajdhani text-xl text-orange-500 font-bold uppercase tracking-wider">Mes Objectifs Tactiques</h3>
+                                            <p className="font-poppins text-gray-400 text-xs">Accédez à votre suivi personnalisé mis en place par le staff GOWRAX.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-4 mt-4 md:mt-0 text-center">
+                                        <div className="flex flex-col">
+                                            <span className="font-techMono text-2xl text-white font-bold">{myGoalsStats.inProgress}</span>
+                                            <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">En cours</span>
+                                        </div>
+                                        <div className="w-px h-8 bg-white/10 hidden md:block mt-1"></div>
+                                        <div className="flex flex-col">
+                                            <span className="font-techMono text-2xl text-green-400 font-bold">{myGoalsStats.completed}</span>
+                                            <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">Validés</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                          )}
+                      </>
+                  )}                {activeTab === 'availability' && <Availability session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'stratbook' && <Stratbook isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
+                {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
             </main>
         </div>
@@ -396,6 +457,16 @@ function Dashboard({ session, signOut }) {
                 <div className={`p-1 rounded-full ${activeTab === 'vods' ? 'bg-blue-600/20' : ''}`}>
                   <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'vods' ? '2.5' : '2'} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>                                            </div>
                 <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">VODs</span>
+            </button>
+
+            <button 
+                onClick={() => setActiveTab('coaching')}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'coaching' ? 'text-orange-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+                <div className={`p-1 rounded-full ${activeTab === 'coaching' ? 'bg-orange-500/20' : ''}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'coaching' ? '2.5' : '2'} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Coaching</span>
             </button>
 
             {(isStaff || isCoach) && (

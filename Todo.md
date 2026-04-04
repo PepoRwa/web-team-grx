@@ -101,3 +101,37 @@
     ```javascript
     {isMobile ? <BottomNav /> : <Sidebar />}
     ```
+
+---
+
+## 🎯 Phase 9 : NOUVELLES FONCTIONNALITÉS OBJECTIFS & TACTIQUE
+
+### 1. Coaching Hub (Suivi Individuel & Objectifs) - *[PRIORITÉ ACTUELLE]*
+**Concept :** Un système de mentorat où les Coachs assignent et évaluent des objectifs personnalisés pour chaque joueur.
+**Implémentation Technique :**
+*   **Table `coaching_goals` :**
+    *   `id` (uuid)
+    *   `player_id` (uuid) - Le joueur ciblé
+    *   `coach_id` (uuid) - **CRUCIAL:** Pour savoir quel coach a assigné l'objectif (pour la traçabilité).
+    *   `title` (string) - Titre de l'objectif (ex: "Crosshair Placement", "Comms Post-Plant")
+    *   `description` (text) - Détails et consignes du coach
+    *   `status` (enum: 'in_progress', 'completed', 'failed')
+    *   `created_at` & `updated_at`
+*   **Interface Joueur :** Un encart "Mes Objectifs Actuels" sur le Dashboard avec l'avatar et le nom du Coach qui l'a assigné.
+*   **Interface Coach :** Une vue Kanban ou Liste par joueur pour ajouter, valider ou commenter la progression des objectifs.
+
+### 2. Tactical Board (Créateur de Compositions / Agent Select)
+**Concept :** Permettre au Staff/IGL de définir visuellement les compositions d'agents parfaites pour chaque Map.
+**Implémentation Technique :**
+*   **Table `team_comps` :**
+    *   `id`, `roster_id`, `map_name`, `author_id`
+*   **Table `comp_roles` (liée à team_comps) :**
+    *   `comp_id`, `player_id`, `agent_name` (ex: Omen, Jett)
+*   **UI :** Affichage visuel avec les icônes des agents Valorant assignés à chaque joueur du roster selon la map. Fini les Google Sheets !
+
+### 3. Pracc Tracker (Historique & Statistiques d'équipe)
+**Concept :** Enregistrement des résultats de Scrims/Matchs pour générer des statistiques (Winrate, Att/Def winrate, Maps fortes/faibles).
+**Implémentation Technique :**
+*   **Table `match_history` :**
+    *   `id`, `date`, `opponent_name`, `map_name`, `score_us`, `score_them`, `type` (Scrim, Officiel)
+*   **Dashboard Stats :** Graphiques (recharts ou chart.js) montrant le Winrate global, le Winrate par Map, etc.
