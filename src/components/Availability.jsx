@@ -19,6 +19,10 @@ export default function Availability({ session, isStaff, isCoach }) {
   const [activeTab, setActiveTab] = useState('grille'); // 'grille' ou 'absences'
   const [viewMode, setViewMode] = useState('perso'); // 'perso' ou 'heatmap'
   
+  // ROSTERS 
+  const ROSTERS = ['Tous', 'High Roster', 'Academy', 'Chill', 'Tryhard'];
+  const [activeRoster, setActiveRoster] = useState('Tous');
+
   // Pour ma grille perso
   const [mySchedule, setMySchedule] = useState({});
   const [loadingMySchedule, setLoadingMySchedule] = useState(true);
@@ -234,25 +238,55 @@ export default function Availability({ session, isStaff, isCoach }) {
   // --- LOGIQUE HEATMAP (COACH/STAFF) ---
   const fetchAllSchedules = async () => {
     setLoadingHeatmap(true);
-    const { data, error } = await supabase
+    
+    // 1. On récupère les grilles de dispo de tout le monde
+    const { data: schedulesData, error: errSchedules } = await supabase
       .from('user_availabilities')
       .select('user_id, schedule');
 
-    if (!error && data) {
-      setAllSchedules(data);
+    // 2. On récupère les rôles pour faire le filtre par roster
+    const { data: rolesData, error: errRoles } = await supabase
+      .from('user_roles')
+      .select('user_id, roles(name)');
+
+    if (!errSchedules && schedulesData) {
+      // Associer user_id -> tableau de rôles
+      const rolesMap = {};
+      if (rolesData) {
+        rolesData.forEach(item => {
+          if (!rolesMap[item.user_id]) rolesMap[item.user_id] = [];
+          if (item.roles && item.roles.name) {
+            rolesMap[item.user_id].push(item.roles.name);
+          }
+        });
+      }
+
+      // On enrichit chaque grille avec son tableau de rôles
+      const enhancedSchedules = schedulesData.map(s => ({
+        ...s,
+        roles: rolesMap[s.user_id] || []
+      }));
+
+      setAllSchedules(enhancedSchedules);
     }
     setLoadingHeatmap(false);
   };
 
+  // Appliquer le filtre Roster
+  const filteredSchedules = React.useMemo(() => {
+    if (activeRoster === 'Tous') return allSchedules;
+    return allSchedules.filter(user => user.roles && user.roles.includes(activeRoster));
+  }, [allSchedules, activeRoster]);
+
   const getHeatmapColor = (jour, creneau) => {
-    if (allSchedules.length === 0) return 'bg-black/40 text-gray-500';
+    if (filteredSchedules.length === 0) return 'bg-black/40 text-gray-500';
     
-    const count = allSchedules.reduce((acc, user) => {
+    const count = filteredSchedules.reduce((acc, user) => {
       if (user.schedule[jour] && user.schedule[jour][creneau]) return acc + 1;
       return acc;
     }, 0);
 
-    const percentage = count / allSchedules.length;
+    const percentage = count / filteredSchedules.length;
     
     if (percentage === 0) return 'bg-black/40 text-gray-500';
     if (percentage < 0.3) return 'bg-gowrax-neon/20 text-white';
@@ -416,14 +450,38 @@ export default function Availability({ session, isStaff, isCoach }) {
       ) : (
           /* ================= VUE: HEATMAP ÉQUIPE (COACH) ================= */
           <div className="flex flex-col gap-6">
+              
+              {/* --- FILTRE ROSTER --- */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white/[0.02] border border-white/10 p-4 rounded-xl mb-2 shadow-inner">
+                  <div className="flex flex-col gap-1">
+                      <h3 className="font-rajdhani font-bold text-white text-lg flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gowrax-neon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        Filtre Roster
+                      </h3>
+                      <p className="text-xs font-poppins text-gray-400">Croisez l'affluence en fonction d'une escouade spécifique.</p>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-wrap mt-3 md:mt-0">
+                      {ROSTERS.map(roster => (
+                          <button 
+                              key={roster}
+                              onClick={() => setActiveRoster(roster)}
+                              className={`px-4 py-2 font-techMono text-xs rounded-lg transition-all border ${activeRoster === roster ? 'bg-gowrax-neon text-white border-gowrax-neon shadow-[0_0_15px_rgba(214,47,127,0.4)]' : 'bg-black/50 text-gray-400 border-white/5 hover:border-white/20 hover:text-white'}`}
+                          >
+                              {roster}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+
               {loadingHeatmap ? (
                   <p className="text-gowrax-neon font-techMono animate-pulse">Compilation des coordonnées d'escouade...</p>
               ) : (
                   <>
                     <p className="text-gray-400 font-poppins text-sm mb-2">
-                        Le <strong className="text-green-500">Heatmap</strong> t'indique les créneaux où le plus de joueurs sont disponibles. 
+                        Le <strong className="text-green-500">Heatmap</strong> t'indique les créneaux où le plus de joueurs sont disponibles.
                         Couleur vive = Forte disponibilité (Idéal pour des Praccs/Matchs). 
-                        Base de calcul : {allSchedules.length} agents détectés.
+                        Base de calcul : {filteredSchedules.length} agents détectés sur l'effectif sélectionné.
                     </p>
 
                     <div className="overflow-x-auto pb-4 custom-scrollbar select-none">
@@ -451,7 +509,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                                                 </td>
                                             )}
                                             {JOURS.map(jour => {
-                                                const count = allSchedules.reduce((acc, user) => {
+                                                const count = filteredSchedules.reduce((acc, user) => {
                                                     if (user.schedule[jour] && user.schedule[jour][time]) return acc + 1;
                                                     return acc;
                                                 }, 0);
@@ -465,7 +523,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                                                         `}
                                                     >
                                                         <div className="w-full h-full min-h-[30px] flex items-center justify-center font-techMono text-xs opacity-80">
-                                                            {count > 0 ? `${count}/${allSchedules.length}` : ''}
+                                                            {count > 0 ? `${count}/${filteredSchedules.length}` : ''}
                                                         </div>
                                                     </td>
                                                 );
