@@ -7,6 +7,7 @@ import Availability from './components/Availability' // PHASE 4
 import Stratbook from './components/Stratbook' // PHASE 7
 import Vods from './components/Vods' // NOUVEAU IMPORT VODS
 import CoachingHub from './components/CoachingHub' // PHASE 9
+import Download from './components/Download' // NOUVEAU TUTO INSTALL
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
@@ -500,6 +501,11 @@ function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // NOUVEAU : Route simple pour /download
+  if (window.location.pathname === '/download') {
+    return <Download />
+  }
+
   // NOUVEAU : State pour gérer l'installation PWA
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isIos, setIsIos] = useState(false)
@@ -679,14 +685,19 @@ function App() {
               </svg>
               <span className="tracking-widest relative z-10">CONNEXION DISCORD</span>
             </button>
-            <p className="text-[10px] text-gray-500 mt-4 font-poppins text-center">
-              Accès strictement réservé aux membres validés sur le serveur Discord GOWRAX.
-            </p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-2">
+              <a href="/download" className="text-xs font-bold text-gowrax-neon hover:text-pink-400 uppercase tracking-widest border-b border-dashed border-gowrax-neon/50 hover:border-pink-400 transition-colors">
+                  &gt; Guide d'Installation de l'Application &lt;
+                </a>
+              <p className="text-[10px] text-gray-500 mt-2 font-poppins text-center">
+                Accès strictement réservé aux membres validés sur le serveur Discord GOWRAX.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Features Overview (Vitrine) */}
-      <div className="w-full max-w-6xl mx-auto z-10 px-6 pb-20">
+        {/* Features Overview (Vitrine) */}
+        <div className="w-full max-w-6xl mx-auto z-10 px-6 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-purple/50 transition-all duration-500 group">
             <div className="w-12 h-12 bg-gowrax-purple/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -712,7 +723,7 @@ function App() {
             <div className="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg className="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
             </div>
-            <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Gowrax Strat-Book</h3>
+            <h3 className="font-rajdhani text-2xl text-white font-bold mb-2 tracking-wide">Gowrax Strat-Book</h3>
             <p className="font-poppins text-xs text-gray-400 leading-relaxed">
               L'armoirie tactique de l'équipe : upload et lecture plein-écran de Setups et retakes avec filtrage par Map et Side (Défense/Attaque).
             </p>
