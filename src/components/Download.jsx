@@ -192,7 +192,7 @@ export default function Download() {
                                 <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 Dashboard Tactique (Heatmaps)
                             </h4>
-                            <p className="text-xs text-blue-200/60 font-poppins mt-1">Moteur d'agrégation d'activité identifiant visuellement les "Points Chauds". Permet de monter des rosters d'entraînements de 19h à minuit sur les meilleures affluences.</p>
+                            <p className="text-xs text-blue-200/60 font-poppins mt-1">Moteur d'agrégation d'activité identifiant visuellement les "Points Chauds". Permet de monter des rosters d'entraînements par journée sur les meilleures affluences.</p>
                         </li>
                         <li className="bg-orange-900/10 p-4 rounded-xl border border-orange-500/20 border-l-4 border-l-orange-500 hover:bg-orange-900/20 transition-colors">
                             <h4 className="font-rajdhani font-bold text-orange-100 text-lg flex items-center gap-2">

@@ -498,13 +498,18 @@ function Dashboard({ session, signOut }) {
 }
 
 function App() {
+  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // NOUVEAU : Route simple pour /download
-  if (window.location.pathname === '/download') {
-    return <Download />
-  }
+  // Écoute les retours arrière du navigateur
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // NOUVEAU : State pour gérer l'installation PWA
   const [deferredPrompt, setDeferredPrompt] = useState(null)
@@ -565,6 +570,11 @@ function App() {
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) console.error("Error logging out:", error.message)
+  }
+
+  // NOUVEAU : Route pour /download (compatible avec le state React)
+  if (currentPath.includes('/download') || window.location.search.includes('view=download')) {
+    return <Download />
   }
 
   if (loading) {
@@ -685,11 +695,17 @@ function App() {
               </svg>
               <span className="tracking-widest relative z-10">CONNEXION DISCORD</span>
             </button>
-            <div className="mt-6 flex flex-col items-center justify-center gap-2">
-              <a href="/download" className="text-xs font-bold text-gowrax-neon hover:text-pink-400 uppercase tracking-widest border-b border-dashed border-gowrax-neon/50 hover:border-pink-400 transition-colors">
-                  &gt; Guide d'Installation de l'Application &lt;
-                </a>
-              <p className="text-[10px] text-gray-500 mt-2 font-poppins text-center">
+              <div className="mt-6 flex flex-col items-center justify-center gap-2 relative z-10">
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, '', '/download');
+                    setCurrentPath('/download');
+                  }}
+                  className="text-xs font-bold text-gowrax-neon hover:text-pink-400 uppercase tracking-widest border-b border-dashed border-gowrax-neon/50 hover:border-pink-400 transition-colors"
+                >
+                    &gt; Guide d'Installation de l'Application &lt;
+                </button>
+                <p className="text-[10px] text-gray-500 mt-2 font-poppins text-center">
                 Accès strictement réservé aux membres validés sur le serveur Discord GOWRAX.
               </p>
             </div>
