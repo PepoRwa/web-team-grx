@@ -28,6 +28,39 @@ function Dashboard({ session, signOut }) {
   const [myGoalsStats, setMyGoalsStats] = useState({ inProgress: 0, completed: 0 });
 
   useEffect(() => {
+    if (!session) return;
+    
+    // RADAR DE PRÉSENCE (Tracke chaque mouvement d'un joueur)
+    const room = supabase.channel('radar_global', {
+      config: { presence: { key: session.user.id } }
+    });
+
+    room.on('presence', { event: 'sync' }, () => {}).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const _ = await room.track({
+          username: session.user.user_metadata?.full_name || session.user.email,
+          tab: activeTab,
+          updated_at: new Date().toISOString()
+        });
+      }
+    });
+
+    // Met à jour la position du joueur s'il change d'onglet
+    const updatePosition = async () => {
+      if (room.state === 'joined') {
+         await room.track({
+            username: session.user.user_metadata?.full_name || session.user.email,
+            tab: activeTab,
+            updated_at: new Date().toISOString()
+         });
+      }
+    }
+    updatePosition();
+
+    return () => { supabase.removeChannel(room); }
+  }, [activeTab, session]);
+
+  useEffect(() => {
     const loadMyStats = async () => {
       const { data } = await supabase
         .from('check_ins')

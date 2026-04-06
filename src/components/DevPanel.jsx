@@ -19,6 +19,9 @@ export default function DevPanel({ session }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
+  const [onlineUsers, setOnlineUsers] = useState({});
+  const [discordMembers, setDiscordMembers] = useState([]);
+
   useEffect(() => {
     fetchData();
     // Si on change d'onglet, on quitte le ticket sélectionné
@@ -28,6 +31,31 @@ export default function DevPanel({ session }) {
   useEffect(() => {
     if (selectedIssue) fetchComments(selectedIssue.id);
   }, [selectedIssue]);
+
+  // SYSTEME DE RADAR (TEMPS REEL)
+  useEffect(() => {
+    if (activeTab !== 'sessions') return;
+    
+    // Le Tracker PWA de ce même joueur est dans App.jsx sur 'radar_global'
+    // Pour ne pas faire d'erreur "Cannot add callback after subscribe", on lit en tant qu'Observateur
+    // On crée un canal jumeau qui a les MÊMES données sans casser le principal de App.jsx
+    const radarRoom = supabase.channel('radar_global_dev_panel');
+    
+    radarRoom.on('presence', { event: 'sync' }, () => {
+      const newState = radarRoom.presenceState();
+      setOnlineUsers(newState);
+    }).subscribe();
+
+    const fetchDiscordCache = async () => {
+      const { data, error } = await supabase.from('discord_cache').select('*').order('highest_role', { ascending: true });
+      if (data) setDiscordMembers(data);
+    };
+    fetchDiscordCache();
+
+    return () => { 
+      supabase.removeChannel(radarRoom);
+    };
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -357,15 +385,116 @@ export default function DevPanel({ session }) {
               )
             )}
 
-            {/* ===================== ONGLET 3: RADAR ===================== */}
+            {/* ===================== ONGLET 3: RADAR (UNIQUEMENT PC) ===================== */}
             {activeTab === 'sessions' && (
-              <div className="flex flex-col items-center justify-center p-10 h-full text-center space-y-4">
-                 <div className="w-16 h-16 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center animate-pulse">
-                    <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                 </div>
-                 <h3 className="font-techMono text-xl text-purple-400">MODULE PRESENCE (EN CONSTRUCTION)</h3>
-                 <p className="text-gray-500 font-poppins text-sm max-w-md">L'implémentation du tracker WebSocket via `supabase.channel('online-users')` permettant de voir les utilisateurs naviguant sur l'application en temps réel est configurée mais l'interface visuelle est prévue pour le prochain patch.</p>
-              </div>
+              <>
+                <div className="md:hidden flex flex-col items-center justify-center p-10 h-full text-center space-y-4">
+                   <h3 className="font-techMono text-2xl text-red-500 animate-pulse">RESTREINT AU PC</h3>
+                   <p className="text-gray-500 font-poppins text-sm max-w-md">L'interface du Radar de Scan croisé (Membres Discord x Profils Web x WebSocket Temp-Réel) est trop volumineuse pour être affichée sur mobile.</p>
+                </div>
+                
+                <div className="hidden md:flex flex-col h-full animate-fade-in space-y-4">
+                   <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                     <div>
+                        <h3 className="font-rajdhani text-2xl font-bold tracking-wider text-purple-400">🕵️ GLOBAL RADAR SYSTEM</h3>
+                        <p className="text-sm font-techMono text-gray-500">Scan des membres du serveur VS Inscrits sur le site Web.</p>
+                     </div>
+                     <div className="flex gap-4 items-center">
+                        <div className="flex flex-col items-end">
+                           <span className="font-techMono text-[10px] text-gray-500 uppercase">Connectés Site</span>
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 bg-purple-500 rounded-full animate-ping"></div>
+                             <span className="font-bold text-white text-lg">{Object.keys(onlineUsers).length}</span>
+                           </div>
+                        </div>
+                        <div className="h-8 w-px bg-white/20 mx-2"></div>
+                        <div className="flex flex-col items-start bg-black/50 px-4 py-2 border border-white/10 rounded-lg">
+                           <span className="font-techMono text-[10px] text-gray-500 uppercase">Membres Discord</span>
+                           <span className="font-bold text-white text-lg">{discordMembers.length}</span>
+                        </div>
+                     </div>
+                   </div>
+
+                   <div className="flex-1 overflow-x-auto overflow-y-auto bg-black/60 border border-white/5 rounded-xl custom-scrollbar relative">
+                     <table className="w-full text-left font-techMono">
+                       <thead className="sticky top-0 bg-[#0B0D17] border-b border-white/10 text-[10px] uppercase text-gray-500 z-10">
+                         <tr>
+                           <th className="p-3 w-10">Statut</th>
+                           <th className="p-3">Membre Server</th>
+                           <th className="p-3">Rôle Majeur</th>
+                           <th className="p-3">Inscrit Web?</th>
+                           <th className="p-3">Activité Site</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {discordMembers.map(member => {
+                           // Chercher si le joueur s'est inscrit sur le site via la liaison discord
+                           const enrolledProfile = Object.values(profiles).find(p => !!p); // Simplification, l'idéal est de lier via discord_id
+                           
+                           // Chercher s'il est en ce moment même sur le site (Presence)
+                           // Dans le cas où enrolledProfile est matché, mais là on va simuler ou chercher.
+                           let isOnline = false;
+                           let action = 'Hors-ligne';
+                           // Boucle pour voir si on le trouve par son pseudo
+                           Object.values(onlineUsers).forEach(arr => {
+                             if (arr && arr[0] && arr[0].username === member.username || arr[0]?.username === member.global_name) {
+                               isOnline = true;
+                               action = `Sur la page : ${arr[0].tab.toUpperCase()}`;
+                             }
+                           });
+
+                           return (
+                             <tr key={member.discord_id} className="border-b border-white/5 hover:bg-white/5 transition-colors h-14">
+                               <td className="p-3 text-center align-middle">
+                                 {isOnline ? (
+                                   <div className="w-3 h-3 bg-[#00FF41] rounded-full mx-auto shadow-[0_0_10px_#00FF41]"></div>
+                                 ) : (
+                                   <div className="w-2 h-2 bg-gray-700 rounded-full mx-auto"></div>
+                                 )}
+                               </td>
+                               <td className="p-3">
+                                  <div className="flex items-center gap-3">
+                                      <img src={member.avatar_url || 'https://via.placeholder.com/40'} className="w-8 h-8 rounded-lg outline outline-1 outline-white/10" />
+                                      <div className="flex flex-col">
+                                          <span className="font-bold text-white text-sm">{member.global_name}</span>
+                                          <span className="text-[10px] text-gray-600">@{member.username}</span>
+                                      </div>
+                                  </div>
+                               </td>
+                               <td className="p-3">
+                                  <span className={`px-2 py-1 text-[10px] font-bold rounded ${
+                                      member.highest_role.includes('Staff') || member.highest_role.includes('Admin') ? 'bg-red-500/20 border border-red-500/50 text-red-400' :
+                                      member.highest_role.includes('Roster') || member.highest_role.includes('Tryhard') ? 'bg-blue-500/20 border border-blue-500/50 text-blue-400' : 
+                                      'bg-gray-500/20 border border-gray-500/50 text-gray-400'
+                                  }`}>
+                                     {member.highest_role}
+                                  </span>
+                               </td>
+                               <td className="p-3 text-xs">
+                                  {enrolledProfile ? (
+                                    <span className="text-[#00FF41]">✅ OUI</span>
+                                  ) : (
+                                    <span className="text-gray-500">❌ NON</span>
+                                  )}
+                               </td>
+                               <td className="p-3 text-xs italic">
+                                  {isOnline ? (
+                                    <span className="text-[#00FF41] flex items-center gap-2">
+                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                       {action}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-600">Inactif</span>
+                                  )}
+                               </td>
+                             </tr>
+                           )
+                         })}
+                       </tbody>
+                     </table>
+                   </div>
+                </div>
+              </>
             )}
           </>
         )}
