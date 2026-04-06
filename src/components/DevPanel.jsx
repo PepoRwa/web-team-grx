@@ -43,10 +43,12 @@ export default function DevPanel({ session }) {
 
     // 2. Fetch according to tab
     if (activeTab === 'logs') {
-      const { data } = await supabase.from('system_logs').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data, error } = await supabase.from('system_logs').select('*').order('created_at', { ascending: false }).limit(50);
+      if (error) console.error("Erreur Fetch Logs:", error);
       if (data) setLogs(data);
     } else if (activeTab === 'issues') {
-      const { data } = await supabase.from('bug_reports').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('bug_reports').select('*').order('created_at', { ascending: false });
+      if (error) console.error("Erreur Fetch Bug Reports:", error);
       if (data) setIssues(data);
     }
     
