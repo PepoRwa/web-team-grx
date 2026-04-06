@@ -786,7 +786,7 @@ function App() {
                   </div>
                   <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Mentorat & Coaching</h3>
                   <p className="font-poppins text-xs text-gray-400 leading-relaxed">
-                    Séances de révisions enregistrées (VODs). Le hub permet au Staff d'attribuer des objectifs tactiques personnalisés aux joueurs et de suivre leur progression avec des retours précis (Viseur, Stratégies, etc).
+                    Séances de révisions enregistrées ainsi que derniers matchs joués (VODs). Le hub permet au Staff d'attribuer des objectifs tactiques personnalisés aux joueurs et de suivre leur progression avec des retours précis (Viseur, Stratégies, etc).
                   </p>
               </div>
               <div className="mt-4 pt-4 border-t border-white/5">
