@@ -45,13 +45,44 @@ export default function CoachingHub({ session, isStaff, isCoach }) {
   const fetchProfiles = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url')
-      .order('username', { ascending: true });
+        .from('profiles')
+        .select(`
+            id, 
+            username, 
+            avatar_url,
+            user_roles (
+                roles (
+                    name
+                )
+            )
+        `)
+        .order('username');
 
-    if (!error && data) {
-      setProfiles(data);
-      if (data.length > 0) setSelectedPlayer(data[0]); // Sélectionne le 1er par défaut
+    if (data && !error) {
+        // Formatting roles for easier display
+        const formattedProfiles = data.map(profile => {
+            const rolesList = profile.user_roles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+            const isStaffOrCoach = rolesList.some(r => ['Fondateurs', 'Staff', 'Chef du Staff', 'Coach', 'Head Coach'].includes(r));
+            
+            // Identify their team/roster (e.g., High, Elite, Academy, etc.)
+            const teamRole = rolesList.find(r => r.toLowerCase().includes('roster') || r.includes('Team '));
+            
+            return {
+                ...profile,
+                rolesList,
+                isStaffOrCoach,
+                teamRole
+            };
+        });
+        
+        // Exclure les staff/coachs si on veut juste coacher les joueurs
+        const sorted = formattedProfiles.sort((a, b) => {
+            if (a.isStaffOrCoach && !b.isStaffOrCoach) return 1;
+            if (!a.isStaffOrCoach && b.isStaffOrCoach) return -1;
+            return (a.username || '').localeCompare(b.username || '');
+        });
+        
+        setProfiles(sorted);
     }
     setLoading(false);
   };
@@ -214,55 +245,80 @@ export default function CoachingHub({ session, isStaff, isCoach }) {
 
   // --- VUE STAFF / COACH (Mode Mentorat) ---
   return (
-    <div className="flex flex-col md:flex-row h-[75vh] md:h-[80vh] bg-black/40 border border-white/10 rounded-2xl overflow-hidden animate-fade-in shadow-2xl">
+    <div className="flex flex-col md:flex-row h-[75vh] md:h-[80vh] min-h-[500px] bg-black/40 border border-white/10 rounded-2xl overflow-hidden animate-fade-in shadow-2xl relative">
         
         {/* Colonne Gauche : Sélection du Joueur */}
-        <div className="w-full md:w-80 bg-black/60 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
+        <div className={`w-full md:w-96 lg:w-[26rem] flex-shrink-0 bg-black/60 border-b md:border-b-0 md:border-r border-white/10 flex-col ${selectedPlayer ? 'hidden md:flex' : 'flex'} h-full md:h-auto`}>
             <div className="p-4 border-b border-white/10 bg-gradient-to-r from-gowrax-purple/10 to-transparent">
                 <h3 className="font-rajdhani font-bold text-lg text-white">MODE MENTORAT</h3>
                 <p className="text-[10px] font-techMono text-gray-500 uppercase">Sélection du Viseur</p>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 md:space-y-3">
                 {profiles.map(profile => (
                     <button
                         key={profile.id}
                         onClick={() => setSelectedPlayer(profile)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${selectedPlayer?.id === profile.id ? 'bg-gowrax-purple border-gowrax-neon border shadow-[0_0_15px_rgba(214,47,127,0.3)]' : 'bg-transparent border border-transparent hover:bg-white/5'}`}
+                        className={`w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 ${selectedPlayer?.id === profile.id ? 'bg-gowrax-purple border-gowrax-neon border shadow-[0_0_15px_rgba(214,47,127,0.3)]' : 'bg-transparent border border-transparent hover:bg-white/5'}`}
                     >
-                        <img src={profile.avatar_url || 'https://via.placeholder.com/40'} alt={profile.username} className="w-10 h-10 rounded-full bg-black/50 object-cover border border-white/20"/>
-                        <span className="font-rajdhani font-bold text-sm text-left truncate">{profile.username}</span>
-                    </button>
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt="avatar" className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gowrax-light/20 z-10 relative group-hover:border-gowrax-neon transition-colors" />
+                                ) : (
+                                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gowrax-dark flex items-center justify-center font-bold text-gowrax-neon border border-gowrax-light/20 z-10 relative group-hover:border-gowrax-neon transition-colors">
+                                        {(profile.username || 'U')[0].toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="z-10 relative flex-1 flex flex-col justify-center">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="font-medium text-white/90 group-hover:text-white transition-colors text-sm md:text-base">
+                                            {profile.username || 'Inconnu'}
+                                        </span>
+                                        {profile.teamRole && (
+                                            <span className="text-[10px] uppercase font-bold text-gowrax-neon/80 bg-gowrax-neon/10 px-2 py-0.5 rounded border border-gowrax-neon/20 ml-2 whitespace-nowrap">
+                                                {profile.teamRole.replace('Roster ', '')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-xs md:text-sm text-left text-white/40 group-hover:text-gowrax-neon/60 transition-colors">
+                                        Sélectionner pour évaluer
+                                    </span>
+                                </div>
+                            </button>
                 ))}
             </div>
         </div>
 
         {/* Colonne Droite : Objectifs du Joueur et Formulaire */}
-        <div className="flex-1 flex flex-col relative bg-gradient-to-br from-transparent to-black/80">
+        <div className={`flex-1 flex-col relative bg-[#15101F]/90 backdrop-blur-md md:bg-gradient-to-br md:from-transparent md:to-black/80 h-full ${selectedPlayer ? 'flex absolute inset-0 md:static z-20' : 'hidden md:flex'}`}>
             {selectedPlayer ? (
                 <>
                     {/* Header Joueur Sélectionné */}
-                    <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-white/[0.02]">
-                        <img src={selectedPlayer.avatar_url || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-xl object-cover shadow-[0_0_10px_rgba(255,255,255,0.1)] border border-white/20"/>
+                    <div className="p-4 md:p-6 border-b border-white/5 flex items-center gap-4 bg-white/[0.02] flex-shrink-0">
+                        <button 
+                            className="md:hidden p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white font-techMono text-xs transition-colors" 
+                            onClick={() => setSelectedPlayer(null)}>
+                            ← RETOUR
+                        </button>
+                        <img src={selectedPlayer.avatar_url || 'https://via.placeholder.com/50'} className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-[0_0_10px_rgba(255,255,255,0.1)] border border-white/20"/>
                         <div>
-                            <h2 className="font-rajdhani text-2xl font-bold">{selectedPlayer.username}</h2>
-                            <p className="text-xs font-techMono text-gowrax-neon">FOCUS & OBJECTIFS</p>
+                            <h2 className="font-rajdhani text-xl md:text-2xl font-bold">{selectedPlayer.username}</h2>
+                            <p className="text-[10px] md:text-xs font-techMono text-gowrax-neon">FOCUS & OBJECTIFS</p>
                         </div>
                     </div>
 
                     {/* Liste des objectifs  */}
-                    <div className="flex-1 p-6 overflow-y-auto basis-2/3">
+                    <div className="flex-1 p-4 md:p-6 overflow-y-auto basis-auto">
                         {playerGoals.length === 0 ? (
                              <p className="text-center text-gray-500 font-poppins pt-10 text-sm">Ce joueur n'a aucun objectif assigné.</p>
                         ) : (
-                            <div className="grid grid-col-1 lg:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 {playerGoals.map(goal => <GoalCard key={goal.id} goal={goal} isStaffView={true} />)}
                             </div>
                         )}
                     </div>
 
                     {/* Formulaire d'Assignation Rapide */}
-                    <div className="p-6 border-t border-white/10 bg-black/50 basis-1/3">
+                    <div className="p-4 md:p-6 border-t border-white/10 bg-black/50 flex-shrink-0">
                         <p className="text-[10px] font-techMono uppercase text-gowrax-purple mb-3 tracking-widest">// ASSIGNER UN NOUVEL OBJECTIF</p>
                         <form onSubmit={handleCreateGoal} className="flex flex-col gap-3">
                             <input 

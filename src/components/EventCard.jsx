@@ -166,12 +166,18 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
   };
 
   const dateObj = new Date(event.start_time);
+  const isPastEvent = dateObj < new Date();
+  
+  // Validation : le joueur peut-il modifier son check-in ?
+  const isLockedByCoach = checkin?.marked_by_coach;
+  const canInteract = !isPastEvent && !isLockedByCoach;
 
   return (
-    <div className="relative group bg-gowrax-void/80 border border-gowrax-purple/50 rounded-lg p-5 flex flex-col hover:border-gowrax-neon transition-all shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+    <div className={`relative group bg-gowrax-void/80 border ${isPastEvent ? 'border-gray-800' : 'border-gowrax-purple/50'} rounded-lg p-5 flex flex-col ${!isPastEvent ? 'hover:border-gowrax-neon shadow-[0_4px_10px_rgba(0,0,0,0.5)]' : 'shadow-none opacity-80'} transition-all`}>
       {/* Ligne lumineuse à gauche décorative */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg bg-gowrax-purple group-hover:bg-gowrax-neon transition-colors shadow-[0_0_10px_rgba(111,45,189,0.8)]"></div>
-      
+      {!isPastEvent && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg bg-gowrax-purple group-hover:bg-gowrax-neon transition-colors shadow-[0_0_10px_rgba(111,45,189,0.8)]"></div>
+      )}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-2">
         <div className="flex-1 pl-2">
             <div className="flex items-center gap-3 mb-1">
@@ -208,10 +214,17 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
               <span className="text-xs font-techMono text-gray-500">Scan...</span>
             ) : (
               <button 
-                onClick={() => setShowMenu(!showMenu)}
-                className={`px-6 py-2 border-2 font-rajdhani font-bold rounded transition-all ${getStatusColor(checkin?.status)}`}
+                onClick={() => canInteract && setShowMenu(!showMenu)}
+                disabled={!canInteract}
+                className={`flex flex-col items-center justify-center px-6 py-1 border-2 font-rajdhani font-bold rounded transition-all 
+                  ${canInteract ? getStatusColor(checkin?.status) : `${getStatusColor(checkin?.status)} opacity-50 cursor-not-allowed hover:bg-transparent hover:text-current`}`}
               >
-                 {getStatusText(checkin?.status)}
+                 <span className={`${!canInteract ? 'opacity-70' : ''}`}>{getStatusText(checkin?.status)}</span>
+                 {!canInteract && (
+                     <span className="text-[8px] font-techMono uppercase tracking-widest text-current mt-0.5">
+                         {isLockedByCoach ? 'VERROUILLÉ STAFF' : 'ARCHIVÉ'}
+                     </span>
+                 )}
               </button>
             )}
 
@@ -225,7 +238,7 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
       </div>
 
       {/* DROPDOWN MENU / FORMULAIRE DE CHECK-IN */}
-      {showMenu && (
+      {showMenu && canInteract && (
         <div className="mt-4 pt-4 border-t border-white/10 pl-2">
           <form className="flex flex-col gap-3" onSubmit={handleCheckinSubmit}>
             <div className="flex gap-2">

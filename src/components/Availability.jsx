@@ -350,9 +350,16 @@ export default function Availability({ session, isStaff, isCoach }) {
                   <p className="text-gowrax-purple font-techMono animate-pulse">Extraction de ta grille en cours...</p>
               ) : (
                   <>
-                    <div className="overflow-x-auto pb-4 custom-scrollbar select-none" onMouseLeave={handleMouseUp}>
-                        <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
-                            <thead className="sticky top-0 z-30 bg-[#1A1C2E] shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                    <div className="relative group overflow-hidden rounded-xl border border-gowrax-purple/30 bg-black/40 p-1 md:p-2 shadow-[0_0_20px_rgba(111,45,189,0.15)] transition-all hover:shadow-[0_0_30px_rgba(111,45,189,0.3)]">
+                        {/* HUD Corners */}
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        
+                        <div className="relative overflow-x-auto pb-2 custom-scrollbar select-none rounded-lg" onMouseLeave={handleMouseUp}>
+                            <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
+                                <thead className="sticky top-0 z-30 bg-[#1A1C35]/90 backdrop-blur-md shadow-[0_4px_15px_rgba(0,0,0,0.8)]">
                                 <tr>
                                     <th className="p-2 border border-gray-700 text-gray-400 font-techMono text-xs bg-black/80 w-16 md:w-24 align-middle sticky left-0 z-40">
                                         Horaire
@@ -429,6 +436,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                                 })}
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
@@ -484,9 +492,16 @@ export default function Availability({ session, isStaff, isCoach }) {
                         Base de calcul : {filteredSchedules.length} agents détectés sur l'effectif sélectionné.
                     </p>
 
-                    <div className="overflow-x-auto pb-4 custom-scrollbar select-none">
-                        <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
-                            <thead className="sticky top-0 z-30 bg-[#1A1C2E] shadow-md shadow-black/50">
+                    <div className="relative group overflow-hidden rounded-xl border border-gowrax-neon/30 bg-black/40 p-1 md:p-2 shadow-[0_0_20px_rgba(214,47,127,0.15)] transition-all hover:shadow-[0_0_30px_rgba(214,47,127,0.3)]">
+                        {/* HUD Corners */}
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
+                        
+                        <div className="relative overflow-x-auto pb-2 custom-scrollbar select-none rounded-lg">
+                            <table className="w-full text-center border-collapse min-w-[800px] table-fixed relative">
+                                <thead className="sticky top-0 z-30 bg-[#251025]/90 backdrop-blur-md shadow-[0_4px_15px_rgba(0,0,0,0.8)]">
                                 <tr>
                                     <th className="p-2 border border-gray-700 text-gray-400 font-techMono text-xs bg-black/80 w-16 md:w-24 sticky left-0 z-40">Horaire</th>
                                     {JOURS.map(jour => (
@@ -533,6 +548,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                                 })}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                   </>
               )}

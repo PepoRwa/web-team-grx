@@ -29,11 +29,28 @@ export default function Dossiers({ isStaff, isCoach }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url')
+      .select(`
+        id, 
+        username, 
+        avatar_url,
+        user_roles (
+            roles (
+                name
+            )
+        )
+      `)
       .order('username', { ascending: true });
 
     if (!error && data) {
-      setProfiles(data);
+      const formattedData = data.map(profile => {
+        const rolesList = profile.user_roles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+        const teamRole = rolesList.find(r => r.toLowerCase().includes('roster') || r.includes('Team '));
+        return {
+          ...profile,
+          teamRole
+        };
+      });
+      setProfiles(formattedData);
     } else {
       console.error("Erreur de récupération des profils:", error);
     }
@@ -157,18 +174,17 @@ export default function Dossiers({ isStaff, isCoach }) {
   const filteredProfiles = profiles.filter(p => p.username.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-blue-500/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-      
-      <div className="flex flex-col mb-6 border-b border-blue-500/50 pb-4">
+    <div className="relative w-full max-w-5xl mx-auto my-8 bg-black/40 border border-blue-500/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(59,130,246,0.2)] min-h-[600px] flex flex-col">
+      <div className="flex flex-col mb-6 border-b border-blue-500/50 pb-4 shrink-0">
         <h2 className="text-3xl font-rajdhani text-white drop-shadow-[0_2px_4px_rgba(59,130,246,0.8)]">DOSSIERS CLASSIFIÉS</h2>
         <p className="text-blue-400 font-techMono text-xs uppercase tracking-widest mt-1">Niveau d'accréditation : Staff & Coach</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="relative grid grid-cols-1 md:grid-cols-4 gap-6 flex-1 min-h-0">
         
         {/* COLONNE GAUCHE: Liste des joueurs */}
-        <div className="col-span-1 border-r border-white/10 pr-4 drop-shadow-md">
-            <div className="mb-4">
+        <div className={`col-span-1 md:col-span-2 lg:col-span-1 border-r border-white/10 pr-0 md:pr-4 drop-shadow-md flex flex-col h-full ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
+            <div className="mb-4 shrink-0">
                 <input 
                   type="text" 
                   placeholder="Rechercher un profil..." 
@@ -178,7 +194,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                 />
             </div>
             
-            <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
                 {loading ? (
                     <span className="text-blue-400 text-xs font-techMono animate-pulse">Chargement de la base de données...</span>
                 ) : filteredProfiles.length === 0 ? (
@@ -188,14 +204,23 @@ export default function Dossiers({ isStaff, isCoach }) {
                         <button 
                             key={user.id}
                             onClick={() => handleSelectUser(user)}
-                            className={`flex items-center gap-3 p-3 rounded transition-all border ${selectedUser?.id === user.id ? 'bg-blue-900/30 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)] text-white' : 'bg-transparent border-transparent hover:bg-white/5 text-gray-300'}`}
+                            className={`flex flex-col p-3 rounded transition-all border ${selectedUser?.id === user.id ? 'bg-blue-900/30 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)] text-white' : 'bg-transparent border-transparent hover:bg-white/5 text-gray-300'}`}
                         >
-                            {user.avatar_url ? (
-                                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full border border-blue-400/50" />
-                            ) : (
-                                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-xs font-bold font-rajdhani text-blue-300">?</div>
-                            )}
-                            <span className="font-rajdhani font-bold truncate text-left">{user.username}</span>
+                            <div className="flex items-center gap-3 w-full">
+                                {user.avatar_url ? (
+                                    <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full border border-blue-400/50" />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-xs font-bold font-rajdhani text-blue-300">?</div>
+                                )}
+                                <div className="flex flex-col items-start flex-1 overflow-hidden">
+                                    <span className="font-rajdhani font-bold truncate text-left w-full">{user.username}</span>
+                                    {user.teamRole && (
+                                        <span className="text-[9px] uppercase font-bold text-blue-400/80 bg-blue-900/40 px-1.5 py-0.5 rounded border border-blue-500/30 mt-0.5">
+                                            {user.teamRole.replace('Roster ', '')}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         </button>
                     ))
                 )}
@@ -203,15 +228,24 @@ export default function Dossiers({ isStaff, isCoach }) {
         </div>
 
         {/* COLONNE DROITE: Fiche Joueur & Notes */}
-        <div className="col-span-1 md:col-span-2 pl-0 md:pl-2">
+        <div className={`col-span-1 md:col-span-2 lg:col-span-3 pl-0 md:pl-2 h-full ${!selectedUser ? 'hidden md:flex flex-col' : 'absolute inset-0 z-20 bg-black/95 md:relative md:bg-transparent md:z-auto flex flex-col h-full overflow-y-auto'}`}>
             {!selectedUser ? (
-                <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-gray-500 opacity-50">
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
                     <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z"></path></svg>
                     <p className="font-techMono uppercase tracking-widest text-sm">Sélectionner un dossier</p>
                 </div>
             ) : (
-                <div className="flex flex-col h-full bg-black/30 rounded-lg p-5 border border-white/5">
+                <div className="flex flex-col h-full bg-black/30 md:rounded-lg p-5 border border-white/5 pb-20 md:pb-5">
                     
+                    {/* BOUTON RETOUR MOBILE */}
+                    <button 
+                        onClick={() => setSelectedUser(null)}
+                        className="md:hidden flex items-center gap-2 text-blue-400 mb-4 bg-blue-900/20 px-4 py-2 rounded-lg border border-blue-500/30 hover:bg-blue-900/40 w-max"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                        <span className="font-rajdhani font-bold">RETOUR AUX DOSSIERS</span>
+                    </button>
+
                     {/* Header Profil */}
                     <div className="flex items-center gap-4 mb-6 border-b border-blue-500/20 pb-4">
                         {selectedUser.avatar_url ? (

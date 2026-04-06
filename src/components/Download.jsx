@@ -1,9 +1,12 @@
 import React from 'react';
 import { FaApple, FaAndroid, FaWindows, FaDesktop, FaShieldAlt, FaUserLock, FaEyeSlash } from "react-icons/fa";
+import ShootingStars from './ShootingStars';
 
 export default function Download() {
   return (
     <div className="min-h-screen bg-gowrax-abyss text-white flex flex-col relative overflow-y-auto font-poppins selection:bg-gowrax-neon selection:text-white">
+      <ShootingStars />
+      
       {/* Background glowing effects */}
       <div className="fixed top-0 left-1/4 w-[40rem] h-[40rem] bg-gowrax-purple/20 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
       <div className="fixed bottom-0 right-1/4 w-[50rem] h-[50rem] bg-gowrax-neon/10 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
@@ -56,72 +59,103 @@ export default function Download() {
                 <div className="bg-white/[0.02] border border-white/10 p-8 rounded-2xl flex flex-col gap-4 hover:bg-white/[0.04] transition-colors relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
                     <div className="flex items-center gap-4 mb-2">
-                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-white">
-                            {/* Apple iOS Icon */}
-                            <FaApple className="w-7 h-7" />                        
-                            </div>
+                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            <FaApple className="w-7 h-7" />
+                        </div>
                         <div>
                             <h3 className="font-rajdhani text-2xl font-bold text-white">iPhone & iPad (iOS)</h3>
-                            <p className="text-[10px] font-techMono text-gray-500 uppercase">Navigateur Requis : Safari</p>
+                            <p className="text-[10px] font-techMono text-blue-400 uppercase tracking-widest bg-blue-900/30 px-2 py-0.5 rounded inline-block mt-1">Obligatoire : Safari</p>
                         </div>
                     </div>
-                    <ol className="text-sm font-poppins text-gray-300 list-decimal list-inside space-y-3 mt-2 pr-4">
-                        <li>Ouvrez l'application depuis le navigateur <b>Safari</b>.</li>
-                        <li>Appuyez sur le bouton <b>Partager</b> (le carré avec une flèche pointant vers le haut, en bas de l'écran).</li>
-                        <li>Faites défiler le menu et sélectionnez <b>"Sur l'écran d'accueil"</b>.</li>
-                        <li>Appuyez sur <b>"Ajouter"</b> en haut à droite.</li>
-                    </ol>
+                    <div className="space-y-4 mt-2">
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-purple/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-purple/50">1</div>
+                            <p className="text-sm font-poppins text-gray-300">Ouvrez l'application depuis le navigateur <b className="text-white">Safari</b> uniquement.</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-purple/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-purple/50">2</div>
+                            <p className="text-sm font-poppins text-gray-300">Appuyez sur le bouton <b className="text-blue-400">Partager</b> en bas de l'écran (carré avec flèche vers le haut).</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-purple/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-purple/50">3</div>
+                            <p className="text-sm font-poppins text-gray-300">Faites défiler le menu et sélectionnez <span className="bg-white/10 text-white px-2 py-0.5 rounded font-bold">"Sur l'écran d'accueil"</span>.</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-purple/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-purple/50">4</div>
+                            <p className="text-sm font-poppins text-gray-300">Appuyez sur <b className="text-green-400">"Ajouter"</b> en haut à droite.</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Android / Chrome */}
                 <div className="bg-white/[0.02] border border-white/10 p-8 rounded-2xl flex flex-col gap-4 hover:bg-white/[0.04] transition-colors relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
                     <div className="flex items-center gap-4 mb-2">
-                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-white">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-green-500/30 flex items-center justify-center text-white shadow-[0_0_15px_rgba(34,197,94,0.2)]">
                             <FaAndroid className="w-7 h-7 text-green-500" />
                         </div>
                         <div>
-                            <h3 className="font-rajdhani text-2xl font-bold text-white">Android</h3>
-                            <p className="text-[10px] font-techMono text-gray-500 uppercase">Navigateur Requis : Chrome</p>
+                            <h3 className="font-rajdhani text-2xl font-bold text-white">Appareils Android</h3>
+                            <p className="text-[10px] font-techMono text-green-400 uppercase tracking-widest bg-green-900/30 px-2 py-0.5 rounded inline-block mt-1">Recommandé : Chrome</p>
                         </div>
                     </div>
-                    <ol className="text-sm font-poppins text-gray-300 list-decimal list-inside space-y-3 mt-2 pr-4">
-                        <li>Ouvrez l'application depuis <b>Google Chrome</b>.</li>
-                        <li>Une bannière va apparaître en bas de l'écran. Appuyez sur <b>"Installer l'Application"</b>.</li>
-                        <li><i>Si la bannière n'apparaît pas</i> : Appuyez sur les <b>3 petits points</b> (en haut à droite).</li>
-                        <li>Sélectionnez <b>"Ajouter à l'écran d'accueil"</b> ou <b>"Installer l'application"</b>.</li>
-                    </ol>
-                </div>
-
-                {/* PC / MacOS */}
+                    <div className="space-y-4 mt-2">
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-neon/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-neon/50">1</div>
+                            <p className="text-sm font-poppins text-gray-300">Ouvrez l'application depuis <b className="text-white">Google Chrome</b> ou Brave.</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-neon/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-neon/50">2</div>
+                            <p className="text-sm font-poppins text-gray-300">Une bannière automatique apparaîtra en bas. Appuyez sur <b className="text-gowrax-neon">"Installer l'Application"</b>.</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-neon/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-neon/50">3</div>
+                            <p className="text-sm font-poppins text-gray-300"><i className="text-gray-500">Si la bannière est masquée :</i> Appuyez sur les <b className="text-white">3 petits points</b> (en haut à droite).</p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                            <div className="w-6 h-6 rounded bg-gowrax-neon/20 text-white font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-gowrax-neon/50">4</div>
+                            <p className="text-sm font-poppins text-gray-300">Sélectionnez <span className="bg-white/10 text-white px-2 py-0.5 rounded font-bold">"Ajouter à l'écran d'accueil"</span>.</p>
+                        </div>
+                    </div>
+                </div>                {/* PC / MacOS */}
                 <div className="bg-white/[0.02] border border-white/10 p-8 rounded-2xl flex flex-col gap-4 hover:bg-white/[0.04] transition-colors relative overflow-hidden group md:col-span-2">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-gowrax-purple/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
                     <div className="flex items-center gap-4 mb-2">
-                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-white gap-1 bg-gradient-to-br from-gowrax-purple/20 to-black">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl border border-blue-500/30 flex items-center justify-center text-white gap-1 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                             <FaWindows className="w-5 h-5 text-blue-400" />
                             <FaApple className="w-5 h-5 text-gray-200" />
                         </div>
                         <div>
                             <h3 className="font-rajdhani text-2xl font-bold text-white">Ordinateur (Windows / macOS)</h3>
-                            <p className="text-[10px] font-techMono text-gray-500 uppercase">Navigateur Requis : Edge, Chrome, Brave ou Safari</p>
+                            <p className="text-[10px] font-techMono text-blue-300 uppercase tracking-widest bg-blue-900/30 px-2 py-0.5 rounded inline-block mt-1">Recommandé : Edge / Chrome / Brave</p>
                         </div>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-6 mt-2">
-                        <div className="flex-1">
-                            <ol className="text-sm font-poppins text-gray-300 list-decimal list-inside space-y-3">
-                                <li>Ouvrez le lien de l'application via un navigateur basé sur Chromium (Google Chrome, Microsoft Edge, Brave...).</li>
-                                <li>Regardez à l'extrémité droite de votre <b>barre d'adresse (URL)</b>.</li>
-                                <li>Vous y verrez une petite icône d'installation (un écran avec une flèche ou un "+").</li>
-                                <li>Cliquez dessus, puis sur <b>"Installer"</b>. L'App va s'ouvrir dans sa propre fenêtre, sans les onglets du navigateur !</li>
-                            </ol>
+                    <div className="flex flex-col md:flex-row gap-6 mt-4">
+                        <div className="flex-1 space-y-4 pt-2">
+                            <div className="flex gap-3 items-start">
+                                <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/50">1</div>
+                                <p className="text-sm font-poppins text-gray-300">Ouvrez le lien de l'application via un navigateur basé sur Chromium.</p>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                                <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/50">2</div>
+                                <p className="text-sm font-poppins text-gray-300">Regardez à l'extrémité droite de votre <b className="text-white">barre d'adresse (URL)</b>.</p>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                                <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/50">3</div>
+                                <p className="text-sm font-poppins text-gray-300">Cliquez sur la petite <b>icône d'installation</b> (écran avec flèche ou "+").</p>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                                <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 font-techMono text-xs flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/50">4</div>
+                                <p className="text-sm font-poppins text-gray-300">L'App va s'ouvrir dans sa propre fenêtre, <b>comme un vrai logiciel natif</b> !</p>
+                            </div>
                         </div>
                         <div className="flex-1 bg-black/40 border border-white/5 rounded-xl p-4 flex items-center justify-center">
-                            <div className="bg-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg w-full max-w-sm">
-                                <svg className="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                                <span className="text-gray-800 text-xs flex-1 font-sans">app.gowrax.com</span>
-                                <div className="bg-gray-100 hover:bg-gray-200 cursor-pointer p-1 rounded transition-colors relative group">
-                                    <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    <div className="absolute top-8 right-0 bg-blue-600 text-white text-[9px] px-2 py-1 rounded w-32 hidden group-hover:block z-50 shadow-lg">Installer l'application</div>
+                            <div className="bg-white px-4 py-2 rounded-xl flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.1)] w-full max-w-sm ml-2">
+                                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                <span className="text-gray-800 text-sm flex-1 font-techMono bg-gray-100 px-2 py-0.5 rounded">team.gowrax.me</span>
+                                <div className="bg-blue-50 hover:bg-blue-100 border border-blue-200 cursor-pointer p-1.5 rounded transition-colors relative group">
+                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    <div className="absolute top-10 right-0 bg-blue-600 text-white text-[9px] px-2 py-1 rounded w-32 hidden group-hover:block z-50 shadow-lg tracking-widest font-techMono uppercase">Installer l'App</div>
                                 </div>
                             </div>
                         </div>

@@ -9,6 +9,7 @@ export default function Calendar({ session }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [filterType, setFilterType] = useState('all'); // NOUVEAU : État pour le filtre
 
   // Formulaire Coach
@@ -28,22 +29,13 @@ export default function Calendar({ session }) {
 
   const fetchEvents = async () => {
     setLoading(true);
-    let query = supabase
+    const { data, error } = await supabase
       .from('events')
       .select('*')
-      .order('start_time', { ascending: true })
-      .gte('start_time', new Date().toISOString()); // On ne récupère que les events à venir
-
-    // Restreindre la visibilité au roster du joueur (sauf s'il est Staff/Coach)
-    if (!isStaff && !isCoach) {
-       const userRosters = roles.filter(r => ['High Roster', 'Academy', 'Chill', 'Tryhard'].includes(r));
-       query = query.in('roster_type', ['Tous', ...userRosters]);
-    }
-
-    const { data, error } = await query;
+      .order('start_time', { ascending: true });
 
     if (error) {
-      console.error("Erreur de récupération des événements:", error);
+      console.error("Erreur de récupération des events:", error);
     } else {
       setEvents(data);
     }
@@ -91,22 +83,29 @@ export default function Calendar({ session }) {
   };
 
   const handleDeleteEvent = async (id) => {
-    if(!window.confirm("Supprimer définitivement cet événement ?")) return;
-
+    if(!window.confirm("Supprimer cet évènement définitivement ?")) return;
+    
     const { error } = await supabase
       .from('events')
       .delete()
       .eq('id', id);
 
-    if (error) {
-       console.error("Erreur suppression:", error);
-    } else {
+    if (!error) {
        fetchEvents();
     }
   };
 
+  const now = new Date();
+  
+  // Séparer les events futurs et passés
+  const futureEvents = events.filter(e => new Date(e.start_time) >= now);
+  const pastEvents = events.filter(e => new Date(e.start_time) < now);
+
+  const filteredFutureEvents = futureEvents.filter(e => filterType === 'all' || e.event_type === filterType);
+  const filteredPastEvents = pastEvents.filter(e => filterType === 'all' || e.event_type === filterType);
+
   return (
-    <div className="w-full max-w-4xl mx-auto my-8 bg-black/40 border border-gowrax-purple/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(111,45,189,0.2)]">
+    <div className="w-full max-w-5xl mx-auto my-8 font-poppins text-white">
       
       <div className="flex justify-between items-center mb-6 border-b border-gowrax-purple/50 pb-4">
         <div>
@@ -190,67 +189,84 @@ export default function Calendar({ session }) {
       )}
 
       {/* FILTRES EN HAUT DE LISTE */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex gap-4 mb-8 overflow-x-auto pb-2 custom-scrollbar">
         <button 
-          onClick={() => setFilterType('all')} 
-          className={`px-3 py-1 text-xs font-techMono uppercase rounded border ${filterType === 'all' ? 'bg-white text-black border-white' : 'bg-transparent text-gray-400 border-gray-600 hover:text-white'}`}
+          onClick={() => setFilterType('all')}
+          className={`px-4 py-2 font-rajdhani rounded-full transition-all ${filterType === 'all' ? 'bg-gowrax-neon text-white shadow-[0_0_10px_rgba(255,107,0,0.8)]' : 'bg-gowrax-void border border-gowrax-purple text-gray-400 hover:text-white'}`}
         >
-          Tous
+          TOUS
         </button>
         <button 
-          onClick={() => setFilterType('training')} 
-          className={`px-3 py-1 text-xs font-techMono uppercase rounded border ${filterType === 'training' ? 'bg-gowrax-purple text-white border-gowrax-purple' : 'bg-transparent text-gowrax-purple border-gowrax-purple hover:bg-gowrax-purple/20'}`}
+          onClick={() => setFilterType('training')}
+          className={`px-4 py-2 font-rajdhani rounded-full transition-all ${filterType === 'training' ? 'bg-gowrax-purple text-white shadow-[0_0_10px_rgba(111,45,189,0.8)]' : 'bg-gowrax-void border border-gowrax-purple text-gray-400 hover:text-white'}`}
         >
-          Entraînements
+          ENTRAÎNEMENTS
         </button>
         <button 
-          onClick={() => setFilterType('match')} 
-          className={`px-3 py-1 text-xs font-techMono uppercase rounded border ${filterType === 'match' ? 'bg-gowrax-neon text-white border-gowrax-neon' : 'bg-transparent text-gowrax-neon border-gowrax-neon hover:bg-gowrax-neon/20'}`}
+          onClick={() => setFilterType('match')}
+          className={`px-4 py-2 font-rajdhani rounded-full transition-all ${filterType === 'match' ? 'bg-gowrax-neon text-white shadow-[0_0_10px_rgba(214,47,127,0.8)]' : 'bg-gowrax-void border border-gowrax-purple text-gray-400 hover:text-white'}`}
         >
-          Matchs
+          MATCHS
         </button>
         <button 
-          onClick={() => setFilterType('tournament')} 
-          className={`px-3 py-1 text-xs font-techMono uppercase rounded border ${filterType === 'tournament' ? 'bg-yellow-600 text-black border-yellow-500' : 'bg-transparent text-yellow-500 border-yellow-600 hover:bg-yellow-600/20'}`}
+          onClick={() => setFilterType('tournament')}
+          className={`px-4 py-2 font-rajdhani rounded-full transition-all ${filterType === 'tournament' ? 'bg-yellow-600 text-black shadow-[0_0_10px_rgba(202,138,4,0.8)]' : 'bg-gowrax-void border border-gowrax-purple text-gray-400 hover:text-white'}`}
         >
-          Tournois
-        </button>
-        <button 
-          onClick={() => setFilterType('meeting')} 
-          className={`px-3 py-1 text-xs font-techMono uppercase rounded border ${filterType === 'meeting' ? 'bg-gray-700 text-white border-gray-500' : 'bg-transparent text-gray-400 border-gray-600 hover:bg-gray-700/50'}`}
-        >
-          Réunions
+          TOURNOIS
         </button>
       </div>
 
-      {/* LISTE DES ÉVÉNEMENTS */}
       {loading ? (
-        <div className="flex justify-center p-8">
-            <span className="text-gowrax-purple font-techMono animate-pulse uppercase">Fetching coordinates...</span>
+        <div className="text-center py-10 font-techMono text-gowrax-neon animate-pulse">
+            [ SCAN_SATELLITE_EN_COURS... ]
         </div>
-      ) : events.length === 0 ? (
-        <div className="text-center p-8 bg-white/5 rounded border border-white/10">
-            <p className="text-gray-400 font-poppins">Aucune opération planifiée dans la base de données.</p>
+      ) : filteredFutureEvents.length === 0 ? (
+        <div className="bg-gowrax-void/60 border border-gowrax-purple/30 p-10 rounded-xl text-center shadow-lg">
+            <span className="font-rajdhani text-2xl text-gray-500">AUCUN ÉVÈNEMENT PROGRAMMÉ</span>
+            <p className="font-techMono mt-2 text-xs text-gray-600">Le radar est vide pour le moment.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {events.filter(e => filterType === 'all' || e.event_type === filterType).length === 0 ? (
-             <div className="text-center p-8 bg-white/5 rounded border border-white/10">
-                 <p className="text-gray-400 font-poppins">Aucune opération pour ce filtre.</p>
-             </div>
-          ) : (
-            events
-              .filter(e => filterType === 'all' || e.event_type === filterType)
-              .map((event) => (
-                <EventCard 
-                  key={event.id} 
-                  event={event} 
-                  session={session} 
-                  isStaff={isStaff} 
-                  isCoach={isCoach} 
-                  onDelete={handleDeleteEvent} 
-                />
-              ))
+          {filteredFutureEvents.map((event) => (
+            <EventCard 
+              key={event.id} 
+              event={event} 
+              session={session} 
+              isStaff={isStaff} 
+              isCoach={isCoach}
+              onDelete={handleDeleteEvent}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* SECTION ÉVÈNEMENTS PASSÉS */}
+      {pastEvents.length > 0 && (
+        <div className="mt-12 border-t border-gowrax-purple/30 pt-6">
+          <button 
+            onClick={() => setShowPastEvents(!showPastEvents)}
+            className="w-full py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-white font-rajdhani text-lg bg-gowrax-void/40 hover:bg-gowrax-void/80 rounded border border-gray-800 transition-colors"
+          >
+            {showPastEvents ? '▼ MASQUER LES ARCHIVES' : '▶ VOIR LES ÉVÈNEMENTS PASSÉS'}
+          </button>
+          
+          {showPastEvents && (
+            <div className="mt-6 flex flex-col gap-4 opacity-75 grayscale hover:grayscale-0 transition-all duration-500">
+              {filteredPastEvents.length === 0 ? (
+                <p className="text-center text-gray-500 font-techMono text-xs">Aucun évènement passé pour ce filtre.</p>
+              ) : (
+                filteredPastEvents.map((event) => (
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    session={session} 
+                    isStaff={isStaff} 
+                    isCoach={isCoach}
+                    onDelete={handleDeleteEvent}
+                  />
+                ))
+              )}
+            </div>
           )}
         </div>
       )}

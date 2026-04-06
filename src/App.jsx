@@ -8,6 +8,11 @@ import Stratbook from './components/Stratbook' // PHASE 7
 import Vods from './components/Vods' // NOUVEAU IMPORT VODS
 import CoachingHub from './components/CoachingHub' // PHASE 9
 import Download from './components/Download' // NOUVEAU TUTO INSTALL
+import ShootingStars from './components/ShootingStars' // Effets spatiaux 4K
+import ScrollProgress from './components/ScrollProgress' // HUD PROGRES
+import RevealOnScroll from './components/RevealOnScroll' // EFFET REVELATION
+import TiltWrapper from './components/TiltWrapper' // DEPTH 3D
+import SmartParticles from './components/SmartParticles' // RESEAU/NODES
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
@@ -47,6 +52,7 @@ function Dashboard({ session, signOut }) {
     loadMyStats();
     loadGoalsStats();
   }, [session.user.id]);
+
 
   useEffect(() => {
     if (!rolesLoading) {
@@ -574,7 +580,11 @@ function App() {
 
   // NOUVEAU : Route pour /download (compatible avec le state React)
   if (currentPath.includes('/download') || window.location.search.includes('view=download')) {
-    return <Download />
+    return (
+      <>
+        <Download />
+      </>
+    )
   }
 
   if (loading) {
@@ -589,6 +599,8 @@ function App() {
     // Si connecté, on renvoit le Dashboard contenant nos rôles !
     return (
       <>
+        <ScrollProgress />
+        <SmartParticles />
         <Dashboard session={session} signOut={signOut} />
         
         {/* BANNIÈRE D'INSTALLATION ANDROID / DESKTOP (Si connecté) */}
@@ -613,6 +625,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gowrax-abyss text-white flex flex-col relative overflow-y-auto font-poppins selection:bg-gowrax-neon selection:text-white">
+      <ScrollProgress />
+      <ShootingStars />
+      
       {/* BANNIÈRES D'INSTALLATION PWA GLOBALES */}
 
       {/* BANNIÈRE ANDROID / DESKTOP (SUR PAGE DE CONNEXION) */}
@@ -666,23 +681,30 @@ function App() {
 
       {/* Main Hero Section */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 mt-10 md:mt-20 z-10 max-w-5xl mx-auto text-center">
-        <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-gowrax-purple/10 border border-gowrax-purple/30 backdrop-blur-md">
+        <RevealOnScroll delay={100}>
+          <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-gowrax-purple/10 border border-gowrax-purple/30 backdrop-blur-md">
             <span className="font-techMono text-xs text-gowrax-neon uppercase tracking-widest">Opérations & Stratégie</span>
-        </div>
+          </div>
+        </RevealOnScroll>
         
-        <h1 className="font-rajdhani text-5xl md:text-7xl font-extrabold tracking-tight mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-          TACTICAL <span className="text-transparent bg-clip-text bg-gradient-to-r from-gowrax-purple to-gowrax-neon">INTERFACE</span>
-        </h1>
+        <RevealOnScroll delay={200}>
+          <h1 className="font-rajdhani text-5xl md:text-7xl font-extrabold tracking-tight mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+            TACTICAL <span className="text-transparent bg-clip-text bg-gradient-to-r from-gowrax-purple to-gowrax-neon">INTERFACE</span>
+          </h1>
+        </RevealOnScroll>
         
-        <p className="font-poppins text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
-          Bienvenue sur le portail sécurisé de GOWRAX. Ce hub centralise les plannings, les présences, et les outils stratégiques exclusifs aux membres de la structure.
-        </p>
+        <RevealOnScroll delay={300}>
+          <p className="font-poppins text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
+            Bienvenue sur le portail sécurisé de GOWRAX. Ce hub centralise les plannings, les présences, et les outils stratégiques exclusifs aux membres de la structure.
+          </p>
+        </RevealOnScroll>
 
         {/* Login Card */}
-        <div className="backdrop-blur-xl bg-white/[0.02] border border-white/10 p-8 rounded-2xl w-full max-w-md mx-auto shadow-[0_15px_40px_rgba(0,0,0,0.6)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-b from-gowrax-neon/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-            
-            <p className="font-techMono text-xs text-gray-400 uppercase tracking-widest mb-6 text-center">
+        <RevealOnScroll delay={400}>
+          <div className="w-full max-w-md mx-auto relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-gowrax-purple to-gowrax-neon rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-700"></div>
+            <div className="backdrop-blur-[40px] bg-gowrax-void/80 border border-white/10 p-8 rounded-2xl w-full relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute inset-0 bg-gradient-to-b from-gowrax-neon/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>            <p className="font-techMono text-xs text-gray-400 uppercase tracking-widest mb-6 text-center">
               // Authentification Requise
             </p>
 
@@ -709,13 +731,15 @@ function App() {
                 Accès strictement réservé aux membres validés sur le serveur Discord GOWRAX.
               </p>
             </div>
+            </div>
           </div>
+        </RevealOnScroll>
         </div>
 
         {/* Features Overview (Vitrine) */}
         <div className="w-full max-w-6xl mx-auto z-10 px-6 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-purple/50 transition-all duration-500 group">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-gowrax-purple/50 transition-all duration-500 group">
             <div className="w-12 h-12 bg-gowrax-purple/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <svg className="w-6 h-6 text-gowrax-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </div>
@@ -754,11 +778,42 @@ function App() {
               Dossiers classifiés par membre. Suivi de l'autorité, historique d'implication, Heatmap pour fixer des rosters, validation/refus des congés.
             </p>
           </div>
+
+          <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-orange-500/50 transition-all duration-500 group flex flex-col justify-between">
+              <div>
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  </div>
+                  <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Mentorat & Coaching</h3>
+                  <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+                    Séances de révisions enregistrées (VODs). Le hub permet au Staff d'attribuer des objectifs tactiques personnalisés aux joueurs et de suivre leur progression avec des retours précis (Viseur, Stratégies, etc).
+                  </p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/5">
+                 <span className="text-[10px] uppercase font-techMono text-orange-400 px-2 py-1 bg-orange-500/10 rounded border border-orange-500/20">NOUVEAU - V2</span>
+              </div>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-pink-500/50 transition-all duration-500 group flex flex-col justify-between">
+              <div>
+                  <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                  </div>
+                  <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Multi-Rosters</h3>
+                  <p className="font-poppins text-xs text-gray-400 leading-relaxed">
+                    Identifiez d'un coup d'œil le roster d'un joueur, assignez des événements ciblés selon le niveau. Tout est pensé pour manager facilement et sans friction les multiples équipes du GOWRAX.
+                  </p>
+              </div>
+               <div className="mt-4 pt-4 border-t border-white/5">
+                 <span className="text-[10px] uppercase font-techMono text-pink-400 px-2 py-1 bg-pink-500/10 rounded border border-pink-500/20">NOUVEAU - V2</span>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
-      
-      {/* Footer Minimal */}
-      <footer className="w-full text-center p-6 border-t border-white/5 bg-black/40 z-10 backdrop-blur-md">
+        
+        {/* Footer Minimal */}
+        <footer className="w-full text-center p-6 border-t border-white/5 bg-black/40 z-10 backdrop-blur-md">
         <p className="font-techMono text-[10px] text-gray-600 tracking-widest uppercase">
           © 2026 GOWRAX ESPORT. ALL SYSTEMS NOMINAL.
         </p>
