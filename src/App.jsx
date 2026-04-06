@@ -7,6 +7,7 @@ import Availability from './components/Availability' // PHASE 4
 import Stratbook from './components/Stratbook' // PHASE 7
 import Vods from './components/Vods' // NOUVEAU IMPORT VODS
 import CoachingHub from './components/CoachingHub' // PHASE 9
+import DevPanel from './components/DevPanel' // NOUVEAU DEV PANEL
 import Download from './components/Download' // NOUVEAU TUTO INSTALL
 import ShootingStars from './components/ShootingStars' // Effets spatiaux 4K
 import ScrollProgress from './components/ScrollProgress' // HUD PROGRES
@@ -16,7 +17,7 @@ import SmartParticles from './components/SmartParticles' // RESEAU/NODES
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods', 'coaching'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods', 'coaching', 'dev'
 
   // NOUVEAU: Système de Notifications
   const [notifications, setNotifications] = useState([]);
@@ -234,6 +235,17 @@ function Dashboard({ session, signOut }) {
                             Dossiers Staff
                         </button>
                     )}
+
+                    {/* DEV PANEL (Caché pour les non-admins on check si son id est paramétré comme dev ou si tu veux juste isStaff) */}
+                    {(isStaff) && (
+                        <button 
+                            onClick={() => setActiveTab('dev')}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-2 ${activeTab === 'dev' ? 'bg-[#00FF41]/10 border-l-4 border-[#00FF41] text-[#00FF41]' : 'text-gray-600 hover:bg-[#00FF41]/5 hover:text-[#00FF41]/60 border-l-4 border-transparent'}`}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                            DEV_CORE
+                        </button>
+                    )}
                 </nav>
             </div>
 
@@ -421,6 +433,7 @@ function Dashboard({ session, signOut }) {
                 {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
+                {activeTab === 'dev' && (isStaff) && <DevPanel session={session} />}
             </main>
         </div>
 
