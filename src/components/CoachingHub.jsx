@@ -119,6 +119,14 @@ export default function CoachingHub({ session, isStaff, isCoach }) {
       .single();
 
     if (!error && data) {
+      // 2. Alerter Discord via la table notifications (Le Bot écoute ça en DM !)
+      await supabase.from('notifications').insert({
+        type: 'personal',
+        user_id: selectedPlayer.id, // Destinataire du DM
+        title: '🎯 Nouvel Objectif de Coaching',
+        message: `Ton coach **${session.user.user_metadata.full_name || 'Staff GOWRAX'}** t'a assigné un nouvel objectif tactique :\n\n**Objectif :** ${formData.title}\n**Détails :** ${formData.description || 'Aucun détail supplémentaire'}\n\n*Consulte ton espace personnel sur le site pour suivre ta progression.*`
+      });
+
       setPlayerGoals([data, ...playerGoals]);
       setFormData({ title: '', description: '' });
     } else {

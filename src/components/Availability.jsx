@@ -86,15 +86,26 @@ export default function Availability({ session, isStaff, isCoach }) {
   const handleCreateAbsence = async (e) => {
     e.preventDefault();
     setIsSavingAbsence(true);
-    const { error } = await supabase.from('absences').insert({
+    
+    // 1. Ajouter l'absence dans la base de données
+    const { error, data } = await supabase.from('absences').insert({
       user_id: session.user.id,
       date_start: new Date(newAbsence.date_start).toISOString(),
       date_end: new Date(newAbsence.date_end).toISOString(),
       reason: newAbsence.reason
-    });
+    }).select();
+    
     setIsSavingAbsence(false);
     
     if (!error) {
+      // 2. Alerter Discord via la table notifications (Le Bot écoute ça !)
+      await supabase.from('notifications').insert({
+        type: 'global',
+        title: '🔴 Nouvelle Absence Déclarée',
+        message: `Une absence a été signalée sur le site par un membre.\n**Du :** ${new Date(newAbsence.date_start).toLocaleDateString('fr-FR')} \n**Au :** ${new Date(newAbsence.date_end).toLocaleDateString('fr-FR')} \n**Motif :** ${newAbsence.reason}`,
+        target_roster: 'Staff' // <--- Le bot l'enverra dans le salon mappé à 'Tous' ou 'Staff' si tu l'ajoutes au JS du Bot
+      });
+
       setNewAbsence({ date_start: '', date_end: '', reason: '' });
       fetchAbsences();
     } else {

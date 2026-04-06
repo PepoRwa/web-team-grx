@@ -67,16 +67,16 @@ export default function Calendar({ session }) {
     if (!error && data) {
       setEvents(prev => [...prev, data].sort((a,b) => new Date(a.start_time) - new Date(b.start_time)));
       
-      // Envoi d'une notification globale ciblée
-      await supabase.from('notifications').insert({
-        user_id: null,
-        target_roster: newRoster, 
-        type: 'event',
-        title: `Nouvel évènement : ${newTitle} [${newRoster}]`,
-        message: `Un évènement (${newType}) a été planifié le ${newDate} à ${newTime}. N'oublie pas de signifier ta présence !`
-      });
-
-      setShowForm(false);
+        // Envoi d'une notification globale ciblée
+        await supabase.from('notifications').insert({
+          user_id: null,
+          target_roster: newRoster, 
+          type: 'global', // Modifié en 'global' pour que le bot le détecte
+          title: `🗓️ Nouvel évènement ajouté : ${newTitle}`,
+          message: `Un évènement "**${newType}**" a été planifié pour l'équipe **${newRoster}** !
+**⏰ Heure :** ${newDate} de ${newTime} à ${newEndTime}
+⚠️ _Connectez-vous sur le site pour valider votre présence !_`
+        });      setShowForm(false);
     } else {
       console.error("Erreur de création:", error);
     }
