@@ -26,6 +26,7 @@ function Dashboard({ session, signOut }) {
   // NOUVEAU: Profil Utilisateur Local
   const [myStats, setMyStats] = useState({ absent: 0 });
   const [myGoalsStats, setMyGoalsStats] = useState({ inProgress: 0, completed: 0 });
+  const [onlineUsers, setOnlineUsers] = useState({});
 
   useEffect(() => {
     if (!session) return;
@@ -35,13 +36,21 @@ function Dashboard({ session, signOut }) {
       config: { presence: { key: session.user.id } }
     });
 
-    room.on('presence', { event: 'sync' }, () => {}).subscribe(async (status) => {
+    room.on('presence', { event: 'sync' }, () => {
+      setOnlineUsers(room.presenceState());
+    }).subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        const _ = await room.track({
+        await room.track({
           username: session.user.user_metadata?.full_name || session.user.email,
           tab: activeTab,
           updated_at: new Date().toISOString()
         });
+        
+        // Mettre à jour au lancement
+        await supabase.from('profiles').update({
+           last_seen: new Date().toISOString(),
+           last_page: activeTab
+        }).eq('id', session.user.id);
       }
     });
 
@@ -53,6 +62,12 @@ function Dashboard({ session, signOut }) {
             tab: activeTab,
             updated_at: new Date().toISOString()
          });
+         
+         // Sauvegarder la dernière page visitée et la date de dernière activité en base
+         await supabase.from('profiles').update({
+            last_seen: new Date().toISOString(),
+            last_page: activeTab
+         }).eq('id', session.user.id);
       }
     }
     updatePosition();
@@ -466,7 +481,7 @@ function Dashboard({ session, signOut }) {
                 {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
                 {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'dev' && (isStaff) && <DevPanel session={session} />}
+                {activeTab === 'dev' && (isStaff) && <DevPanel session={session} onlineUsers={onlineUsers} />}
             </main>
         </div>
 

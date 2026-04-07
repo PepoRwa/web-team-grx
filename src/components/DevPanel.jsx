@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-export default function DevPanel({ session }) {
+export default function DevPanel({ session, onlineUsers = {} }) {
   const [activeTab, setActiveTab] = useState('issues'); // 'sessions', 'logs', 'issues'
   
   // Data states
@@ -19,7 +19,6 @@ export default function DevPanel({ session }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
-  const [onlineUsers, setOnlineUsers] = useState({});
   const [discordMembers, setDiscordMembers] = useState([]);
 
   useEffect(() => {
@@ -35,38 +34,23 @@ export default function DevPanel({ session }) {
   // SYSTEME DE RADAR (TEMPS REEL)
   useEffect(() => {
     if (activeTab !== 'sessions') return;
-    
-    // Le Tracker PWA de ce même joueur est dans App.jsx sur 'radar_global'
-    // Pour ne pas faire d'erreur "Cannot add callback after subscribe", on lit en tant qu'Observateur
-    // On crée un canal jumeau qui a les MÊMES données sans casser le principal de App.jsx
-    const radarRoom = supabase.channel('radar_global_dev_panel');
-    
-    radarRoom.on('presence', { event: 'sync' }, () => {
-      const newState = radarRoom.presenceState();
-      setOnlineUsers(newState);
-    }).subscribe();
 
     const fetchDiscordCache = async () => {
       const { data, error } = await supabase.from('discord_cache').select('*').order('highest_role', { ascending: true });
       if (data) setDiscordMembers(data);
     };
     fetchDiscordCache();
-
-    return () => { 
-      supabase.removeChannel(radarRoom);
-    };
   }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
     
     // 1. Fetch profiles mapping
-    if (Object.keys(profiles).length === 0) {
-      const { data: profData } = await supabase.from('profiles').select('id, username, avatar_url, is_dev');
-      if (profData) {
-        const profMap = profData.reduce((acc, p) => ({...acc, [p.id]: p}), {});
-        setProfiles(profMap);
-      }
+    // Remarque: On fetch de nouveau 'profiles' si l'onglet est 'sessions' pour avoir des 'last_seen' frais
+    const { data: profData } = await supabase.from('profiles').select('id, username, avatar_url, is_dev, last_seen, last_page');
+    if (profData) {
+      const profMap = profData.reduce((acc, p) => ({...acc, [p.id]: p}), {});
+      setProfiles(profMap);
     }
 
     // 2. Fetch according to tab
@@ -427,21 +411,38 @@ export default function DevPanel({ session }) {
                          </tr>
                        </thead>
                        <tbody>
-                         {discordMembers.map(member => {
-                           // Chercher si le joueur s'est inscrit sur le site via la liaison discord
-                           const enrolledProfile = Object.values(profiles).find(p => !!p); // Simplification, l'idéal est de lier via discord_id
-                           
-                           // Chercher s'il est en ce moment même sur le site (Presence)
-                           // Dans le cas où enrolledProfile est matché, mais là on va simuler ou chercher.
+                        {discordMembers.map(member => {
+                          // Chercher si le joueur s'est inscrit sur le site via la liaison discord
+                          // On compare le nom d'utilisateur de la base profiles avec celui du cache Discord
+                          const enrolledProfile = Object.values(profiles).find(p => 
+                            p && p.username && (
+                              p.username.toLowerCase() === member.username.toLowerCase() || 
+                              (member.global_name && p.username.toLowerCase() === member.global_name.toLowerCase())
+                            )
+                          );
+                          
+                          // Chercher s'il est en ce moment même sur le site (Presence)
                            let isOnline = false;
                            let action = 'Hors-ligne';
-                           // Boucle pour voir si on le trouve par son pseudo
-                           Object.values(onlineUsers).forEach(arr => {
-                             if (arr && arr[0] && arr[0].username === member.username || arr[0]?.username === member.global_name) {
-                               isOnline = true;
-                               action = `Sur la page : ${arr[0].tab.toUpperCase()}`;
+
+                           Object.values(onlineUsers || {}).forEach(arr => {
+                             if (arr && arr[0]) {
+                               const uName = arr[0].username?.toLowerCase();
+                               if (
+                                 uName === member.username?.toLowerCase() || 
+                                 uName === member.global_name?.toLowerCase()
+                               ) {
+                                 isOnline = true;
+                                 action = `Sur la page : ${arr[0].tab.toUpperCase()}`;
+                               }
                              }
                            });
+
+                           // Si pas en ligne mais a un profil, on tente d'afficher son 'last_seen'
+                           if (!isOnline && enrolledProfile?.last_seen) {
+                             const lastVisibleDate = new Date(enrolledProfile.last_seen);
+                             action = `Vu dernièrement sur : ${enrolledProfile.last_page || 'Inconnue'} (${lastVisibleDate.toLocaleDateString('fr-FR')} à ${lastVisibleDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})})`;
+                           }
 
                            return (
                              <tr key={member.discord_id} className="border-b border-white/5 hover:bg-white/5 transition-colors h-14">
