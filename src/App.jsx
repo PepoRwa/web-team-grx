@@ -40,7 +40,9 @@ function Dashboard({ session, signOut }) {
       setOnlineUsers(room.presenceState());
     }).subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
+        const d_id = session.user.identities?.find(i => i.provider === 'discord')?.id;
         await room.track({
+          discord_id: d_id,
           username: session.user.user_metadata?.full_name || session.user.email,
           tab: activeTab,
           updated_at: new Date().toISOString()
@@ -49,7 +51,8 @@ function Dashboard({ session, signOut }) {
         // Mettre à jour au lancement
         await supabase.from('profiles').update({
            last_seen: new Date().toISOString(),
-           last_page: activeTab
+           last_page: activeTab,
+           discord_id: d_id // NOUVEAU: On enregistre de manière irréfutable son compte Discord
         }).eq('id', session.user.id);
       }
     });
@@ -57,7 +60,9 @@ function Dashboard({ session, signOut }) {
     // Met à jour la position du joueur s'il change d'onglet
     const updatePosition = async () => {
       if (room.state === 'joined') {
+         const d_id = session.user.identities?.find(i => i.provider === 'discord')?.id;
          await room.track({
+            discord_id: d_id,
             username: session.user.user_metadata?.full_name || session.user.email,
             tab: activeTab,
             updated_at: new Date().toISOString()
@@ -66,7 +71,8 @@ function Dashboard({ session, signOut }) {
          // Sauvegarder la dernière page visitée et la date de dernière activité en base
          await supabase.from('profiles').update({
             last_seen: new Date().toISOString(),
-            last_page: activeTab
+            last_page: activeTab,
+            discord_id: d_id
          }).eq('id', session.user.id);
       }
     }

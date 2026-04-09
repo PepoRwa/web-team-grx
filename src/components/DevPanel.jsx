@@ -47,7 +47,7 @@ export default function DevPanel({ session, onlineUsers = {} }) {
     
     // 1. Fetch profiles mapping
     // Remarque: On fetch de nouveau 'profiles' si l'onglet est 'sessions' pour avoir des 'last_seen' frais
-    const { data: profData } = await supabase.from('profiles').select('id, username, avatar_url, is_dev, last_seen, last_page');
+    const { data: profData } = await supabase.from('profiles').select('id, username, avatar_url, is_dev, last_seen, last_page, discord_id');
     if (profData) {
       const profMap = profData.reduce((acc, p) => ({...acc, [p.id]: p}), {});
       setProfiles(profMap);
@@ -415,9 +415,12 @@ export default function DevPanel({ session, onlineUsers = {} }) {
                           // Chercher si le joueur s'est inscrit sur le site via la liaison discord
                           // On compare le nom d'utilisateur de la base profiles avec celui du cache Discord
                           const enrolledProfile = Object.values(profiles).find(p => 
-                            p && p.username && (
-                              p.username.toLowerCase() === member.username.toLowerCase() || 
-                              (member.global_name && p.username.toLowerCase() === member.global_name.toLowerCase())
+                            p && (
+                              (p.discord_id && p.discord_id === member.discord_id) ||
+                              (p.username && (
+                                p.username.toLowerCase() === member.username.toLowerCase() || 
+                                (member.global_name && p.username.toLowerCase() === member.global_name.toLowerCase())
+                              ))
                             )
                           );
                           
@@ -429,6 +432,7 @@ export default function DevPanel({ session, onlineUsers = {} }) {
                              if (arr && arr[0]) {
                                const uName = arr[0].username?.toLowerCase();
                                if (
+                                 (arr[0].discord_id && arr[0].discord_id === member.discord_id) ||
                                  uName === member.username?.toLowerCase() || 
                                  uName === member.global_name?.toLowerCase()
                                ) {

@@ -21,6 +21,10 @@ export default function Calendar({ session }) {
   const [newTime, setNewTime] = useState('');
   const [newEndTime, setNewEndTime] = useState(''); // NOUVEAU
 
+  // Assignation manuelle
+  const [profiles, setProfiles] = useState([]);
+  const [assignedMembers, setAssignedMembers] = useState([]);
+
   useEffect(() => {
     if (!rolesLoading) {
       fetchEvents();
@@ -33,6 +37,11 @@ export default function Calendar({ session }) {
       .from('events')
       .select('*')
       .order('start_time', { ascending: true });
+
+    if (isStaff || isCoach) {
+      const { data: profData } = await supabase.from('profiles').select('id, username, discord_id').order('username', { ascending: true });
+      if (profData) setProfiles(profData);
+    }
 
     if (error) {
       console.error("Erreur de récupération des events:", error);
@@ -58,7 +67,8 @@ export default function Calendar({ session }) {
           event_type: newType, 
           start_time: start_time,
           end_time: end_time,
-          roster_type: newRoster
+          roster_type: newRoster,
+          assigned_members: assignedMembers
         }
       ])
       .select()
@@ -67,16 +77,34 @@ export default function Calendar({ session }) {
     if (!error && data) {
       setEvents(prev => [...prev, data].sort((a,b) => new Date(a.start_time) - new Date(b.start_time)));
       
+        // Si des membres ont été ciblés spécifiquement on insère des convocs persos
+        if (assignedMembers.length > 0) {
+          const personalNotifs = assignedMembers.map(uid => {
+            const p = profiles.find(prof => prof.id === uid);
+            return {
+              user_id: uid,
+              discord_id: p?.discord_id || null,
+              type: 'personal',
+              title: `🗓️ Convocation : ${newTitle}`,
+              message: `Tu as été officiellement convoqué(e) à un évènement : "**${newType}**".\n**⏰ Heure :** ${newDate} de ${newTime} à ${newEndTime}\n⚠️ _Connecte-toi sur le site pour valider ta présence !_`
+            };
+          });
+          await supabase.from('notifications').insert(personalNotifs);
+        }
+
         // Envoi d'une notification globale ciblée
         await supabase.from('notifications').insert({
           user_id: null,
           target_roster: newRoster, 
           type: 'global', // Modifié en 'global' pour que le bot le détecte
           title: `🗓️ Nouvel évènement ajouté : ${newTitle}`,
-          message: `Un évènement "**${newType}**" a été planifié pour l'équipe **${newRoster}** !
+          message: `Un évènement "**${newType}**" a été planifié pour l'équipe **${newRoster}** ${assignedMembers.length > 0 ? '(+ Convocation ciblée)' : ''} !
 **⏰ Heure :** ${newDate} de ${newTime} à ${newEndTime}
 ⚠️ _Connectez-vous sur le site pour valider votre présence !_`
-        });      setShowForm(false);
+        });      
+      setShowForm(false);
+      setNewTitle('');
+      setAssignedMembers([]);
     } else {
       console.error("Erreur de création:", error);
     }
@@ -97,9 +125,24 @@ export default function Calendar({ session }) {
 
   const now = new Date();
   
+  // NOUVEAU: Filtrage des événements en fonction des rôles du membre
+  const accessibleEvents = events.filter(e => {
+    // Les membres du staff et les coachs voient tout
+    if (isStaff || isCoach) return true;
+    
+    // Si expressément assigné
+    if (e.assigned_members && Array.isArray(e.assigned_members) && e.assigned_members.includes(session?.user?.id)) return true;
+
+    // Les évènements mis sur "Tous" sont visibles par tous les membres
+    if (!e.roster_type || e.roster_type === 'Tous') return true;
+
+    // Sinon, on vérifie si l'utilisateur possède le rôle précis (ex: 'High Roster', 'Academy', etc.)
+    return roles.includes(e.roster_type);
+  });
+
   // Séparer les events futurs et passés
-  const futureEvents = events.filter(e => new Date(e.start_time) >= now);
-  const pastEvents = events.filter(e => new Date(e.start_time) < now);
+  const futureEvents = accessibleEvents.filter(e => new Date(e.start_time) >= now);
+  const pastEvents = accessibleEvents.filter(e => new Date(e.start_time) < now);
 
   const filteredFutureEvents = futureEvents.filter(e => filterType === 'all' || e.event_type === filterType);
   const filteredPastEvents = pastEvents.filter(e => filterType === 'all' || e.event_type === filterType);
@@ -154,6 +197,27 @@ export default function Calendar({ session }) {
               <option value="Chill">Chill</option>
               <option value="Tryhard">Tryhard</option>
             </select>
+          </div>
+
+          {/* SÉLECTION DES MEMBRES SPÉCIFIQUES (Optionnel) */}
+          <div className="mt-2 mb-4 p-3 bg-black/40 rounded border border-gray-600">
+            <p className="text-xs text-gray-400 mb-2 font-techMono uppercase tracking-widest">Assigner des joueurs spécifiques (Envoie un DM Discord)</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+              {profiles.map(p => (
+                <label key={p.id} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={assignedMembers.includes(p.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setAssignedMembers(prev => [...prev, p.id]);
+                      else setAssignedMembers(prev => prev.filter(id => id !== p.id));
+                    }}
+                    className="accent-gowrax-purple bg-black border-gray-600 rounded"
+                  />
+                  <span className="text-sm font-rajdhani text-gray-300 group-hover:text-white transition-colors truncate">{p.username}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

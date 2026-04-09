@@ -15,6 +15,8 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
   const [showRollCall, setShowRollCall] = useState(false);
   const [rollCallData, setRollCallData] = useState([]);
   const [loadingRollCall, setLoadingRollCall] = useState(false);
+  const [profilesList, setProfilesList] = useState([]);
+  const [selectedProfileId, setSelectedProfileId] = useState('');
 
   useEffect(() => {
     fetchMyCheckin();
@@ -40,6 +42,11 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
   const handleCheckinSubmit = async (e) => {
     e.preventDefault();
     if (!selectedStatus) return;
+
+    if (checkin?.marked_by_coach) {
+      alert("Un coach a verrouillé ta présence/absence définitevement. Tu ne peux plus la modifier.");
+      return;
+    }
     
     // Empêcher la soumission si retard/absent mais pas de note
     if ((selectedStatus === 'late' || selectedStatus === 'absent') && !note.trim()) {
@@ -89,6 +96,12 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
     } else {
       console.error("Erreur RollCall :", error);
     }
+
+    if (isStaff || isCoach) {
+      const { data: pData } = await supabase.from('profiles').select('id, username').order('username', { ascending: true });
+      if (pData) setProfilesList(pData);
+    }
+
     setLoadingRollCall(false);
   };
 
@@ -119,11 +132,14 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
       // Notifier le joueur que le staff a modifié sa présence
       await supabase.from('notifications').insert({
         user_id: userId,
-        target_discord_id: data.profiles.discord_id,
-        type: 'alerte',
-        title: 'Check-in Modifié par le Staff',
-        message: `Ton statut pour l'évènement [${event.title}] a été forcé sur "${newStatus}" par le Coach.`
+        discord_id: data.profiles?.discord_id || null,
+        type: 'personal',
+        title: '🔒 Présence Forcée par le Staff',
+        message: `Ton statut pour l'évènement [${event.title}] a été forcé sur **${newStatus}** par l'administration/coach.\n⚠️ Tu ne peux plus la modifier.`
       });
+    } else if (!data) {
+       // C'est un nouvel insert, on doit fetch l'objet complèt
+       fetchRollCall();
     }
   };
 
@@ -280,12 +296,13 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
 
           {loadingRollCall ? (
             <div className="text-center py-4 text-gowrax-purple font-techMono text-sm animate-pulse">Chargement des données biométriques...</div>
-          ) : rollCallData.length === 0 ? (
-            <p className="text-gray-400 font-poppins text-sm italic text-center py-2">Aucun joueur n'a encore signifié sa présence.</p>
           ) : (
             <div className="grid grid-cols-1 gap-2">
+              {rollCallData.length === 0 && (
+                 <p className="text-gray-400 font-poppins text-sm italic text-center py-2">Aucun joueur n'a encore signifié sa présence.</p>
+              )}
               {rollCallData.map(c => (
-                <div key={c.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-3 bg-black/40 rounded border border-white/5 hover:border-white/20 transition-colors gap-3">
+                <div key={c.user_id || c.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-3 bg-black/40 rounded border border-white/5 hover:border-white/20 transition-colors gap-3">
                   
                   {/* Info Joueur */}
                   <div className="flex items-center gap-3">
@@ -313,6 +330,36 @@ export default function EventCard({ event, session, isStaff, isCoach, onDelete }
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* AJOUT MANUEL PAR LE COACH */}
+          {!loadingRollCall && profilesList.length > 0 && (
+            <div className="mt-4 pt-3 flex flex-col md:flex-row gap-2 border-t border-dashed border-gray-600">
+               <select 
+                 className="flex-1 bg-black/60 border border-gray-600 rounded text-sm text-gray-300 p-2 outline-none focus:border-gowrax-purple transition-colors"
+                 value={selectedProfileId}
+                 onChange={e => setSelectedProfileId(e.target.value)}
+               >
+                 <option value="">-- Ajouter manuellement un joueur --</option>
+                 {profilesList.map(p => {
+                    const isAlreadyIn = rollCallData.some(rc => rc.user_id === p.id);
+                    if (isAlreadyIn) return null;
+                    return <option key={p.id} value={p.id}>{p.username}</option>
+                 })}
+               </select>
+               <button 
+                 onClick={() => {
+                   if (!selectedProfileId) return;
+                   // Default: add as present
+                   handleForceStatus(selectedProfileId, 'present');
+                   setSelectedProfileId('');
+                 }}
+                 disabled={!selectedProfileId}
+                 className="bg-gowrax-purple text-white px-4 py-2 font-rajdhani text-sm font-bold rounded hover:bg-gowrax-neon transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 FORCER PRÉSENCE
+               </button>
             </div>
           )}
         </div>
