@@ -3,8 +3,20 @@ import { supabase } from '../lib/supabaseClient';
 import GlobalObjectiveBanner from './GlobalObjectiveBanner';
 import VodCommentsModal from './VodCommentsModal';
 
-const MAPS = ["Ascent", "Bind", "Haven", "Split", "Fracture", "Pearl", "Lotus", "Sunset", "Breeze", "Abyss"];
-const STATUS_OPTIONS = ["Win", "Défaite", "Draw"];
+const MAPS = [
+  "Ascent",
+  "Bind",
+  "Haven",
+  "Split",
+  "Fracture",
+  "Pearl",
+  "Lotus",
+  "Sunset",
+  "Breeze",
+  "Abyss",
+  "Icebox",
+  "Corrode"
+];const STATUS_OPTIONS = ["Win", "Défaite", "Draw"];
 
 export default function Vods({ session, isStaff, isCoach }) {
   const [vods, setVods] = useState([]);

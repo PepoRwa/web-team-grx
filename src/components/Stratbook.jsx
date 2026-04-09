@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const MAPS = ["Toutes", "Ascent", "Bind", "Haven", "Split", "Fracture", "Pearl", "Lotus", "Sunset", "Breeze", "Abyss"];
-const SIDES = ["Tous", "Attaque", "Défense"];export default function Stratbook({ isStaff, isCoach }) {
+const MAPS = [
+  "Toutes",
+  "Ascent",
+  "Bind",
+  "Haven",
+  "Split",
+  "Fracture",
+  "Pearl",
+  "Lotus",
+  "Sunset",
+  "Breeze",
+  "Abyss",
+  "Icebox",
+  "Corrode"
+];const SIDES = ["Tous", "Attaque", "Défense"];export default function Stratbook({ isStaff, isCoach }) {
   const [selectedMap, setSelectedMap] = useState("Toutes");
   const [selectedSide, setSelectedSide] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
