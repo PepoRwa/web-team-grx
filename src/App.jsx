@@ -570,6 +570,35 @@ function Dashboard({ session, signOut }) {
   )
 }
 
+function VersionBadge() {
+  const [versionInfo, setVersionInfo] = useState(null);
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      const { data } = await supabase.from('app_version').select('version, build_code').eq('id', 1).single();
+      if (data) {
+        setVersionInfo(data);
+      }
+    };
+    fetchVersion();
+  }, []);
+
+  if (!versionInfo) return null;
+
+  return (
+    <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 text-right z-0 opacity-40 hover:opacity-100 transition-opacity pointer-events-none">
+      <p className="font-techMono text-[10px] text-gray-500 uppercase tracking-widest">
+        v{versionInfo.version}
+      </p>
+      {versionInfo.build_code && (
+        <p className="font-techMono text-[8px] text-gray-600 uppercase tracking-wider">
+          BUILD {versionInfo.build_code}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [session, setSession] = useState(null)
@@ -668,6 +697,7 @@ function App() {
       <>
         <ScrollProgress />
         <SmartParticles />
+        <VersionBadge />
         <Dashboard session={session} signOut={signOut} />
         
         {/* BANNIÈRE D'INSTALLATION ANDROID / DESKTOP (Si connecté) */}
@@ -728,7 +758,8 @@ function App() {
       {/* Background glowing effects */}
       <div className="fixed top-0 left-1/4 w-[40rem] h-[40rem] bg-gowrax-purple/20 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
       <div className="fixed bottom-0 right-1/4 w-[50rem] h-[50rem] bg-gowrax-neon/10 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
-      
+      <VersionBadge />
+
       {/* Decorative Top Line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gowrax-neon to-transparent animate-pulse opacity-70"></div>
 

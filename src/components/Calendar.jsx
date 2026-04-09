@@ -4,6 +4,7 @@ import { usePermissions } from '../hooks/usePermissions';
 
 // Import du EventCard
 import EventCard from './EventCard';
+import GlobalObjectiveBanner from './GlobalObjectiveBanner';
 
 export default function Calendar({ session }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
@@ -148,7 +149,10 @@ export default function Calendar({ session }) {
   const filteredPastEvents = pastEvents.filter(e => filterType === 'all' || e.event_type === filterType);
 
   return (
-    <div className="w-full max-w-5xl mx-auto my-8 font-poppins text-white">
+    <>
+      <GlobalObjectiveBanner isStaff={isStaff} isCoach={isCoach} />
+      
+      <div className="w-full max-w-5xl mx-auto my-8 font-poppins text-white">
       
       <div className="flex justify-between items-center mb-6 border-b border-gowrax-purple/50 pb-4">
         <div>
@@ -336,5 +340,6 @@ export default function Calendar({ session }) {
       )}
 
     </div>
+    </>
   );
 }

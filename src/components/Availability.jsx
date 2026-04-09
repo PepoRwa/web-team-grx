@@ -15,6 +15,8 @@ const generateHalfHours = () => {
 };
 const HALF_HOURS = generateHalfHours();
 
+import GlobalObjectiveBanner from './GlobalObjectiveBanner';
+
 export default function Availability({ session, isStaff, isCoach }) {
   const [activeTab, setActiveTab] = useState('grille'); // 'grille' ou 'absences'
   const [viewMode, setViewMode] = useState('perso'); // 'perso' ou 'heatmap'
@@ -306,7 +308,10 @@ export default function Availability({ session, isStaff, isCoach }) {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-gowrax-cyan/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+    <>
+      <GlobalObjectiveBanner isStaff={isStaff} isCoach={isCoach} />
+      
+      <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-gowrax-cyan/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-white/20 pb-4 gap-4">
         <div className="flex-1">
@@ -683,5 +688,6 @@ export default function Availability({ session, isStaff, isCoach }) {
       )}
 
     </div>
+    </>
   );
 }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import GlobalObjectiveBanner from './GlobalObjectiveBanner';
+import VodCommentsModal from './VodCommentsModal';
 
 const MAPS = ["Ascent", "Bind", "Haven", "Split", "Fracture", "Pearl", "Lotus", "Sunset", "Breeze", "Abyss"];
 const STATUS_OPTIONS = ["Win", "Défaite", "Draw"];
@@ -9,6 +11,7 @@ export default function Vods({ session, isStaff, isCoach }) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedVod, setSelectedVod] = useState(null);
 
   // Filtres
   const [filterStatus, setFilterStatus] = useState("Tous");
@@ -101,7 +104,9 @@ export default function Vods({ session, isStaff, isCoach }) {
   });
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
+    <>
+      <GlobalObjectiveBanner isStaff={isStaff} isCoach={isCoach} />
+      <div className="flex flex-col gap-6 animate-fade-in">
       
       {/* BARRE D'OUTILS ET FILTRES */}
       <div className="bg-white/[0.02] border border-white/5 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex flex-col gap-4">
@@ -208,16 +213,27 @@ export default function Vods({ session, isStaff, isCoach }) {
 
                   <div className="h-px w-full bg-white/10 mb-4"></div>
 
-                  {/* Bouton Lien */}
-                  <a 
-                    href={vod.link} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-rajdhani font-bold text-white transition-colors group-hover:border-white/30"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    VISIONNER LA VOD
-                  </a>
+                  <div className="flex flex-col gap-2 w-full">
+                    {/* Bouton Lien */}
+                    <a 
+                      href={vod.link} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-rajdhani font-bold text-white transition-colors group-hover:border-white/30"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      VISIONNER LA VOD
+                    </a>
+
+                    {/* Bouton Débrief */}
+                    <button 
+                      onClick={() => setSelectedVod(vod)}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 rounded-xl text-sm font-rajdhani font-bold text-blue-400 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                      DÉBRIEF STRATÉGIQUE
+                    </button>
+                  </div>
 
                   {/* Meta (Auteur + Delete Staff) */}
                   <div className="flex items-center justify-between text-[10px] uppercase font-techMono mt-4 text-gray-500">
@@ -311,6 +327,18 @@ export default function Vods({ session, isStaff, isCoach }) {
         </div>
       )}
 
+      {/* MODAL COMMENTAIRES VOD */}
+      {selectedVod && (
+        <VodCommentsModal 
+          vod={selectedVod} 
+          session={session} 
+          isStaff={isStaff} 
+          isCoach={isCoach} 
+          onClose={() => setSelectedVod(null)} 
+        />
+      )}
+
     </div>
+    </>
   );
 }

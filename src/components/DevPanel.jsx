@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import VersionTab from './VersionTab';
 
 export default function DevPanel({ session, onlineUsers = {} }) {
-  const [activeTab, setActiveTab] = useState('issues'); // 'sessions', 'logs', 'issues'
+  const [activeTab, setActiveTab] = useState('issues'); // 'sessions', 'logs', 'issues', 'version'
   
   // Data states
   const [logs, setLogs] = useState([]);
@@ -156,6 +157,9 @@ export default function DevPanel({ session, onlineUsers = {} }) {
         </button>
         <button onClick={() => setActiveTab('sessions')} className={`px-4 py-2 font-techMono text-xs uppercase rounded transition-colors ${activeTab === 'sessions' ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-white'}`}>
           🟢 Live Radar
+        </button>
+        <button onClick={() => setActiveTab('version')} className={`px-4 py-2 font-techMono text-xs uppercase rounded transition-colors ${activeTab === 'version' ? 'bg-yellow-500/20 text-yellow-400' : 'text-gray-400 hover:text-white'}`}>
+          ⚙️ App Version
         </button>
       </div>
 
@@ -500,6 +504,13 @@ export default function DevPanel({ session, onlineUsers = {} }) {
                    </div>
                 </div>
               </>
+            )}
+
+            {/* ===================== ONGLET 4: GESTION DE VERSION ===================== */}
+            {activeTab === 'version' && (
+              <div className="flex flex-col h-full animate-fade-in space-y-4 overflow-y-auto">
+                <VersionTab session={session} />
+              </div>
             )}
           </>
         )}
