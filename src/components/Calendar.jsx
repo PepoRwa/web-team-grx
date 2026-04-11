@@ -87,7 +87,7 @@ export default function Calendar({ session }) {
               discord_id: p?.discord_id || null,
               type: 'personal',
               title: `🗓️ Convocation : ${newTitle}`,
-              message: `Tu as été officiellement convoqué(e) à un évènement : "**${newType}**".\n**⏰ Heure :** ${newDate} de ${newTime} à ${newEndTime}\n⚠️ _Connecte-toi sur le site pour valider ta présence !_`
+              message: `Tu as été convoqué(e) à un évènement : "**${newType}**".\n**⏰ Heure :** ${newDate} de ${newTime} à ${newEndTime}\n⚠️ _Connecte-toi sur le site pour valider ta présence !_`
             };
           });
           await supabase.from('notifications').insert(personalNotifs);
@@ -142,8 +142,8 @@ export default function Calendar({ session }) {
   });
 
   // Séparer les events futurs et passés
-  const futureEvents = accessibleEvents.filter(e => new Date(e.start_time) >= now);
-  const pastEvents = accessibleEvents.filter(e => new Date(e.start_time) < now);
+  const futureEvents = accessibleEvents.filter(e => new Date(e.end_time) >= now);
+  const pastEvents = accessibleEvents.filter(e => new Date(e.end_time) < now);
 
   const filteredFutureEvents = futureEvents.filter(e => filterType === 'all' || e.event_type === filterType);
   const filteredPastEvents = pastEvents.filter(e => filterType === 'all' || e.event_type === filterType);
