@@ -5,8 +5,18 @@ export default function VersionTab({ session }) {
   const [version, setVersion] = useState('');
   const [buildCode, setBuildCode] = useState('');
   const [devPatch, setDevPatch] = useState('');
+  const [disabledPages, setDisabledPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const TABS_AVAILABLE = [
+    { id: 'calendar', label: 'Calendrier' },
+    { id: 'availability', label: 'Disponibilités (Heatmap)' },
+    { id: 'stratbook', label: 'Strat-Book' },
+    { id: 'vods', label: 'VODs & Archives' },
+    { id: 'coaching', label: 'Mentorat & Objectifs' },
+    { id: 'members', label: 'Effectifs & Rosters' }
+  ];
 
   useEffect(() => {
     fetchVersion();
@@ -19,8 +29,15 @@ export default function VersionTab({ session }) {
       setVersion(data.version || '');
       setBuildCode(data.build_code || '');
       setDevPatch(data.devpatch || '');
+      setDisabledPages(data.disabled_pages || []);
     }
     setLoading(false);
+  };
+
+  const toggleDisabledPage = (pageId) => {
+    setDisabledPages(prev => 
+      prev.includes(pageId) ? prev.filter(p => p !== pageId) : [...prev, pageId]
+    );
   };
 
   const handleSave = async (e) => {
@@ -35,12 +52,13 @@ export default function VersionTab({ session }) {
       version,
       build_code: newBuildCode,
       devpatch: devPatch,
+      disabled_pages: disabledPages,
       updated_at: new Date().toISOString()
     });
 
     if (!error) {
       setBuildCode(newBuildCode);
-      alert('Version synchronisée avec succès !');
+      alert('Version et paramètres synchronisés avec succès !');
     } else {
       console.error(error);
       alert('Erreur lors de la sauvegarde : ' + error.message);
@@ -91,6 +109,32 @@ export default function VersionTab({ session }) {
              placeholder="Résumé des changements, nouveautés, corrections..." 
              className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-gray-300 font-poppins text-sm outline-none focus:border-blue-500 transition-colors resize-y min-h-[100px]"
            />
+        </div>
+
+        {/* OVERRIDE PAGES */}
+        <div className="mt-4 p-4 rounded-xl border border-red-500/20 bg-red-900/10">
+           <h4 className="font-rajdhani text-lg font-bold text-red-500 mb-2 flex items-center gap-2">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             MAINTENANCE (VUES DÉSACTIVÉES)
+           </h4>
+           <p className="text-xs text-gray-400 font-poppins mb-4">
+             Cochez les applications pour bloquer temporairement l'accès aux membres. (Les Staffs et Coachs pourront toujours y accéder).
+           </p>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             {TABS_AVAILABLE.map(tab => (
+               <label key={tab.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${disabledPages.includes(tab.id) ? 'bg-red-500/10 border-red-500/50' : 'bg-black/50 border-white/5 hover:border-white/20'}`}>
+                 <input 
+                   type="checkbox" 
+                   checked={disabledPages.includes(tab.id)} 
+                   onChange={() => toggleDisabledPage(tab.id)}
+                   className="w-4 h-4 accent-red-500"
+                 />
+                 <span className={`text-sm font-techMono uppercase tracking-wider ${disabledPages.includes(tab.id) ? 'text-red-400 font-bold' : 'text-gray-400'}`}>
+                   {tab.label}
+                 </span>
+               </label>
+             ))}
+           </div>
         </div>
 
         <button 

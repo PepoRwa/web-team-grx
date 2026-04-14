@@ -14,20 +14,33 @@ import ScrollProgress from './components/ScrollProgress' // HUD PROGRES
 import RevealOnScroll from './components/RevealOnScroll' // EFFET REVELATION
 import TiltWrapper from './components/TiltWrapper' // DEPTH 3D
 import SmartParticles from './components/SmartParticles' // RESEAU/NODES
+import Members from './components/Members';
+import DisabledOverlay from './components/DisabledOverlay';
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods', 'coaching', 'dev'
-
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'dossiers', 'availability', 'stratbook', 'vods', 'coaching', 'dev', 'members'
+  
   // NOUVEAU: Système de Notifications
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
-  
-  // NOUVEAU: Profil Utilisateur Local
   const [myStats, setMyStats] = useState({ absent: 0 });
   const [myGoalsStats, setMyGoalsStats] = useState({ inProgress: 0, completed: 0 });
   const [onlineUsers, setOnlineUsers] = useState({});
+  const [disabledPages, setDisabledPages] = useState([]);
 
+  // Récupérer les "Vues Désactivées" du Panel Dev
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('app_version').select('disabled_pages').eq('id', 1).single();
+      if (data && data.disabled_pages) {
+         setDisabledPages(data.disabled_pages);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Subscribe au status "online"
   useEffect(() => {
     if (!session) return;
     
@@ -202,6 +215,42 @@ function Dashboard({ session, signOut }) {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  if (rolesLoading) {
+     return (
+        <div className="flex-1 flex flex-col min-h-screen bg-gowrax-abyss items-center justify-center p-6 text-center z-[100] selection:bg-gowrax-neon selection:text-white">
+            <div className="w-24 h-24 border-t-4 border-b-4 border-emerald-500 rounded-full animate-spin"></div>
+            <h1 className="font-rajdhani text-2xl text-emerald-500 font-bold tracking-widest mt-8 animate-pulse shadow-[0_0_50px_rgba(16,185,129,0.2)]">VÉRIFICATION DES ACCRÉDITATIONS TACTIQUES...</h1>
+        </div>
+     );
+  }
+
+  // L'Opérateur (aucun rôle) se voit totalement bloqué de l'appranet
+  if (!rolesLoading && roles.length === 0 && !isStaff && !isCoach) {
+     return (
+        <div className="flex-1 flex flex-col min-h-screen bg-gowrax-abyss relative items-center justify-center p-6 text-center z-[100] selection:bg-gowrax-neon selection:text-white">
+            <div className="fixed top-0 left-1/4 w-[30rem] h-[30rem] bg-red-900/20 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
+            <div className="absolute top-6 left-6 flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-500/20 border border-red-500/50 rounded-full flex justify-center items-center font-bold text-red-500 text-[10px]">GRX</div>
+              <span className="font-rajdhani text-xl font-bold tracking-widest text-red-500/80">AUTHORIZATION REQUISE</span>
+            </div>
+
+            <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/30 mb-8 animate-pulse shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+                <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h1 className="font-rajdhani text-4xl md:text-5xl text-white font-extrabold tracking-widest uppercase mb-4 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">ACCÈS REFUSÉ PAR LE SERVEUR</h1>
+            <p className="font-poppins text-gray-400 max-w-lg mx-auto mb-10 text-sm md:text-base leading-relaxed">
+               Vos accréditations temporaires ("Opérateur") sont insuffisantes pour explorer le Hub Tactique GOWRAX. Vous devez d'abord recevoir une assignation de Roster en rejoignant et validant votre rôle sur le serveur Discord officiel.
+            </p>
+            <button
+               onClick={signOut}
+               className="px-8 py-4 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/50 font-techMono font-bold uppercase tracking-widest text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+            >
+               QUITTER L'INTERFACE
+            </button>
+        </div>
+     );
+  }
+
   return (
     <div className="min-h-screen bg-gowrax-abyss text-white flex md:flex-row flex-col relative overflow-hidden font-poppins selection:bg-gowrax-neon selection:text-white">
         {/* LUEURS D'ARRIÈRE-PLAN DYNAMIQUES */}
@@ -278,6 +327,14 @@ function Dashboard({ session, signOut }) {
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                         Mentorat
+                    </button>
+
+                    <button 
+                        onClick={() => setActiveTab('members')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-2 ${activeTab === 'members' ? 'bg-gradient-to-r from-emerald-500/40 to-transparent bg-emerald-500/10 border-l-4 border-emerald-400 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Roster
                     </button>
 
                     {(isStaff || isCoach) && (
@@ -416,78 +473,89 @@ function Dashboard({ session, signOut }) {
                 {/* HEADER TECHNIQUE : Affichage du Mode Actuel */}
                 <div className="flex items-center gap-3 mb-2 opacity-80">
                     <h2 className="font-rajdhani text-3xl md:text-5xl font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
-                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : 'DOSSIERS STAFF'}
+                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : activeTab === 'members' ? 'EFFECTIFS GOWRAX' : activeTab === 'coaching' ? 'MENTORAT OFFICIEL' : 'DOSSIERS STAFF'}
                     </h2>
                     <div className="h-px bg-white/20 flex-1 ml-4 hidden md:block"></div>
                 </div>
 
-                {activeTab === 'calendar' && (
+                {disabledPages.includes(activeTab) && !isStaff && !isCoach ? (
+                    <div className="flex-1 relative min-h-[50vh]">
+                        <DisabledOverlay />
+                    </div>
+                ) : (
                     <>
-                        <Calendar session={session} />
+                        {activeTab === 'calendar' && (
+                            <>
+                                <Calendar session={session} />
+                                
+                                {(isStaff || isCoach) && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                      <div className="bg-red-900/10 border border-red-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-red-500/50 transition-colors shadow-lg">
+                                          <h3 className="font-rajdhani text-2xl text-red-500 font-bold mb-2 tracking-wide">STAFF OVERSIGHT</h3>
+                                          <p className="font-poppins text-gray-400 text-sm mb-4">Gérer les accès globaux et lire les rapports d'équipe classifiés.</p>
+                                          <button onClick={() => setActiveTab('dossiers')} className="px-6 py-2.5 bg-red-500/10 font-rajdhani text-red-400 font-bold border border-red-500/50 rounded-xl hover:bg-red-500 hover:text-white transition-all uppercase w-full tracking-widest">
+                                            Accéder aux Dossiers
+                                          </button>
+                                      </div>
+
+                                        <div className="bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-blue-500/50 transition-colors shadow-lg">
+                                            <h3 className="font-rajdhani text-2xl text-blue-500 font-bold mb-2 tracking-wide">TACTICAL DASHBOARD</h3>
+                                            <p className="font-poppins text-gray-400 text-sm mb-4">Analyse des présences (Heatmaps) et stratégies globales.</p>
+                                            <button onClick={() => setActiveTab('availability')} className="px-6 py-2.5 bg-blue-500/10 font-rajdhani text-blue-400 font-bold border border-blue-500/50 rounded-xl hover:bg-blue-500 hover:text-white transition-all uppercase w-full tracking-widest">
+                                              Voir les Heatmaps
+                                            </button>
+                                        </div>
+
+                                        <div className="bg-orange-900/10 border border-orange-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-orange-500/50 transition-colors shadow-lg md:col-span-2">
+                                            <h3 className="font-rajdhani text-2xl text-orange-500 font-bold mb-2 tracking-wide">COACHING HUB</h3>
+                                            <p className="font-poppins text-gray-400 text-sm mb-4">Assigner des objectifs personnalisés ou examiner les VODs des recrues.</p>
+                                            <button onClick={() => setActiveTab('coaching')} className="px-6 py-2.5 bg-orange-500/10 font-rajdhani text-orange-400 font-bold border border-orange-500/50 rounded-xl hover:bg-orange-500 hover:text-white transition-all uppercase w-full tracking-widest">
+                                              Ouvrir le Mentorat
+                                            </button>
+                                        </div>
+                                    </div>
+                                  )}                          {(!isStaff && !isCoach) && (
+                                    <div className="grid grid-cols-1 mt-4">
+                                        <div 
+                                            onClick={() => setActiveTab('coaching')}
+                                            className="bg-orange-900/10 border border-orange-500/20 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center hover:bg-orange-900/20 hover:border-orange-500/50 transition-all cursor-pointer shadow-[0_0_20px_rgba(249,115,22,0.1)] group"
+                                        >
+                                            <div className="flex items-center gap-4 text-left">
+                                                <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/50 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-rajdhani text-xl text-orange-500 font-bold uppercase tracking-wider">Mes Objectifs Tactiques</h3>
+                                                    <p className="font-poppins text-gray-400 text-xs">Accédez à votre suivi personnalisé mis en place par le staff GOWRAX.</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex gap-4 mt-4 md:mt-0 text-center">
+                                                <div className="flex flex-col">
+                                                    <span className="font-techMono text-2xl text-white font-bold">{myGoalsStats.inProgress}</span>
+                                                    <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">En cours</span>
+                                                </div>
+                                                <div className="w-px h-8 bg-white/10 hidden md:block mt-1"></div>
+                                                <div className="flex flex-col">
+                                                    <span className="font-techMono text-2xl text-green-400 font-bold">{myGoalsStats.completed}</span>
+                                                    <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">Validés</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                  )}
+                          </>
+                        )}
                         
-                        {(isStaff || isCoach) && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                              <div className="bg-red-900/10 border border-red-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-red-500/50 transition-colors shadow-lg">
-                                  <h3 className="font-rajdhani text-2xl text-red-500 font-bold mb-2 tracking-wide">STAFF OVERSIGHT</h3>
-                                  <p className="font-poppins text-gray-400 text-sm mb-4">Gérer les accès globaux et lire les rapports d'équipe classifiés.</p>
-                                  <button onClick={() => setActiveTab('dossiers')} className="px-6 py-2.5 bg-red-500/10 font-rajdhani text-red-400 font-bold border border-red-500/50 rounded-xl hover:bg-red-500 hover:text-white transition-all uppercase w-full tracking-widest">
-                                    Accéder aux Dossiers
-                                  </button>
-                              </div>
-
-                                <div className="bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-blue-500/50 transition-colors shadow-lg">
-                                    <h3 className="font-rajdhani text-2xl text-blue-500 font-bold mb-2 tracking-wide">TACTICAL DASHBOARD</h3>
-                                    <p className="font-poppins text-gray-400 text-sm mb-4">Analyse des présences (Heatmaps) et stratégies globales.</p>
-                                    <button onClick={() => setActiveTab('availability')} className="px-6 py-2.5 bg-blue-500/10 font-rajdhani text-blue-400 font-bold border border-blue-500/50 rounded-xl hover:bg-blue-500 hover:text-white transition-all uppercase w-full tracking-widest">
-                                      Voir les Heatmaps
-                                    </button>
-                                </div>
-
-                                <div className="bg-orange-900/10 border border-orange-500/20 p-6 rounded-2xl flex flex-col items-center text-center hover:border-orange-500/50 transition-colors shadow-lg md:col-span-2">
-                                    <h3 className="font-rajdhani text-2xl text-orange-500 font-bold mb-2 tracking-wide">COACHING HUB</h3>
-                                    <p className="font-poppins text-gray-400 text-sm mb-4">Assigner des objectifs personnalisés ou examiner les VODs des recrues.</p>
-                                    <button onClick={() => setActiveTab('coaching')} className="px-6 py-2.5 bg-orange-500/10 font-rajdhani text-orange-400 font-bold border border-orange-500/50 rounded-xl hover:bg-orange-500 hover:text-white transition-all uppercase w-full tracking-widest">
-                                      Ouvrir le Mentorat
-                                    </button>
-                                </div>
-                            </div>
-                          )}                          {(!isStaff && !isCoach) && (
-                            <div className="grid grid-cols-1 mt-4">
-                                <div 
-                                    onClick={() => setActiveTab('coaching')}
-                                    className="bg-orange-900/10 border border-orange-500/20 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center hover:bg-orange-900/20 hover:border-orange-500/50 transition-all cursor-pointer shadow-[0_0_20px_rgba(249,115,22,0.1)] group"
-                                >
-                                    <div className="flex items-center gap-4 text-left">
-                                        <div className="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/50 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
-                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-rajdhani text-xl text-orange-500 font-bold uppercase tracking-wider">Mes Objectifs Tactiques</h3>
-                                            <p className="font-poppins text-gray-400 text-xs">Accédez à votre suivi personnalisé mis en place par le staff GOWRAX.</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex gap-4 mt-4 md:mt-0 text-center">
-                                        <div className="flex flex-col">
-                                            <span className="font-techMono text-2xl text-white font-bold">{myGoalsStats.inProgress}</span>
-                                            <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">En cours</span>
-                                        </div>
-                                        <div className="w-px h-8 bg-white/10 hidden md:block mt-1"></div>
-                                        <div className="flex flex-col">
-                                            <span className="font-techMono text-2xl text-green-400 font-bold">{myGoalsStats.completed}</span>
-                                            <span className="text-[9px] font-techMono text-gray-500 uppercase tracking-widest">Validés</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                          )}
-                      </>
-                  )}                {activeTab === 'availability' && <Availability session={session} isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'stratbook' && <Stratbook isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
-                {activeTab === 'dev' && (isStaff) && <DevPanel session={session} onlineUsers={onlineUsers} />}
+                        {activeTab === 'availability' && <Availability session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'stratbook' && <Stratbook isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'members' && <Members session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'dev' && (isStaff) && <DevPanel session={session} onlineUsers={onlineUsers} />}
+                    </>
+                )}
             </main>
         </div>
 
@@ -811,7 +879,7 @@ function App() {
               className="relative w-full flex items-center justify-center gap-4 px-6 py-4 bg-[#5865F2]/10 hover:bg-[#5865F2] border border-[#5865F2]/50 hover:border-[#5865F2] text-[#5865F2] hover:text-white font-bold font-rajdhani text-xl rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(88,101,242,0.2)] hover:shadow-[0_0_30px_rgba(88,101,242,0.6)] overflow-hidden"
             >
               <svg className="w-7 h-7 relative z-10" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
               </svg>
               <span className="tracking-widest relative z-10">CONNEXION DISCORD</span>
             </button>
@@ -895,7 +963,7 @@ function App() {
             <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl hover:bg-white/[0.04] hover:border-pink-500/50 transition-all duration-500 group flex flex-col justify-between">
               <div>
                   <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 009.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                   </div>
                   <h3 className="font-rajdhani text-xl font-bold text-white mb-2">Multi-Rosters</h3>
                   <p className="font-poppins text-xs text-gray-400 leading-relaxed">
