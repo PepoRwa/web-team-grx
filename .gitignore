@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .env
+
+# ROADMAP AND TODO FILES
+ROADMAP.md
+NEXT UPDATES.md
