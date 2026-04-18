@@ -1,0 +1,10 @@
+- Possibilité d'ajout d'informations (assigner à un évènement du calendrier ou simplement ajouter le contexte de la VOD si c'est une prac basique ou un truc comme ça). 
+- Selon le lien mis: Dire quel type de service c'est (Youtube, dailymotion etc...)
+- Tout autre fonctionnalité utile
+
+- Mettre à jour le process de "verrouillage" des vues.
+- Intégrer les vues à travers un footer incluant (sans s'y limiter): 
+* Politique de confidentialité / Mentions
+* Numéro de version/Build + Patch Notes
+* Highest Rôle
+* Toute autre fonctionnalité utile.
