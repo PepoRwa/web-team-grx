@@ -120,7 +120,7 @@ export default function GlobalObjectiveBanner({ isStaff, isCoach }) {
           <div className="shrink-0 flex flex-col items-center justify-center bg-gowrax-neon/10 border border-gowrax-neon/40 rounded-xl p-4 min-w-[140px] backdrop-blur-sm">
             <span className="text-[10px] font-techMono text-gowrax-neon uppercase font-bold mb-1 tracking-widest">ÉCHÉANCE</span>
             <span className="font-rajdhani font-black text-white text-2xl">
-              {new Date(objective.deadline).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }).toUpperCase()}
+              {new Date(objective.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
             </span>
           </div>
         )}

@@ -282,6 +282,12 @@ export default function Calendar({ session }) {
         >
           TOURNOIS
         </button>
+        <button
+          onClick={() => setFilterType('meeting')}
+          className={`px-4 py-2 font-rajdhani rounded-full transition-all ${filterType === 'meeting' ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(66,153,225,0.8)]' : 'bg-gowrax-void border border-gowrax-purple text-gray-400 hover:text-white'}`}
+        >
+          RÉUNIONS
+        </button>
       </div>
 
       {loading ? (
