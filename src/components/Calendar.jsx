@@ -12,6 +12,8 @@ export default function Calendar({ session }) {
   const [loading, setLoading] = useState(true);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [filterType, setFilterType] = useState('all'); // NOUVEAU : État pour le filtre
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
 
   // Formulaire Coach
   const [showForm, setShowForm] = useState(false);
@@ -32,6 +34,7 @@ export default function Calendar({ session }) {
     }
   }, [rolesLoading, roles]);
 
+    
   const fetchEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -143,10 +146,17 @@ export default function Calendar({ session }) {
 
   // Séparer les events futurs et passés
   const futureEvents = accessibleEvents.filter(e => new Date(e.end_time) >= now);
-  const pastEvents = accessibleEvents.filter(e => new Date(e.end_time) < now);
-
   const filteredFutureEvents = futureEvents.filter(e => filterType === 'all' || e.event_type === filterType);
+
+  const pastEvents = accessibleEvents
+    .filter(e => new Date(e.end_time) < now)
+    .sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+
   const filteredPastEvents = pastEvents.filter(e => filterType === 'all' || e.event_type === filterType);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPastEvents = filteredPastEvents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPastEvents.length / itemsPerPage);
 
   return (
     <>
@@ -315,36 +325,72 @@ export default function Calendar({ session }) {
       )}
 
       {/* SECTION ÉVÈNEMENTS PASSÉS */}
-      {pastEvents.length > 0 && (
-        <div className="mt-12 border-t border-gowrax-purple/30 pt-6">
-          <button 
-            onClick={() => setShowPastEvents(!showPastEvents)}
-            className="w-full py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-white font-rajdhani text-lg bg-gowrax-void/40 hover:bg-gowrax-void/80 rounded border border-gray-800 transition-colors"
-          >
-            {showPastEvents ? '▼ MASQUER LES ARCHIVES' : '▶ VOIR LES ÉVÈNEMENTS PASSÉS'}
-          </button>
-          
-          {showPastEvents && (
-            <div className="mt-6 flex flex-col gap-4 opacity-75 grayscale hover:grayscale-0 transition-all duration-500">
-              {filteredPastEvents.length === 0 ? (
-                <p className="text-center text-gray-500 font-techMono text-xs">Aucun évènement passé pour ce filtre.</p>
-              ) : (
-                filteredPastEvents.map((event) => (
-                  <EventCard 
-                    key={event.id} 
-                    event={event} 
-                    session={session} 
-                    isStaff={isStaff} 
-                    isCoach={isCoach}
-                    onDelete={handleDeleteEvent}
-                  />
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* SECTION ÉVÈNEMENTS PASSÉS AVEC PAGINATION */}
+        {filteredPastEvents.length > 0 && (
+          <div className="mt-12 border-t border-gowrax-purple/30 pt-6">
+            <button 
+              onClick={() => setShowPastEvents(!showPastEvents)}
+              className="w-full py-3 flex items-center justify-center gap-2 text-gray-400 hover:text-white font-rajdhani text-lg bg-gowrax-void/40 hover:bg-gowrax-void/80 rounded border border-gray-800 transition-colors"
+            >
+              {showPastEvents ? '▼ MASQUER LES ARCHIVES' : `▶ VOIR LES ARCHIVES (${filteredPastEvents.length})`}
+            </button>
+            
+            {showPastEvents && (
+              <div className="mt-6 flex flex-col gap-4 animate-fade-in">
+                {/* Liste des 3 événements de la page actuelle */}
+                <div className="flex flex-col gap-4 opacity-75 grayscale hover:grayscale-0 transition-all duration-500">
+                  {currentPastEvents.map((event) => (
+                    <EventCard 
+                      key={event.id} 
+                      event={event} 
+                      session={session} 
+                      isStaff={isStaff} 
+                      isCoach={isCoach}
+                      onDelete={handleDeleteEvent}
+                    />
+                  ))}
+                </div>
 
+                {/* CONTRÔLES DE PAGINATION (Numéros de page) */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-6 font-techMono text-sm">
+                    <button 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                      className="p-2 border border-gowrax-purple/50 rounded disabled:opacity-30 hover:bg-gowrax-purple/20 transition-all"
+                    >
+                      &lt; PRÉCÉDENT
+                    </button>
+                    
+                    <div className="flex gap-2">
+                      {[...Array(totalPages)].map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`w-8 h-8 rounded border ${currentPage === i + 1 ? 'bg-gowrax-neon border-gowrax-neon text-white shadow-[0_0_10px_rgba(214,47,127,0.5)]' : 'border-gowrax-purple/50 text-gray-400 hover:text-white'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      className="p-2 border border-gowrax-purple/50 rounded disabled:opacity-30 hover:bg-gowrax-purple/20 transition-all"
+                    >
+                      SUIVANT &gt;
+                    </button>
+                  </div>
+                )}
+                
+                <p className="text-center text-[10px] text-gray-600 font-techMono mt-2 uppercase">
+                  Page {currentPage} sur {totalPages} — Total archives : {filteredPastEvents.length}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
     </div>
     </>
   );

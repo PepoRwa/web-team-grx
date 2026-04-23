@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import GlobalObjectiveBanner from './GlobalObjectiveBanner';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
@@ -14,8 +15,6 @@ const generateHalfHours = () => {
     return times;
 };
 const HALF_HOURS = generateHalfHours();
-
-import GlobalObjectiveBanner from './GlobalObjectiveBanner';
 
 export default function Availability({ session, isStaff, isCoach }) {
   const [activeTab, setActiveTab] = useState('grille'); // 'grille' ou 'absences'
@@ -42,6 +41,10 @@ export default function Availability({ session, isStaff, isCoach }) {
   const [absences, setAbsences] = useState([]);
   const [newAbsence, setNewAbsence] = useState({ date_start: '', date_end: '', reason: '' });
   const [isSavingAbsence, setIsSavingAbsence] = useState(false);
+  
+  // NOUVEAU : States pour l'édition d'une absence validée
+  const [editingAbsenceId, setEditingAbsenceId] = useState(null);
+  const [editAbsenceData, setEditAbsenceData] = useState({ date_start: '', date_end: '', reason: '' });
 
   useEffect(() => {
     if (activeTab === 'grille') {
@@ -89,7 +92,6 @@ export default function Availability({ session, isStaff, isCoach }) {
     e.preventDefault();
     setIsSavingAbsence(true);
     
-    // 1. Ajouter l'absence dans la base de données
     const { error, data } = await supabase.from('absences').insert({
       user_id: session.user.id,
       date_start: new Date(newAbsence.date_start).toISOString(),
@@ -100,12 +102,11 @@ export default function Availability({ session, isStaff, isCoach }) {
     setIsSavingAbsence(false);
     
     if (!error) {
-      // 2. Alerter Discord via la table notifications (Le Bot écoute ça !)
       await supabase.from('notifications').insert({
         type: 'global',
         title: '🔴 Nouvelle Absence Déclarée',
         message: `Une absence a été signalée sur le site par un membre.\n**Du :** ${new Date(newAbsence.date_start).toLocaleDateString('fr-FR')} \n**Au :** ${new Date(newAbsence.date_end).toLocaleDateString('fr-FR')} \n**Motif :** ${newAbsence.reason}`,
-        target_roster: 'Staff' // <--- Le bot l'enverra dans le salon mappé à 'Tous' ou 'Staff' si tu l'ajoutes au JS du Bot
+        target_roster: 'Staff'
       });
 
       setNewAbsence({ date_start: '', date_end: '', reason: '' });
@@ -113,6 +114,49 @@ export default function Availability({ session, isStaff, isCoach }) {
     } else {
       console.error("Erreur ajout:", error);
       alert("Erreur lors de l'ajout de l'absence: " + error.message);
+    }
+  };
+
+  // NOUVEAU : Fonction pour initialiser l'édition
+  const startEditing = (abs) => {
+    setEditingAbsenceId(abs.id);
+    // Formatage pour l'input datetime-local (YYYY-MM-DDTHH:mm)
+    const formatDateForInput = (dateStr) => {
+      const d = new Date(dateStr);
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    
+    setEditAbsenceData({
+      date_start: formatDateForInput(abs.date_start),
+      date_end: formatDateForInput(abs.date_end),
+      reason: abs.reason
+    });
+  };
+
+  // NOUVEAU : Fonction pour sauvegarder la modification
+  const handleSaveEdit = async (id) => {
+    const { error } = await supabase.from('absences').update({
+      date_start: new Date(editAbsenceData.date_start).toISOString(),
+      date_end: new Date(editAbsenceData.date_end).toISOString(),
+      reason: editAbsenceData.reason,
+      status: 'modifie' // Nouveau statut appliqué
+    }).eq('id', id);
+
+    if (!error) {
+      setEditingAbsenceId(null);
+      fetchAbsences();
+      
+      // Notifie le staff de la modification sur le Discord
+      await supabase.from('notifications').insert({
+        type: 'global',
+        title: '🟠 Absence Modifiée',
+        message: `Une absence a été modifiée par un membre et nécessite une re-validation.\n**Du :** ${new Date(editAbsenceData.date_start).toLocaleDateString('fr-FR')} \n**Au :** ${new Date(editAbsenceData.date_end).toLocaleDateString('fr-FR')} \n**Nouveau Motif :** ${editAbsenceData.reason}`,
+        target_roster: 'Staff'
+      });
+    } else {
+      console.error("Erreur modification:", error);
+      alert("Erreur lors de la modification de l'absence.");
     }
   };
 
@@ -133,32 +177,17 @@ export default function Availability({ session, isStaff, isCoach }) {
     if (!error && data) {
       setMySchedule(data.schedule || {});
     } else {
-      setMySchedule({}); // Grille vide par défaut
+      setMySchedule({});
     }
     setLoadingMySchedule(false);
   };
 
-  const handleCellClick = (jour, creneau) => {
-    setMySchedule(prev => {
-      const dayData = prev[jour] || {};
-      return {
-        ...prev,
-        [jour]: {
-          ...dayData,
-          [creneau]: !dayData[creneau]
-        }
-      };
-    });
-  };
-
-  // NOUVEAUX HANDLERS POUR LE DRAG SUR LA GRILLE PRONOTE
   const handleMouseDown = (jour, time) => {
     setIsDragging(true);
     const dayData = mySchedule[jour] || {};
     const willBeAvailable = !dayData[time];
     setDragAction(willBeAvailable);
     
-    // Modifie immédiatement la cellule cliquée
     setMySchedule(prev => ({
       ...prev,
       [jour]: {
@@ -179,11 +208,8 @@ export default function Availability({ session, isStaff, isCoach }) {
     }));
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  const handleMouseUp = () => setIsDragging(false);
 
-  // Sécurité: si on sort le clic de la grille, on stop le drag
   useEffect(() => {
     const handleGlobalMouseUp = () => setIsDragging(false);
     window.addEventListener('mouseup', handleGlobalMouseUp);
@@ -200,20 +226,15 @@ export default function Availability({ session, isStaff, isCoach }) {
         updated_at: new Date().toISOString()
       });
 
-    if (error) {
-      console.error("Erreur d'enregistrement:", error);
-      alert("Erreur lors de la sauvegarde de ta grille.");
-    }
+    if (error) alert("Erreur lors de la sauvegarde de ta grille.");
     setIsSaving(false);
   };
 
-  // Gestion du sélecteur "Macro" de disponibilité de la journée 
   const handleMacroChange = (jour, value) => {
     setMySchedule(prev => {
       const dayData = { ...(prev[jour] || {}) };
       dayData.macro = value;
       
-      // Autocomplete magique selon le choix
       if (value === 'allday') {
         HALF_HOURS.forEach(t => dayData[t] = true);
       } else if (value === 'indispo') {
@@ -221,25 +242,21 @@ export default function Availability({ session, isStaff, isCoach }) {
       } else if (value === 'matin') {
         HALF_HOURS.forEach(t => {
             const h = parseInt(t.split(':')[0], 10);
-            // Matin de 08:00 à 12:30 (exclu 13:00)
             dayData[t] = !!(h >= 8 && h < 13);
         });
       } else if (value === 'aprem') {
         HALF_HOURS.forEach(t => {
             const h = parseInt(t.split(':')[0], 10);
-            // Aprem de 14:00 à 18:30
             dayData[t] = !!(h >= 14 && h < 19);
         });
       } else if (value === 'soir') {
         HALF_HOURS.forEach(t => {
             const h = parseInt(t.split(':')[0], 10);
-            // Soirée de 19:00 à 23:30
             dayData[t] = !!(h >= 19 && h <= 23);
         });
       } else if (value === 'nuit') {
          HALF_HOURS.forEach(t => {
             const h = parseInt(t.split(':')[0], 10);
-            // Nuit de 00:00 à 05:00
             dayData[t] = !!(h >= 0 && h < 6);
         });
       }
@@ -248,22 +265,18 @@ export default function Availability({ session, isStaff, isCoach }) {
     });
   };
 
-  // --- LOGIQUE HEATMAP (COACH/STAFF) ---
+  // --- LOGIQUE HEATMAP ---
   const fetchAllSchedules = async () => {
     setLoadingHeatmap(true);
-    
-    // 1. On récupère les grilles de dispo de tout le monde
     const { data: schedulesData, error: errSchedules } = await supabase
       .from('user_availabilities')
       .select('user_id, schedule');
 
-    // 2. On récupère les rôles pour faire le filtre par roster
     const { data: rolesData, error: errRoles } = await supabase
       .from('user_roles')
       .select('user_id, roles(name)');
 
     if (!errSchedules && schedulesData) {
-      // Associer user_id -> tableau de rôles
       const rolesMap = {};
       if (rolesData) {
         rolesData.forEach(item => {
@@ -274,7 +287,6 @@ export default function Availability({ session, isStaff, isCoach }) {
         });
       }
 
-      // On enrichit chaque grille avec son tableau de rôles
       const enhancedSchedules = schedulesData.map(s => ({
         ...s,
         roles: rolesMap[s.user_id] || []
@@ -285,7 +297,6 @@ export default function Availability({ session, isStaff, isCoach }) {
     setLoadingHeatmap(false);
   };
 
-  // Appliquer le filtre Roster
   const filteredSchedules = React.useMemo(() => {
     if (activeRoster === 'Tous') return allSchedules;
     return allSchedules.filter(user => user.roles && user.roles.includes(activeRoster));
@@ -293,14 +304,12 @@ export default function Availability({ session, isStaff, isCoach }) {
 
   const getHeatmapColor = (jour, creneau) => {
     if (filteredSchedules.length === 0) return 'bg-black/40 text-gray-500';
-    
     const count = filteredSchedules.reduce((acc, user) => {
       if (user.schedule[jour] && user.schedule[jour][creneau]) return acc + 1;
       return acc;
     }, 0);
 
     const percentage = count / filteredSchedules.length;
-    
     if (percentage === 0) return 'bg-black/40 text-gray-500';
     if (percentage < 0.3) return 'bg-gowrax-neon/20 text-white';
     if (percentage < 0.7) return 'bg-gowrax-purple/50 text-white';
@@ -311,7 +320,7 @@ export default function Availability({ session, isStaff, isCoach }) {
     <>
       <GlobalObjectiveBanner isStaff={isStaff} isCoach={isCoach} />
       
-      <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-gowrax-cyan/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+      <div className="w-full max-w-5xl mx-auto my-8 bg-black/40 border border-gowrax-purple/30 backdrop-blur-md rounded-xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-white/20 pb-4 gap-4">
         <div className="flex-1">
@@ -339,7 +348,6 @@ export default function Availability({ session, isStaff, isCoach }) {
             </div>
         </div>
 
-        {/* Boutons de switch de vue (Staff/Coach uniquement pour le heatmap) - Seulement dans l'onglet Grille */}
         {activeTab === 'grille' && (isStaff || isCoach) && (
             <div className="flex border border-gray-600 rounded bg-black/50 p-1">
                 <button 
@@ -367,7 +375,6 @@ export default function Availability({ session, isStaff, isCoach }) {
               ) : (
                   <>
                     <div className="relative group overflow-hidden rounded-xl border border-gowrax-purple/30 bg-black/40 p-1 md:p-2 shadow-[0_0_20px_rgba(111,45,189,0.15)] transition-all hover:shadow-[0_0_30px_rgba(111,45,189,0.3)]">
-                        {/* HUD Corners */}
                         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
                         <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
                         <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
@@ -418,7 +425,6 @@ export default function Availability({ session, isStaff, isCoach }) {
                             </thead>
                             <tbody>
                                 {HALF_HOURS.map((time, index) => {
-                                    // La bordure du bas est rouge tous les 1h pour bien séparer
                                     const isFullHour = time.endsWith(':00');
                                     const isEndOfHour = time.endsWith(':30');
 
@@ -441,9 +447,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                                                             ${isAvailable ? 'bg-green-500/20 border-green-500 shadow-[inset_0_0_15px_rgba(34,197,94,0.3)]' : 'bg-black/20 hover:bg-white/5'}
                                                         `}
                                                     >
-                                                        <div className="w-full h-full min-h-[30px] flex items-center justify-center">
-                                                            
-                                                        </div>
+                                                        <div className="w-full h-full min-h-[30px] flex items-center justify-center"></div>
                                                     </td>
                                                 );
                                             })}
@@ -457,7 +461,7 @@ export default function Availability({ session, isStaff, isCoach }) {
 
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
                       <p className="text-gray-400 font-poppins text-xs italic bg-black/30 p-3 rounded-lg border border-white/5 flex-1">
-                         � <strong>Sur mobile ou PC :</strong> Utilise les onglets "Tendance" (Matin/Aprem/Soir...) pour pré-remplir instantanément la journée sans t'embêter !<br/>
+                         📱 <strong>Sur mobile ou PC :</strong> Utilise les onglets "Tendance" (Matin/Aprem/Soir...) pour pré-remplir instantanément la journée sans t'embêter !<br/>
                          🖱️ <strong>Sur PC :</strong> Tu peux aussi maintenir le clic enfoncé et balayer la zone pour cocher/décocher rapidement.
                       </p>
                       <button 
@@ -472,10 +476,8 @@ export default function Availability({ session, isStaff, isCoach }) {
               )}
           </div>
       ) : (
-          /* ================= VUE: HEATMAP ÉQUIPE (COACH) ================= */
+          /* ================= VUE: HEATMAP ÉQUIPE ================= */
           <div className="flex flex-col gap-6">
-              
-              {/* --- FILTRE ROSTER --- */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white/[0.02] border border-white/10 p-4 rounded-xl mb-2 shadow-inner">
                   <div className="flex flex-col gap-1">
                       <h3 className="font-rajdhani font-bold text-white text-lg flex items-center gap-2">
@@ -509,7 +511,6 @@ export default function Availability({ session, isStaff, isCoach }) {
                     </p>
 
                     <div className="relative group overflow-hidden rounded-xl border border-gowrax-neon/30 bg-black/40 p-1 md:p-2 shadow-[0_0_20px_rgba(214,47,127,0.15)] transition-all hover:shadow-[0_0_30px_rgba(214,47,127,0.3)]">
-                        {/* HUD Corners */}
                         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
                         <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gowrax-neon pointer-events-none z-50"></div>
                         <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gowrax-neon pointer-events-none z-50"></div>
@@ -574,7 +575,6 @@ export default function Availability({ session, isStaff, isCoach }) {
         /* ================= VUE: GESTION DES ABSENCES ================= */
         <div className="flex flex-col gap-8 animate-fade-in">
           
-          {/* Nouveau Formulaire d'absence */}
           <div className="bg-black/30 border border-red-500/20 rounded-xl p-6">
             <h3 className="font-rajdhani text-xl font-bold text-red-400 mb-4 inline-flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -583,7 +583,7 @@ export default function Availability({ session, isStaff, isCoach }) {
             
             <form onSubmit={handleCreateAbsence} className="flex flex-col md:flex-row gap-4 align-top">
               <div className="flex flex-col gap-1 flex-1">
-                <label className="text-xs font-techMono text-gray-500 uppercase">Début de l'absence</label>
+                <label className="text-xs font-techMono text-gray-500 uppercase">Début</label>
                 <input 
                   type="datetime-local" 
                   required
@@ -594,7 +594,7 @@ export default function Availability({ session, isStaff, isCoach }) {
               </div>
 
               <div className="flex flex-col gap-1 flex-1">
-                <label className="text-xs font-techMono text-gray-500 uppercase">Fin de l'absence</label>
+                <label className="text-xs font-techMono text-gray-500 uppercase">Fin</label>
                 <input 
                   type="datetime-local" 
                   required
@@ -609,7 +609,7 @@ export default function Availability({ session, isStaff, isCoach }) {
                 <input 
                   type="text" 
                   required
-                  placeholder="Ex: Voyage scolaire, panne PC, RDV médical..."
+                  placeholder="Ex: Voyage scolaire, panne PC..."
                   value={newAbsence.reason}
                   onChange={e => setNewAbsence({...newAbsence, reason: e.target.value})}
                   className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-red-500 outline-none w-full"
@@ -628,7 +628,6 @@ export default function Availability({ session, isStaff, isCoach }) {
 
           <div className="h-px w-full bg-white/10"></div>
 
-          {/* Liste des absences */}
           <div>
             <h3 className="font-rajdhani text-xl text-white mb-4">HISTORIQUE DES ABSENCES</h3>
             
@@ -637,14 +636,50 @@ export default function Availability({ session, isStaff, isCoach }) {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {absences.map(abs => {
+                  
+                  // NOUVEAU: Map étendue pour gérer le nouveau statut "modifie"
                   const statusMap = {
                     'en_attente': { color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30', label: 'En attente' },
+                    'modifie': { color: 'text-orange-500 bg-orange-500/10 border-orange-500/30', label: 'Modifié - À valider' },
                     'valide': { color: 'text-green-500 bg-green-500/10 border-green-500/30', label: 'Validée' },
                     'refuse': { color: 'text-red-500 bg-red-500/10 border-red-500/30', label: 'Refusée' }
                   };
+                  
+                  // NOUVEAU: Interface d'édition
+                  if (editingAbsenceId === abs.id) {
+                     return (
+                       <div key={abs.id} className="bg-black/50 border border-orange-500/50 rounded-xl p-4 flex flex-col gap-3 relative shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+                          <h4 className="font-rajdhani font-bold text-orange-400 text-lg">MODIFIER L'ABSENCE</h4>
+                          <div className="flex flex-col gap-2">
+                            <input 
+                              type="datetime-local" 
+                              value={editAbsenceData.date_start}
+                              onChange={e => setEditAbsenceData({...editAbsenceData, date_start: e.target.value})}
+                              className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-orange-500 outline-none w-full"
+                            />
+                            <input 
+                              type="datetime-local" 
+                              value={editAbsenceData.date_end}
+                              onChange={e => setEditAbsenceData({...editAbsenceData, date_end: e.target.value})}
+                              className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-orange-500 outline-none w-full"
+                            />
+                            <input 
+                              type="text" 
+                              value={editAbsenceData.reason}
+                              onChange={e => setEditAbsenceData({...editAbsenceData, reason: e.target.value})}
+                              className="bg-black/50 border border-gray-700 rounded-lg p-2 text-white text-sm focus:border-orange-500 outline-none w-full"
+                            />
+                          </div>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setEditingAbsenceId(null)} className="text-xs font-techMono text-gray-400 hover:text-white px-3 py-1">ANNULER</button>
+                            <button onClick={() => handleSaveEdit(abs.id)} className="text-xs font-techMono bg-orange-500/20 text-orange-500 border border-orange-500/50 hover:bg-orange-500 hover:text-white px-3 py-1 rounded transition-colors">SAUVEGARDER</button>
+                          </div>
+                       </div>
+                     );
+                  }
+
                   const ds = new Date(abs.date_start);
                   const de = new Date(abs.date_end);
-
                   let userName = abs.user_id === session.user.id ? 'Moi' : abs.user_name;
 
                   return (
@@ -656,9 +691,21 @@ export default function Availability({ session, isStaff, isCoach }) {
                              <span className="text-[10px] text-gray-500 font-techMono uppercase px-1 border border-gray-600 rounded">Agent</span>
                            )}
                          </div>
-                         <span className={`px-2 py-0.5 text-xs font-techMono uppercase border rounded ${statusMap[abs.status]?.color || statusMap['en_attente'].color}`}>
-                           {statusMap[abs.status]?.label || 'En attente'}
-                         </span>
+                         <div className="flex flex-col items-end gap-1">
+                           <span className={`px-2 py-0.5 text-xs font-techMono uppercase border rounded ${statusMap[abs.status]?.color || statusMap['en_attente'].color}`}>
+                             {statusMap[abs.status]?.label || 'En attente'}
+                           </span>
+                           {/* NOUVEAU: Bouton d'édition conditionnel */}
+                           {abs.user_id === session.user.id && abs.status === 'valide' && (
+                             <button 
+                               onClick={() => startEditing(abs)} 
+                               className="text-[10px] text-gray-400 hover:text-gowrax-neon font-techMono flex items-center gap-1 transition-colors"
+                             >
+                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                               MODIFIER
+                             </button>
+                           )}
+                         </div>
                       </div>
                       
                       <div className="text-xs font-techMono text-gray-400">
@@ -670,8 +717,8 @@ export default function Availability({ session, isStaff, isCoach }) {
                         "{abs.reason}"
                       </p>
 
-                      {/* Outils Staff */}
-                      {(isStaff || isCoach) && abs.status === 'en_attente' && (
+                      {/* NOUVEAU: Ajout de 'modifie' aux outils Staff */}
+                      {(isStaff || isCoach) && (abs.status === 'en_attente' || abs.status === 'modifie') && (
                         <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 justify-end">
                           <button onClick={() => updateAbsenceStatus(abs.id, 'valide')} className="text-xs font-bold text-green-500 hover:text-green-400 hover:bg-green-500/10 px-3 py-1 rounded transition-colors border border-green-500/20">✓ VALIDER</button>
                           <button onClick={() => updateAbsenceStatus(abs.id, 'refuse')} className="text-xs font-bold text-red-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1 rounded transition-colors border border-red-500/20">✗ REFUSER</button>
