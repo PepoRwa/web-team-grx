@@ -142,6 +142,23 @@ export default function DevPanel({ session, onlineUsers = {} }) {
 
   return (
     <div className="flex flex-col h-full animate-fade-in pb-16 md:pb-0">
+      {/* BANNIERE D'ALERTE GLOBALE */}
+      <div className="mb-6 bg-red-900/40 border-l-4 border-red-500 p-4 rounded-r-xl shadow-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/20 blur-2xl rounded-full animate-pulse-slow"></div>
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="shrink-0 p-2 bg-red-500/20 rounded-lg">
+            <svg className="w-8 h-8 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <div>
+            <h3 className="font-rajdhani text-xl font-bold text-red-400 tracking-wider">Désactivation du DevPanel à venir</h3>
+            <p className="font-poppins text-sm text-red-200/80 mt-1">
+              <strong>ATTENTION :</strong> Toutes les fonctionnalités du Panneau de développement vont bientôt être désactivées pour se conformiser aux obligations légales et permettre une lecture plus simple des données et informations.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="mb-6 border-b border-gray-700 pb-4">
         <h2 className="font-techMono text-2xl font-bold tracking-widest text-[#00FF41]">⚠️ DEV_CORE_PANEL</h2>
         <p className="font-poppins text-sm text-gray-400">Système d'administration avancé - Niveau Accréditation: DEV</p>

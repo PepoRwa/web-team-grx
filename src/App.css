@@ -181,4 +181,14 @@
     right: 0;
     border-right-color: var(--border);
   }
+
+  @keyframes soft-pulse {
+  0%, 100% { opacity: 0.8; filter: blur(6px); }
+  50% { opacity: 1; filter: blur(8px); }
+}
+
+/* Applique ça sur la lueur du bouton actif */
+.active-bloom-glow {
+  animation: soft-pulse 4s infinite ease-in-out;
+}
 }

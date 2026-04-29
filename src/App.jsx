@@ -16,6 +16,7 @@ import TiltWrapper from './components/TiltWrapper' // DEPTH 3D
 import SmartParticles from './components/SmartParticles' // RESEAU/NODES
 import Members from './components/Members';
 import DisabledOverlay from './components/DisabledOverlay';
+import Evolution from './components/Evolution';
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
@@ -337,7 +338,51 @@ function Dashboard({ session, signOut }) {
                         Roster
                     </button>
 
-                    {(isStaff || isCoach) && (
+                    {/* À insérer dans <nav className="flex flex-col gap-2"> après le bouton 'members' */}
+                    <button 
+                        onClick={() => setActiveTab('evolution')}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-500 w-full text-left font-rajdhani font-bold text-lg mt-2 group relative overflow-hidden ${
+                            activeTab === 'evolution' 
+                            ? 'bg-indigo-500/10 border-l-4 border-cyan-300 text-cyan-50 shadow-[0_0_25px_rgba(165,243,252,0.1)]' 
+                            : 'text-gray-400 hover:bg-white/5 hover:text-indigo-200 border-l-4 border-transparent'
+                        }`}
+                    >
+                        {/* Effet de lueur interne subtile uniquement si actif */}
+                        {activeTab === 'evolution' && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/5 to-indigo-400/5 pointer-events-none"></div>
+                        )}
+
+                        <div className="flex items-center gap-3 relative z-10">
+                            <div className="relative">
+                                {/* L'icône avec un halo pastel */}
+                                <svg className={`w-5 h-5 transition-transform duration-500 group-hover:rotate-12 ${activeTab === 'evolution' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(165,243,252,0.8)]' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <span className={`tracking-wide ${activeTab === 'evolution' ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 to-indigo-200' : ''}`}>
+                                Slow Bloom
+                            </span>
+                        </div>
+
+                        {/* Le Badge AI retravaillé pour le Pastel */}
+                        <div className="relative flex items-center justify-center scale-90">
+                            <div className="absolute inset-0 bg-indigo-400/20 blur-[8px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            <div className="relative flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/20 border border-white/10 backdrop-blur-md overflow-hidden">
+                                {/* Shine plus doux (blanc opale) */}
+                                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-slow-shine"></div>
+                                
+                                {/* Processeur version "Perle" */}
+                                <div className="w-1 h-1 rounded-full bg-indigo-300 shadow-[0_0_8px_#a5b4fc] animate-pulse"></div>
+                                
+                                <span className="text-[9px] font-techMono font-black tracking-[0.1em] text-indigo-200">
+                                    AI
+                                </span>
+                            </div>
+                        </div>                    
+                    </button>
+
+                    {(isStaff || isCoach) &&  (
                         <button 
                             onClick={() => setActiveTab('dossiers')}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-4 ${activeTab === 'dossiers' ? 'bg-blue-600/20 border-l-4 border-blue-500 text-blue-300' : 'text-blue-500/50 hover:bg-blue-600/10 hover:text-blue-400 border-l-4 border-transparent'}`}
@@ -473,7 +518,7 @@ function Dashboard({ session, signOut }) {
                 {/* HEADER TECHNIQUE : Affichage du Mode Actuel */}
                 <div className="flex items-center gap-3 mb-2 opacity-80">
                     <h2 className="font-rajdhani text-3xl md:text-5xl font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
-                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : activeTab === 'members' ? 'EFFECTIFS GOWRAX' : activeTab === 'coaching' ? 'MENTORAT OFFICIEL' : 'DOSSIERS STAFF'}
+                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : activeTab === 'members' ? 'EFFECTIFS GOWRAX' : activeTab === 'coaching' ? 'MENTORAT OFFICIEL' : activeTab === 'evolution' ? 'SLOW BLOOM' : 'DOSSIERS STAFF'}
                     </h2>
                     <div className="h-px bg-white/20 flex-1 ml-4 hidden md:block"></div>
                 </div>
@@ -554,6 +599,7 @@ function Dashboard({ session, signOut }) {
                         {activeTab === 'members' && <Members session={session} isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'dev' && (isStaff) && <DevPanel session={session} onlineUsers={onlineUsers} />}
+                        {activeTab === 'evolution' && <Evolution session={session} isStaff={isStaff} isCoach={isCoach} />}
                     </>
                 )}
             </main>
@@ -609,6 +655,19 @@ function Dashboard({ session, signOut }) {
                   <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'coaching' ? '2.5' : '2'} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 </div>
                 <span className="text-[8px] sm:text-[9px] font-techMono uppercase mt-1">Coaching</span>
+            </button>
+             
+             {/* À insérer entre Coaching et Staff sur mobile */}
+            <button 
+                onClick={() => setActiveTab('evolution')}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${activeTab === 'evolution' ? 'text-cyan-400' : 'text-gray-500'}`}
+            >
+                <div className={`p-1 rounded-full ${activeTab === 'evolution' ? 'bg-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.3)]' : ''}`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <span className="text-[8px] font-techMono uppercase mt-1">AI_Evo</span>
             </button>
 
             {(isStaff || isCoach) && (
