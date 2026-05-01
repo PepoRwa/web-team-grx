@@ -14,7 +14,7 @@ import ScrollProgress from './components/ScrollProgress' // HUD PROGRES
 import RevealOnScroll from './components/RevealOnScroll' // EFFET REVELATION
 import TiltWrapper from './components/TiltWrapper' // DEPTH 3D
 import SmartParticles from './components/SmartParticles' // RESEAU/NODES
-import Members from './components/Members';
+import Profil from './components/Profil';
 import DisabledOverlay from './components/DisabledOverlay';
 import Evolution from './components/Evolution';
 
@@ -331,11 +331,11 @@ function Dashboard({ session, signOut }) {
                     </button>
 
                     <button 
-                        onClick={() => setActiveTab('members')}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-2 ${activeTab === 'members' ? 'bg-gradient-to-r from-emerald-500/40 to-transparent bg-emerald-500/10 border-l-4 border-emerald-400 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                        onClick={() => setActiveTab('profil')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-2 ${activeTab === 'profil' ? 'bg-gradient-to-r from-emerald-500/40 to-transparent bg-emerald-500/10 border-l-4 border-emerald-400 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        Roster
+                        Mon Profil
                     </button>
 
                     {/* À insérer dans <nav className="flex flex-col gap-2"> après le bouton 'members' */}
@@ -518,7 +518,7 @@ function Dashboard({ session, signOut }) {
                 {/* HEADER TECHNIQUE : Affichage du Mode Actuel */}
                 <div className="flex items-center gap-3 mb-2 opacity-80">
                     <h2 className="font-rajdhani text-3xl md:text-5xl font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
-                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : activeTab === 'members' ? 'EFFECTIFS GOWRAX' : activeTab === 'coaching' ? 'MENTORAT OFFICIEL' : activeTab === 'evolution' ? 'SLOW BLOOM' : 'DOSSIERS STAFF'}
+                        {activeTab === 'calendar' ? 'CALENDRIER' : activeTab === 'availability' ? 'DISPONIBILITÉS' : activeTab === 'stratbook' ? 'STRATÉGIES' : activeTab === 'vods' ? 'ARCHIVES VOD' : activeTab === 'profil' ? 'EFFECTIFS GOWRAX' : activeTab === 'coaching' ? 'MENTORAT OFFICIEL' : activeTab === 'evolution' ? 'SLOW BLOOM' : 'DOSSIERS STAFF'}
                     </h2>
                     <div className="h-px bg-white/20 flex-1 ml-4 hidden md:block"></div>
                 </div>
@@ -596,7 +596,7 @@ function Dashboard({ session, signOut }) {
                         {activeTab === 'stratbook' && <Stratbook isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'vods' && <Vods session={session} isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'coaching' && <CoachingHub session={session} isStaff={isStaff} isCoach={isCoach} />}
-                        {activeTab === 'members' && <Members session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'profil' && <Profil session={session} setActiveTab={setActiveTab} isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'dev' && (isStaff) && <DevPanel session={session} onlineUsers={onlineUsers} />}
                         {activeTab === 'evolution' && <Evolution session={session} isStaff={isStaff} isCoach={isCoach} />}

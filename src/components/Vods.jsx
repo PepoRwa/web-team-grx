@@ -25,17 +25,20 @@ export default function Vods({ session, isStaff, isCoach }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [newVod, setNewVod] = useState({
-    link: '', map: 'Ascent', date: new Date().toISOString().split('T')[0], status: 'Win', score: '', opponent: ''
+    title: '', link: '', map: 'Ascent', date: new Date().toISOString().split('T')[0], status: 'Win', score: '', opponent: '', is_pro: false
   });
 
   useEffect(() => {
     fetchVods();
   }, []);
 
-  // Reset page quand on filtre
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filterStatus, searchQuery, activeTab]);
+    const handleVodUpdate = () => {
+      fetchVods();
+    };
+    window.addEventListener('vod_updated', handleVodUpdate);
+    return () => window.removeEventListener('vod_updated', handleVodUpdate);
+  }, []);
 
   const fetchVods = async () => {
     setLoading(true);
@@ -52,16 +55,21 @@ export default function Vods({ session, isStaff, isCoach }) {
   const handleAddVod = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+    console.log("[DEBUG] Début Ajout VOD Payload:", newVod);
     const userName = session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email.split('@')[0];
-    const { error } = await supabase.from('vods').insert({
-      user_id: session.user.id, link: newVod.link, map: newVod.map, date: newVod.date, status: newVod.status, score: newVod.score, opponent: newVod.opponent || 'Non précisé', author_name: userName
+    const { error, data } = await supabase.from('vods').insert({
+      user_id: session.user.id, link: newVod.link, map: newVod.map, date: newVod.date, status: newVod.status, score: newVod.score, opponent: newVod.opponent || 'Non précisé', author_name: userName, title: newVod.title || 'VOD', is_pro: newVod.is_pro
     });
     setIsSaving(false);
     if (!error) {
+      console.log("[DEBUG] VOD insérée avec succès !", data);
       setIsModalOpen(false);
-      setNewVod({ link: '', map: 'Ascent', date: new Date().toISOString().split('T')[0], status: 'Win', score: '', opponent: '' });
+      setNewVod({ link: '', map: 'Ascent', date: new Date().toISOString().split('T')[0], status: 'Win', score: '', opponent: '', title: '', is_pro: false });
       fetchVods();
-    } else { alert("Erreur lors de l'ajout."); }
+    } else { 
+      console.error("[DEBUG] Supabase ERROR Add:", error);
+      alert(`Erreur lors de l'ajout: ${error.message} (Code: ${error.code})`); 
+    }
   };
 
   const handleDeleteVod = async (id, authorId) => {
@@ -72,9 +80,11 @@ export default function Vods({ session, isStaff, isCoach }) {
   };
 
   const filteredVods = vods.filter(v => {
+    const isProVod = v.is_pro === true;
+    const matchTab = activeTab === 'pros' ? isProVod : !isProVod;
     const matchStatus = filterStatus === "Tous" || v.status === filterStatus;
-    const matchSearch = v.opponent.toLowerCase().includes(searchQuery.toLowerCase()) || v.map.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchStatus && matchSearch;
+    const matchSearch = v.opponent.toLowerCase().includes(searchQuery.toLowerCase()) || v.map.toLowerCase().includes(searchQuery.toLowerCase()) || (v.title && v.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchTab && matchStatus && matchSearch;
   });
 
   // LOGIQUE DE PAGINATION
@@ -151,17 +161,27 @@ export default function Vods({ session, isStaff, isCoach }) {
                   {currentItems.map(vod => {
                     const isWin = vod.status === 'Win';
                     const isLoss = vod.status === 'Défaite';
-                    const bgGradient = isWin ? 'from-green-900/40 to-black' : isLoss ? 'from-red-900/40 to-black' : 'from-yellow-900/40 to-black';
-                    const borderColor = isWin ? 'border-green-500/30' : isLoss ? 'border-red-500/30' : 'border-yellow-500/30';
+                    const isPro = vod.is_pro === true;
+                    // VOD Pro a un style différent dominant
+                    const bgGradient = isPro ? 'from-indigo-900/40 to-black' : isWin ? 'from-green-900/40 to-black' : isLoss ? 'from-red-900/40 to-black' : 'from-yellow-900/40 to-black';
+                    const borderColor = isPro ? 'border-indigo-500/50' : isWin ? 'border-green-500/30' : isLoss ? 'border-red-500/30' : 'border-yellow-500/30';
                     return (
-                      <div key={vod.id} className={`flex flex-col bg-gradient-to-b ${bgGradient} border ${borderColor} rounded-2xl overflow-hidden hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 group`}>
+                      <div key={vod.id} className={`flex flex-col bg-gradient-to-b ${bgGradient} border ${borderColor} rounded-2xl overflow-hidden hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 group relative`}>
+                        {isPro && (
+                          <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-techMono font-bold px-3 py-1 rounded-bl-xl z-10 shadow-lg">
+                            PRO VOD
+                          </div>
+                        )}
                         <div className="p-5 flex flex-col flex-1">
                           <div className="flex justify-between items-start mb-3">
                             <span className={`px-2 py-1 rounded text-[10px] font-techMono uppercase border ${borderColor}`}>{vod.status}</span>
                             <span className="text-xs text-gray-400 font-techMono uppercase">{new Date(vod.date).toLocaleDateString('fr-FR')}</span>
                           </div>
                           <div className="flex justify-between items-end mb-4">
-                            <div><h3 className="font-rajdhani text-2xl font-bold text-white leading-none mb-1">{vod.map}</h3><p className="text-sm font-poppins text-gray-400 italic">vs {vod.opponent}</p></div>
+                            <div><h3 className="font-rajdhani text-2xl font-bold text-white leading-none mb-1">{vod.map}</h3>
+<p className="text-sm font-poppins text-gray-400 italic">vs {vod.opponent}</p>
+{vod.title && <p className="text-xs font-rajdhani font-bold text-blue-400 mt-1">{vod.title}</p>}
+</div>
                             <div className="font-rajdhani text-3xl font-extrabold text-white">{vod.score}</div>
                           </div>
                           <div className="h-px w-full bg-white/10 mb-4"></div>
@@ -243,6 +263,7 @@ export default function Vods({ session, isStaff, isCoach }) {
             <div className="p-6 border-b border-white/5 flex justify-between items-center"><h2 className="text-xl font-rajdhani font-bold text-white uppercase tracking-tighter italic">DÉPOSER UNE <span className="text-blue-500">VOD</span></h2><button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white transition-colors font-techMono">X</button></div>
             <div className="p-6 overflow-y-auto hidden-scrollbar flex-1">
               <form id="add-vod-form" onSubmit={handleAddVod} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1"><label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest">Titre</label><input type="text" required value={newVod.title} onChange={e => setNewVod({...newVod, title: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Titre de la VOD / Match" /></div>
                 <div className="flex flex-col gap-1"><label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest">Lien Vidéo</label><input type="url" required value={newVod.link} onChange={e => setNewVod({...newVod, link: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="https://..." /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1"><label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest">Map Jouée</label><select value={newVod.map} onChange={e => setNewVod({...newVod, map: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 cursor-pointer text-sm">{MAPS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
@@ -253,6 +274,12 @@ export default function Vods({ session, isStaff, isCoach }) {
                   <div className="flex flex-col gap-1"><label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest">Score</label><input type="text" required value={newVod.score} onChange={e => setNewVod({...newVod, score: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="13-11" /></div>
                 </div>
                 <div className="flex flex-col gap-1"><label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest">Équipe Adverse</label><input type="text" value={newVod.opponent} onChange={e => setNewVod({...newVod, opponent: e.target.value})} className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 text-sm" placeholder="Karmine Corp..." /></div>
+                {(isStaff || isCoach) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="is_pro_checkbox" checked={newVod.is_pro} onChange={e => setNewVod({...newVod, is_pro: e.target.checked})} className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-600 focus:ring-2" />
+                    <label htmlFor="is_pro_checkbox" className="text-sm font-rajdhani text-gray-300">Marquer comme VOD Pro</label>
+                  </div>
+                )}
               </form>
             </div>
             <div className="p-6 border-t border-white/5 flex justify-end gap-3 bg-black/20 rounded-b-2xl">

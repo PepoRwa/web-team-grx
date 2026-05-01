@@ -1,0 +1,101 @@
+table_name,column_name,data_type
+absences,id,uuid
+absences,user_id,uuid
+absences,date_start,timestamp with time zone
+absences,date_end,timestamp with time zone
+absences,reason,text
+absences,status,text
+absences,created_at,timestamp with time zone
+app_version,id,integer
+app_version,version,text
+app_version,build_code,text
+app_version,devpatch,text
+app_version,updated_at,timestamp with time zone
+app_version,disabled_pages,ARRAY
+checkins,id,integer
+checkins,event_id,integer
+checkins,user_id,uuid
+checkins,status,text
+checkins,note,text
+checkins,marked_by_coach,boolean
+checkins,updated_at,timestamp with time zone
+coaching_goals,id,uuid
+coaching_goals,player_id,uuid
+coaching_goals,coach_id,uuid
+coaching_goals,coach_name,text
+coaching_goals,coach_avatar,text
+coaching_goals,title,text
+coaching_goals,description,text
+coaching_goals,status,text
+coaching_goals,created_at,timestamp with time zone
+discord_cache,discord_id,text
+discord_cache,username,text
+discord_cache,global_name,text
+discord_cache,highest_role,text
+discord_cache,avatar_url,text
+discord_cache,joined_at,timestamp with time zone
+discord_cache,last_cached_at,timestamp with time zone
+events,id,integer
+events,title,text
+events,description,text
+events,event_type,text
+events,start_time,timestamp with time zone
+events,end_time,timestamp with time zone
+events,created_by,uuid
+events,created_at,timestamp with time zone
+events,roster_type,text
+events,assigned_members,ARRAY
+global_objective,id,integer
+global_objective,title,text
+global_objective,description,text
+global_objective,deadline,timestamp with time zone
+global_objective,icon,text
+global_objective,updated_at,timestamp with time zone
+global_objective,updated_by,uuid
+global_objective,reveal_soon,boolean
+notifications,id,uuid
+notifications,user_id,uuid
+notifications,target_discord_id,text
+notifications,title,text
+notifications,message,text
+notifications,type,text
+notifications,is_read,boolean
+notifications,created_at,timestamp with time zone
+notifications,target_roster,text
+notifications,discord_id,text
+player_notes,id,integer
+player_notes,player_id,uuid
+player_notes,author_id,uuid
+player_notes,content,text
+player_notes,created_at,timestamp with time zone
+profiles,id,uuid
+profiles,discord_id,text
+profiles,username,text
+profiles,created_at,timestamp with time zone
+profiles,is_dev,boolean
+profiles,last_seen,timestamp with time zone
+profiles,last_page,text
+profiles,custom_affiliations,ARRAY
+profiles,coach_notes,text
+profiles,avatar_url,text
+profiles,tracker_url,text
+roles,id,integer
+roles,name,text
+roles,discord_role_id,text
+strats,id,uuid
+strats,title,text
+strats,description,text
+strats,map,text
+strats,side,text
+strats,image_url,text
+strats,created_at,timestamp with time zone
+sync_requests,id,integer
+sync_requests,discord_id,text
+sync_requests,profile_id,uuid
+sync_requests,scanned,boolean
+sync_requests,created_at,timestamp with time zone
+user_availabilities,user_id,uuid
+user_availabilities,schedule,jsonb
+user_availabilities,updated_at,timestamp with time zone
+user_documents,id,uuid
+user_documents,user_id,uuid
