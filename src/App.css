@@ -42,8 +42,7 @@
     z-index: 1;
     top: 34px;
     height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg) scale(1.4);
   }
 
   .vite {
@@ -51,8 +50,7 @@
     top: 107px;
     height: 26px;
     width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg) scale(0.8);
   }
 }
 
@@ -181,14 +179,41 @@
     right: 0;
     border-right-color: var(--border);
   }
+}
 
-  @keyframes soft-pulse {
+/* =========================================
+   ANIMATIONS & EFFETS SOFT TECH GOWRAX
+========================================= */
+
+@keyframes soft-pulse {
   0%, 100% { opacity: 0.8; filter: blur(6px); }
   50% { opacity: 1; filter: blur(8px); }
 }
 
-/* Applique ça sur la lueur du bouton actif */
 .active-bloom-glow {
   animation: soft-pulse 4s infinite ease-in-out;
 }
+
+/* Effet Verre Dépoli Nacré */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(240, 242, 245, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Fond Nacré Vivant (pour les bannières VOD Pro par exemple) */
+.bg-pearl {
+  background: linear-gradient(135deg, rgba(247, 202, 208, 0.15) 0%, rgba(162, 210, 255, 0.1) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Texte Nacré / Holographique */
+.text-pearl {
+  background: linear-gradient(to right, #F0F2F5, #F7CAD0, #A2D2FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

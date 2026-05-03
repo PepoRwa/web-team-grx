@@ -9,8 +9,11 @@ export default function SmartParticles() {
     const ctx = canvas.getContext('2d');
     let width, height;
     let particles = [];
-    const connectionDistance = 150;
+    const connectionDistance = 180; // Légèrement augmenté pour des connexions plus vastes
     let animationFrameId;
+
+    // Palette Slow Bloom
+    const colors = ['#A2D2FF', '#B185DB', '#F7CAD0'];
 
     const init = () => {
       width = window.innerWidth;
@@ -20,18 +23,20 @@ export default function SmartParticles() {
       canvas.height = height * dpr;
       ctx.scale(dpr, dpr);
 
-      // Number of particles depending on device resolution
-      const maxParticles = window.innerWidth < 768 ? 40 : 80;
-      const particleCount = Math.min(Math.floor((width * height) / 18000), maxParticles);
+      // Moins de particules pour garder un côté épuré et premium
+      const maxParticles = window.innerWidth < 768 ? 25 : 60;
+      const particleCount = Math.min(Math.floor((width * height) / 20000), maxParticles);
       
       particles = [];
       for (let i = 0; i < particleCount; i++) {
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: (Math.random() - 0.5) * 0.8,
-          size: Math.random() * 2 + 1,
+          // Vitesse grandement ralentie
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 1.5 + 0.5,
+          color: colors[Math.floor(Math.random() * colors.length)],
         });
       }
     };
@@ -40,10 +45,11 @@ export default function SmartParticles() {
     window.addEventListener('resize', init);
 
     const drawLine = (p1, p2, distance) => {
-      const opacity = 1 - distance / connectionDistance;
+      // Opacité très douce pour les lignes
+      const opacity = (1 - distance / connectionDistance) * 0.15;
       ctx.beginPath();
-      ctx.strokeStyle = `rgba(111, 45, 189, ${opacity * 0.3})`; // gowrax-purple
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = `rgba(177, 133, 219, ${opacity})`; // Lavande très transparent
+      ctx.lineWidth = 0.8;
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
@@ -62,11 +68,14 @@ export default function SmartParticles() {
         if (p.y < 0 || p.y > height) p.vy *= -1;
 
         ctx.beginPath();
-        ctx.fillStyle = 'rgba(214, 47, 127, 0.6)'; // gowrax-neon
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#D62F7F';
+        ctx.fillStyle = p.color;
+        // Effet de halo doux au lieu d'un drop shadow lourd
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = p.color;
+        ctx.globalAlpha = 0.6; // Particules légèrement transparentes
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1.0;
         ctx.shadowBlur = 0;
 
         for (let j = i + 1; j < particles.length; j++) {
@@ -95,7 +104,7 @@ export default function SmartParticles() {
   return (
     <canvas 
       ref={canvasRef} 
-      className="fixed inset-0 w-full h-full pointer-events-none mix-blend-screen z-[1] opacity-70"
+      className="fixed inset-0 w-full h-full pointer-events-none mix-blend-screen z-[1] opacity-50"
     />
   );
 }

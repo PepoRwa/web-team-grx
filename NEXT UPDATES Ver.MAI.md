@@ -23,7 +23,7 @@ Il doit donc avoir accès aux possibilités suivantes (SEULE les parenthèses in
         * Pour les staff (COACH ONLY): Montrer les vod qu'ils ont review
 - Evolution. 
     * Evolution (Slow Bloom) est un panel dans lequel les membres peuvent demander une "promotion" vis à vis du staff. Exemple: Academy vers Tryhard ou Tryhard vers High Roster etc... (Voir "Evolution".)
-        * Voir si Slow Bloom est intégré comme une page propre ou uniquement accessible via la page profil. Dans tous les cas, proposer de retourner au profil de l'utilisateur. 
+        * Voir si Slow Bloom est intégré comme une page propre ou uniquement accessible via la page profil. Dans tous les cas, proposer de retourner au profil de l'utilisateur.  
 - Points Légaux: Demande de suppression du compte, mise à jour d'informations. Précision: Le compte sur team.gowrax.me ne peut pas être supprimé tant que le membre est actif. Le bot de son côté, met à jour dès que possibles les données de compte utilisateur 
 - Toute autre information utile. 
 - Accès a deux types de documents:
@@ -35,10 +35,10 @@ SEULS LES FONDATEURS OU HEAD COACHS peuvent ajouter/modifier/supprimer des docum
 On doit pouvoir les assigner via un panel défini. Panel de gestion de documents. On peut les assigner à des groupes / Des gens et tout. 
 
 
-### ONBOARDING
+### ONBOARDING -- NON
 A réfléchir. Faire une présentation de l'app et tout avec une sorte de tuto step by step. A voir si c'est vriament utile de faire ça. 
 
-### Evolution
+### Evolution -- GOOD
 
 NOM: Slow Bloom
 
@@ -97,13 +97,13 @@ LINKED TO AI: "AI_BUILD_UPDATES.md" Also interprated as: "Resource 1"
 L'objectif dans la DA de cette page est de jouer sur un ton plus floral, plus lofi, détendu comparé aux autres pages.
 
 
-### Intégration DATADOG. 
+### Intégration DATADOG.  --- NON
 Envisager la configuration du site (requêtes et tt) avec datadog. page par page. Moyen de check (si utile). 
 Utiliser datadog sur le bot discord. Encore une fois si c'est jugé utile. On est pas obligé de s'en servir. 
 
 Si on le juge utile, l'objectif est de vraiment monitor ABSOLUMENT TOUT de lié à la team. Ce qui veut dire que chaque requête devrait être surveillée. Si c'est pas faisable ou trop complexe on touche pas.
 
-### Page Lineups
+### Page Lineups --- GOOD
 Trouvé par Gowrax ou pas. Par ses mmebres ou dehors. 
 
 Les lineups permettraient d'indiquer sur quel map, avec quel agent, un lineup peut petre utile. 
@@ -114,7 +114,7 @@ On indiquerait donc les données suivantes:
 - Présentation / Description
 Utilisateur qui a déposé
 
-### Esthétique générale
+### Esthétique générale -- GOOD
 #### Footer
 - Ajout d'un footer qui contient OBLIGATOIREMENT les éléments suivants: 
     * Numéro de build et numéro de version
@@ -128,23 +128,23 @@ Utilisateur qui a déposé
 **Cette partie catalogue les modifications et/ou corrections à apporter à l'application**
 
 
-### Disponibilités
+### Disponibilités - GOOD
 
 Rendre le planning plus esthétique et plus fonctionnel. Ajouter la possibilité d'EXPORTER les plannings des membres. Sous forme d'une liste (a voir le format et le document type), ajouter la possibilité de filtrer par utilisateur ayant saisi son planning. Permettant de faciliter les créations. Donc voir 2 filtres. un par roster et l'autre par membre. 
 
 Faciliter la création de ses plannings (optimiser - facultatif). 
 
 
-### Gestion des absences
+### Gestion des absences -- GOOD
 
 Améliorer la vue. L'objectif affiché étant de rendre la saisie plus simple, envisager d'individualiser la page ou simplement de rendre le bouton plus fonctionneL. Faire en sorte que l'on puisse plus facilement le voir ou simplement le faire plus simplement. 
 
 
-### VOD 
+### VOD  --- Plus tard
 
 Ajouter un onglet "vod pro" (déjà inplémenté non fonctionnel). L'objectif est d'afficher de sessions VOD étudiées par le coach avec des commentaires particuliers et tt. Notamment plus de commentaires, des images et tt. 
 
-Sur la Vod Team, faire en sorte qu'on voie si les coachs ont commenté. Ajouter une cadre qui dit si ça a été reviewed ou pas. Permettre au staff et joueurs de MODIFIER les titres des VODS. Les joueurs ne peuvent modifier que leur vod le staff peut tt changer. On peut changer toutes les informations (titre etc...). Rajouter une fonctionnalité permettant d'identifier chaque joueur (joueurs présents. On ajoute ça dans le Comment modal en bannière en haut en mode: Joueurs présents: ... le staff peut aussi décider de modifier cette liste. (ça rend le truc affichable dans le profil de l'utilisateur concerné)). 
+    Sur la Vod Team, faire en sorte qu'on voie si les coachs ont commenté. Ajouter une cadre qui dit si ça a été reviewed ou pas. Permettre au staff et joueurs de MODIFIER les titres des VODS. Les joueurs ne peuvent modifier que leur vod le staff peut tt changer. On peut changer toutes les informations (titre etc...). Rajouter une fonctionnalité permettant d'identifier chaque joueur (joueurs présents. On ajoute ça dans le Comment modal en bannière en haut en mode: Joueurs présents: ... le staff peut aussi décider de modifier cette liste. (ça rend le truc affichable dans le profil de l'utilisateur concerné)). 
 
 ### Synchronisation BOT DISCORD - DB - CLIENT
 
@@ -153,20 +153,18 @@ Réfléchir à donner la possibilité au bot discord de nettoyer la base de donn
 
 Investiguer le problème lié aux custom_affiliations avec la db. 
 
-Revoir le fonctionnement de la mise à jour des rôles. J'ai l'impression que le bot refuse de le faire maintenant. 
-
-### Créations de stratégie 
+### Créations de stratégie -- COMPLET
 
 Refaire le panel suite à la demande via le gform "Améliorer les créations de stratégie". Ajouter la possibilité d'insérer des liens notamment via valoplant. Et intégrer via certaines sessions d'entraînements. Modifier et dire QUI a modifié/crée la strat. Ainsi que la date de création puis date de modif. 
 
-### Esthétique générale
+### Esthétique générale - Vite fait dev :3
 
 Changer les couleurs. La Charte graphique de Gowrax évolue et veut jouer sur des couleurs beaucoup plus claires. Pastel. L'identité "sombre" du site doit être conservée, cependant, améliorer les effets graphiques et rendre les couleurs plus vivantes serait plus intéréssant. 
 
 ### Base de données
 Pour protéger la base de données (sa RAM et tt), envisager une déconnexion de TOUS les comptes par périodes (fréquentes). Pour forcer le refresh de la photo de profil ou juste sécuriser les accès. 
 
-## Suppressions - Désactivations
+## Suppressions - Désactivations -- ALL GOOD
 **Cette partie catalogue les suppressions et/ou désactivations à réaliser**
 
 ### DEVPANEL - Entré en V2.1 - Mars // Sortie sur la V3 - Mai 26    

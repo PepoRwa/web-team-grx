@@ -1,0 +1,1066 @@
+[
+  {
+    "table_name": "absences",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "absences",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "absences",
+    "column_name": "date_start",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "absences",
+    "column_name": "date_end",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "absences",
+    "column_name": "reason",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "absences",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'en_attente'::text"
+  },
+  {
+    "table_name": "absences",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "word",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "category",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "sentiment_value",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "weight",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "column_default": "1.0"
+  },
+  {
+    "table_name": "ai_keyword_bank",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "1"
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "version",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'1.0.0'::text"
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "build_code",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "devpatch",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "app_version",
+    "column_name": "disabled_pages",
+    "data_type": "ARRAY",
+    "is_nullable": "YES",
+    "column_default": "'{}'::text[]"
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('checkins_id_seq'::regclass)"
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "event_id",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "note",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "marked_by_coach",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "checkins",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "player_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "coach_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "coach_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "coach_avatar",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'in_progress'::text"
+  },
+  {
+    "table_name": "coaching_goals",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "discord_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "username",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "global_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "highest_role",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "avatar_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "joined_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "discord_cache",
+    "column_name": "last_cached_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "events",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('events_id_seq'::regclass)"
+  },
+  {
+    "table_name": "events",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "events",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "events",
+    "column_name": "event_type",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "events",
+    "column_name": "start_time",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "events",
+    "column_name": "end_time",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "events",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": "auth.uid()"
+  },
+  {
+    "table_name": "events",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "events",
+    "column_name": "roster_type",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'Tous'::text"
+  },
+  {
+    "table_name": "events",
+    "column_name": "assigned_members",
+    "data_type": "ARRAY",
+    "is_nullable": "YES",
+    "column_default": "'{}'::text[]"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "roster_source",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "roster_target",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'En attente'::text"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "ai_score",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "submission_date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "tracker_rank",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "main_agents",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "motivation_text",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "availability_data",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "performance_links",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "staff_notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "decided_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "decision_date",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "cooldown_expires_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "evolution_submissions",
+    "column_name": "is_ineligible_until",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('global_objective_id_seq'::regclass)"
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "deadline",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "icon",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'🎯'::text"
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "updated_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": "auth.uid()"
+  },
+  {
+    "table_name": "global_objective",
+    "column_name": "reveal_soon",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "target_discord_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "message",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "is_read",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "target_roster",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'Tous'::text"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "discord_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "player_notes",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('player_notes_id_seq'::regclass)"
+  },
+  {
+    "table_name": "player_notes",
+    "column_name": "player_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "player_notes",
+    "column_name": "author_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "player_notes",
+    "column_name": "content",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "player_notes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "discord_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "username",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "is_dev",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "last_seen",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "last_page",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "custom_affiliations",
+    "data_type": "ARRAY",
+    "is_nullable": "YES",
+    "column_default": "'{}'::text[]"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "coach_notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "''::text"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "avatar_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "tracker_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "roles",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('roles_id_seq'::regclass)"
+  },
+  {
+    "table_name": "roles",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "roles",
+    "column_name": "discord_role_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "strats",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "map",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "side",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "image_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "strats",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "sync_requests",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('sync_requests_id_seq'::regclass)"
+  },
+  {
+    "table_name": "sync_requests",
+    "column_name": "discord_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_requests",
+    "column_name": "profile_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_requests",
+    "column_name": "scanned",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "sync_requests",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "user_availabilities",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "user_availabilities",
+    "column_name": "schedule",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "user_availabilities",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "file_url",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "is_public",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "allowed_groups",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "uploaded_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "user_documents",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "user_roles",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "user_roles",
+    "column_name": "role_id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "vod_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "author_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "content",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "is_private",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "vod_comments",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "vods",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "vods",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "vods",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "link",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "map",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "date",
+    "data_type": "date",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "score",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "opponent",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "author_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "title",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'Sans titre'::text"
+  },
+  {
+    "table_name": "vods",
+    "column_name": "is_pro",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "vods",
+    "column_name": "reviewed_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "reviewed_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "vods",
+    "column_name": "players_present",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  }
+]

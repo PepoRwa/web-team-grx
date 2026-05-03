@@ -7,28 +7,10 @@ export default function VodCommentsModal({ vod, session, isStaff, isCoach, onClo
   const [newComment, setNewComment] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isReviewed, setIsReviewed] = useState(!!vod.reviewed_at);
-  const [isPro, setIsPro] = useState(!!vod.is_pro);
-  
-  const [allProfiles, setAllProfiles] = useState([]);
-  const [playersPresent, setPlayersPresent] = useState(() => {
-    try {
-      if (Array.isArray(vod.players_present)) return vod.players_present;
-      return [];
-    } catch { return []; }
-  });
 
   useEffect(() => {
     fetchComments();
-    if (isStaff || isCoach) {
-      fetchProfiles();
-    }
   }, [vod.id]);
-
-  const fetchProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('id, username').order('username', { ascending: true });
-    if (data) setAllProfiles(data);
-  };
 
   const fetchComments = async () => {
     setLoading(true);
@@ -91,56 +73,6 @@ export default function VodCommentsModal({ vod, session, isStaff, isCoach, onClo
     }
   };
 
-  const handleUpdateVodMeta = async () => {
-    if (!isStaff && !isCoach) {
-      alert("Erreur : Privilèges Staff/Coach requis.");
-      return;
-    }
-    try {
-      console.log("[DEBUG] Début de la mise à jour VOD ID:", vod.id);
-      const updateData = {
-        players_present: playersPresent,
-        is_pro: isPro
-      };
-      if (isReviewed && !vod.reviewed_at) {
-        updateData.reviewed_at = new Date().toISOString();
-        updateData.reviewed_by = session.user.id;
-      } else if (!isReviewed && vod.reviewed_at) {
-        updateData.reviewed_at = null;
-        updateData.reviewed_by = null;
-      }
-
-      console.log("[DEBUG] Payload Update:", updateData);
-
-      const { data, error } = await supabase.from('vods').update(updateData).eq('id', vod.id);
-      
-      if (error) {
-        console.error("[DEBUG] Supabase ERROR:", error);
-        alert(`Erreur Supabase: ${error.message} (${error.code}) - Détails: ${error.details}`);
-        return;
-      }
-
-      console.log("[DEBUG] Supabase SUCCESS:", data);
-      alert('Métadonnées de la VOD mises à jour avec succès !');
-      // On déclenche un reload externe possiblement si besoin
-      if (typeof onClose === 'function') {
-        // En vrai onClose ferme la modale, mais on veut un refresh parent : on fait avec window.dispatchEvent ou une props.
-        window.dispatchEvent(new Event('vod_updated'));
-      }
-    } catch (err) {
-      console.error("[DEBUG] Exception Capturée:", err);
-      alert(`Exception inattendue: ${err.message}`);
-    }
-  };
-
-  const togglePlayer = (profileId) => {
-    setPlayersPresent(prev => 
-      prev.includes(profileId) 
-        ? prev.filter(id => id !== profileId) 
-        : [...prev, profileId]
-    );
-  };
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -157,7 +89,6 @@ export default function VodCommentsModal({ vod, session, isStaff, isCoach, onClo
           <div>
             <h3 className="font-rajdhani font-bold text-2xl text-white">Discussion VOD</h3>
             <p className="text-gray-400 text-sm font-poppins">{vod.map} - vs {vod.opponent} ({vod.score})</p>
-            {vod.title && <p className="text-xs font-rajdhani font-bold text-blue-400">{vod.title} {isReviewed && <span className="ml-2 px-2 py-0.5 bg-green-500/20 text-green-400 rounded">REVIEWED</span>} {isPro && <span className="ml-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded">PRO VOD</span>}</p>}
           </div>
           <button 
             onClick={onClose}
@@ -166,40 +97,6 @@ export default function VodCommentsModal({ vod, session, isStaff, isCoach, onClo
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
-
-        {/* Coach / Staff metadata area */}
-        {(isStaff || isCoach) && (
-          <div className="p-4 border-b border-white/5 bg-blue-900/10 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-rajdhani text-gray-300 font-bold mb-1">Membres présents sur la VOD</label>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="is_pro_toggle" checked={isPro} onChange={e => setIsPro(e.target.checked)} className="w-4 h-4 text-indigo-500 bg-gray-800 border-gray-600 rounded" />
-                  <label htmlFor="is_pro_toggle" className="text-sm font-rajdhani text-indigo-400">Classer VOD PRO</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="reviewed_toggle" checked={isReviewed} onChange={e => setIsReviewed(e.target.checked)} className="w-4 h-4 text-green-500 bg-gray-800 border-gray-600 rounded" />
-                  <label htmlFor="reviewed_toggle" className="text-sm font-rajdhani text-green-400">Marquer Review</label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto hidden-scrollbar bg-black/30 p-2 rounded-xl border border-white/5">
-                {allProfiles.map(p => (
-                  <label key={p.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-colors ${playersPresent.includes(p.id) ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                    <input type="checkbox" className="hidden" checked={playersPresent.includes(p.id)} onChange={() => togglePlayer(p.id)} />
-                    {p.username}
-                  </label>
-                ))}
-                {allProfiles.length === 0 && <span className="text-xs text-gray-500 italic">Chargement des membres...</span>}
-              </div>
-              <div className="flex justify-end mt-1">
-                <button onClick={handleUpdateVodMeta} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl uppercase tracking-wider transition-colors shadow-lg">Enregistrer ces paramètres</button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Liste des commentaires */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 custom-scrollbar bg-gradient-to-b from-black/0 to-black/40">

@@ -10,8 +10,8 @@ export default function GlobalObjectiveBanner({ isStaff, isCoach }) {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDeadline, setEditDeadline] = useState('');
-  const [editIcon, setEditIcon] = useState('🎯');
-  const [editRevealSoon, setEditRevealSoon] = useState(false); // Nouveau state
+  const [editIcon, setEditIcon] = useState('🌸');
+  const [editRevealSoon, setEditRevealSoon] = useState(false); 
 
   useEffect(() => {
     fetchObjective();
@@ -37,7 +37,7 @@ export default function GlobalObjectiveBanner({ isStaff, isCoach }) {
       description: editDescription,
       deadline: editDeadline || null,
       icon: editIcon,
-      reveal_soon: editRevealSoon // Sauvegarde du statut
+      reveal_soon: editRevealSoon 
     };
 
     let result;
@@ -57,96 +57,146 @@ export default function GlobalObjectiveBanner({ isStaff, isCoach }) {
     setEditTitle(objective?.title || '');
     setEditDescription(objective?.description || '');
     setEditDeadline(objective?.deadline ? new Date(objective.deadline).toISOString().split('T')[0] : '');
-    setEditIcon(objective?.icon || '🎯');
+    setEditIcon(objective?.icon || '🌸');
     setEditRevealSoon(objective?.reveal_soon || false);
     setIsEditing(true);
   };
 
   if (loading) return null;
 
+  // ==========================================
+  // MODE ÉDITION (STAFF / COACH)
+  // ==========================================
   if (isEditing && (isStaff || isCoach)) {
     return (
-      <div className="bg-gowrax-void border border-gowrax-purple/50 rounded-2xl p-4 mb-6 shadow-[0_0_20px_rgba(111,45,189,0.3)] animate-fade-in">
-        <h3 className="font-rajdhani font-bold text-xl text-white mb-4 uppercase tracking-tighter text-center">Éditer le Cap de la Saison</h3>
-        <form onSubmit={handleSave} className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <input type="text" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} className="w-16 bg-black/50 border border-gray-600 rounded p-2 text-white font-techMono text-center" maxLength={2} />
-            <input type="text" required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="TITRE DE L'OBJECTIF" className="flex-1 bg-black/50 border border-gray-600 rounded p-2 text-white font-rajdhani font-bold uppercase" />
+      <div className="bg-[#1A1C2E]/90 backdrop-blur-2xl border border-[#B185DB]/40 rounded-3xl p-6 md:p-8 mb-8 shadow-[0_20px_50px_rgba(177,133,219,0.2)] animate-fade-in w-full max-w-[1400px] mx-auto relative overflow-hidden">
+        
+        {/* Lueur de fond édition */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#B185DB]/10 blur-[60px] rounded-full pointer-events-none"></div>
+
+        <h3 className="font-rajdhani font-bold text-2xl text-white mb-6 uppercase tracking-widest text-center flex items-center justify-center gap-3 relative z-10">
+          <svg className="w-6 h-6 text-[#F7CAD0]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+          Éditer le Cap de la Saison
+        </h3>
+        
+        <form onSubmit={handleSave} className="flex flex-col gap-5 relative z-10">
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1 w-24 shrink-0">
+               <label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest pl-1">Icône</label>
+               <input type="text" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} className="w-full bg-black/40 border border-white/10 hover:border-white/20 rounded-xl p-3 text-white font-techMono text-center focus:border-[#B185DB] outline-none transition-colors shadow-inner" maxLength={2} />
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+               <label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest pl-1">Titre de l'objectif</label>
+               <input type="text" required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Ex: QUALIFICATION VCT" className="w-full bg-black/40 border border-white/10 hover:border-white/20 rounded-xl p-3 text-white font-rajdhani font-bold text-lg uppercase focus:border-[#B185DB] outline-none transition-colors shadow-inner" />
+            </div>
           </div>
           
-          <textarea required value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-black/50 border border-gray-600 rounded p-2 text-sm text-white font-poppins" rows="3" />
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-techMono text-gray-400 uppercase tracking-widest pl-1">Description</label>
+            <textarea required value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-black/40 border border-white/10 hover:border-white/20 rounded-xl p-4 text-sm text-white font-poppins focus:border-[#B185DB] outline-none resize-none transition-colors shadow-inner" rows="3" />
+          </div>
           
-          <div className="flex flex-col md:flex-row gap-4 items-center bg-black/30 p-3 rounded-xl border border-white/5">
+          <div className="flex flex-col md:flex-row gap-5 items-center bg-white/[0.02] p-5 rounded-2xl border border-white/5">
             <div className="flex-1 w-full">
-              <label className="text-[10px] font-techMono text-gray-500 mb-1 block">DATE D'ÉCHÉANCE</label>
-              <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} disabled={editRevealSoon} className="w-full bg-black/50 border border-gray-600 rounded p-2 text-white disabled:opacity-30 transition-opacity" />
+              <label className="text-[10px] font-techMono text-[#A2D2FF] mb-1.5 block uppercase tracking-widest">DATE D'ÉCHÉANCE</label>
+              <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} disabled={editRevealSoon} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white disabled:opacity-30 transition-all focus:border-[#A2D2FF] outline-none [color-scheme:dark]" />
             </div>
             
-            <div className="flex items-center gap-3 px-4 py-2 border border-white/10 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => setEditRevealSoon(!editRevealSoon)}>
-               <input type="checkbox" checked={editRevealSoon} onChange={(e) => setEditRevealSoon(e.target.checked)} className="accent-gowrax-neon w-4 h-4" />
-               <span className="text-xs font-rajdhani font-bold text-white uppercase italic">Révélé prochainement</span>
-            </div>
+            <div className="h-10 w-px bg-white/10 hidden md:block mx-2"></div>
+            
+            <label className="flex items-center gap-3 px-6 py-3 border border-white/10 rounded-xl bg-black/20 hover:bg-black/40 transition-colors cursor-pointer group w-full md:w-auto">
+               <input type="checkbox" checked={editRevealSoon} onChange={(e) => setEditRevealSoon(e.target.checked)} className="w-5 h-5 accent-[#B185DB] bg-black/50 border-white/20 rounded cursor-pointer" />
+               <span className="text-sm font-rajdhani font-bold text-gray-300 group-hover:text-white uppercase tracking-widest transition-colors mt-0.5">Révélé prochainement (Teasing)</span>
+            </label>
           </div>
 
-          <div className="flex justify-end gap-2 mt-2">
-             <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-xs font-techMono text-gray-400">ANNULER</button>
-             <button type="submit" className="px-6 py-2 bg-gowrax-purple text-white font-rajdhani font-bold rounded hover:bg-gowrax-neon transition-all">VALIDER LE CAP</button>
+          <div className="flex justify-end gap-3 mt-4 border-t border-white/5 pt-6">
+             <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-3 text-xs font-techMono text-gray-400 hover:text-white transition-colors">ANNULER</button>
+             <button type="submit" className="px-10 py-3 bg-gradient-to-r from-[#B185DB] to-[#F7CAD0] text-[#1A1C2E] font-rajdhani font-extrabold text-lg tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(247,202,208,0.4)]">VALIDER LE CAP</button>
           </div>
         </form>
       </div>
     );
   }
 
+  // ==========================================
+  // MODE AFFICHAGE NORMAL (PREMIUM)
+  // ==========================================
   return (
-    <div className="bg-gradient-to-r from-black via-gowrax-purple/20 to-black border border-gowrax-purple/50 rounded-2xl p-1 mb-8 shadow-[0_0_40px_rgba(111,45,189,0.2)] animate-pulse-glow relative group">
-      <div className="bg-gowrax-void/90 backdrop-blur-xl rounded-xl p-5 md:p-8 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+    <div className="w-full max-w-[1400px] mx-auto px-2 md:px-0 mt-8 mb-6 animate-fade-in relative z-10 group">
+      
+      {/* Conteneur principal Glassmorphism */}
+      <div className="bg-[#1A1C2E]/60 backdrop-blur-2xl border border-[#F0F2F5]/10 rounded-[2rem] p-6 md:p-10 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-500 hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)]">
         
-        <div className="absolute -top-1 left-10 bg-gowrax-neon px-3 py-1 rounded-b-lg shadow-[0_0_15px_#D62F7F]">
-          <span className="font-techMono text-[10px] text-white font-bold tracking-[0.2em]">VISION SAISONNIÈRE</span>
+        {/* Lueurs dynamiques en arrière-plan */}
+        <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[150%] bg-[#B185DB]/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-[#B185DB]/20 transition-colors duration-700"></div>
+        <div className="absolute top-[20%] right-[-10%] w-[30%] h-[100%] bg-[#F7CAD0]/5 rounded-full blur-[60px] pointer-events-none"></div>
+        
+        {/* EN-TÊTE FLOTTANT : Badge + Bouton d'édition (Nouveau placement) */}
+        <div className="absolute top-6 right-6 flex items-center gap-3">
+            <div className="px-4 py-1.5 rounded-full border border-[#B185DB]/30 bg-[#B185DB]/10 backdrop-blur-md shadow-[0_0_15px_rgba(177,133,219,0.2)]">
+                <span className="font-techMono text-[10px] text-[#B185DB] font-bold tracking-[0.2em] uppercase">Vision Saisonnière</span>
+            </div>
+            
+            {(isStaff || isCoach) && (
+              <button 
+                onClick={openEdit} 
+                className="p-1.5 bg-white/5 border border-white/10 rounded-full text-gray-400 hover:text-white hover:bg-[#B185DB]/40 hover:border-[#B185DB]/50 transition-all duration-300 shadow-sm"
+                title="Éditer l'objectif"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              </button>
+            )}
         </div>
 
-        <div className="relative shrink-0 hidden md:block">
-            <div className="absolute inset-0 bg-gowrax-neon/20 blur-xl rounded-full"></div>
-            <div className="w-20 h-20 rounded-full bg-black/40 border-2 border-gowrax-neon items-center justify-center text-4xl shadow-[0_0_20px_rgba(214,47,127,0.4)] flex relative z-10">
-            {objective?.icon || '🎯'}
+        {/* Section Icône */}
+        <div className="relative shrink-0 hidden md:flex items-center justify-center mt-4 md:mt-0">
+            <div className="absolute inset-0 bg-[#F7CAD0]/20 blur-2xl rounded-full animate-pulse-slow"></div>
+            <div className="w-24 h-24 rounded-full bg-black/40 border border-[#F0F2F5]/10 flex items-center justify-center text-5xl shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] relative z-10">
+              {objective?.icon || '🌸'}
             </div>
         </div>
         
-        <div className="flex-1 text-center md:text-left mt-2 md:mt-0">
-          <div className="mb-1">
-            <span className="font-rockSalt text-gowrax-neon text-xs opacity-80">Objectif de Structure</span>
+        {/* Section Texte */}
+        <div className="flex-1 text-center md:text-left mt-10 md:mt-0 relative z-10">
+          <div className="mb-2">
+            <span className="font-rockSalt text-transparent bg-clip-text bg-gradient-to-r from-[#F0F2F5] to-[#F7CAD0] text-sm md:text-base drop-shadow-md">Slow Bloom Phase</span>
           </div>
-          <h2 className="font-rajdhani text-3xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none">
+          <h2 className="font-rajdhani text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-wider uppercase leading-tight drop-shadow-lg pr-0 md:pr-4">
             {objective?.title || 'DÉFINITION DU CAP EN COURS'}
           </h2>
-          <p className="text-gray-400 font-poppins text-base mt-2 max-w-3xl italic">
-            "{objective?.description || 'Le staff prépare les prochaines étapes de la structure.'}"
+          <p className="text-[#A2D2FF]/80 font-poppins text-sm md:text-base mt-3 max-w-2xl italic leading-relaxed mx-auto md:mx-0">
+            "{objective?.description || 'Le système prépare les prochaines étapes de l\'évolution de la structure.'}"
           </p>
         </div>
 
         {/* Bloc Deadline Dynamique ou Teasing */}
         {(objective?.deadline || objective?.reveal_soon) && (
-          <div className="shrink-0 flex flex-col items-center justify-center bg-gowrax-neon/10 border border-gowrax-neon/40 rounded-xl p-4 min-w-[160px] backdrop-blur-sm relative overflow-hidden group-hover:border-gowrax-neon transition-colors">
-            <span className="text-[10px] font-techMono text-gowrax-neon uppercase font-bold mb-1 tracking-widest">ÉCHÉANCE</span>
+          <div className="shrink-0 flex flex-col items-center justify-center bg-black/20 border border-white/5 rounded-3xl p-6 min-w-[200px] backdrop-blur-md relative overflow-hidden group-hover:border-[#B185DB]/30 transition-colors duration-500 shadow-inner z-10 mt-6 md:mt-0">
+            
+            {/* Petit effet brillant interne au bloc deadline */}
+            <div className="absolute top-0 right-0 w-16 h-16 bg-[#F7CAD0]/10 blur-xl rounded-full"></div>
+
+            <span className="text-[10px] font-techMono text-gray-400 uppercase font-bold mb-2 tracking-[0.3em]">Échéance</span>
             
             {objective.reveal_soon ? (
               <div className="flex flex-col items-center">
-                <span className="font-rajdhani font-black text-white text-xl italic animate-pulse">COMING SOON</span>
-                <span className="text-[8px] font-techMono text-gray-500 mt-1 uppercase">Transmission en cours</span>
+                <span className="font-rajdhani font-black text-transparent bg-clip-text bg-gradient-to-r from-[#B185DB] to-[#F7CAD0] text-2xl italic animate-pulse tracking-widest drop-shadow-[0_0_10px_rgba(247,202,208,0.3)]">
+                  EN ATTENTE
+                </span>
+                <span className="text-[9px] font-techMono text-[#A2D2FF]/50 mt-2 uppercase tracking-widest flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-[#A2D2FF] animate-ping"></div>
+                   Calculs en cours
+                </span>
               </div>
             ) : (
-              <span className="font-rajdhani font-black text-white text-2xl">
+              <span className="font-rajdhani font-black text-white text-3xl tracking-widest drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">
                 {new Date(objective.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
               </span>
             )}
           </div>
         )}
 
-        {(isStaff || isCoach) && (
-          <button onClick={openEdit} className="absolute top-4 right-4 p-2 bg-white/5 border border-white/10 rounded-full text-gray-500 hover:text-gowrax-neon opacity-0 group-hover:opacity-100 transition-all">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-          </button>
-        )}
       </div>
     </div>
   );
