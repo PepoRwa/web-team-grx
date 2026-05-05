@@ -19,6 +19,7 @@ import Profil from './components/Profil';
 import DisabledOverlay from './components/DisabledOverlay';
 import Evolution from './components/Evolution';
 import Lineups from './components/Lineups';
+import Webhooks from './components/Webhooks';
 
 function Dashboard({ session, signOut }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
@@ -345,6 +346,13 @@ function Dashboard({ session, signOut }) {
                         </button>
                     )}
 
+                    {(roles.includes('Fondateurs') || roles.includes('Chef du Staff')) && (
+                        <button onClick={() => setActiveTab('webhooks')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-1 ${activeTab === 'webhooks' ? 'bg-[#D62F7F]/10 text-[#D62F7F] shadow-[inset_0_0_20px_rgba(214,47,127,0.1)]' : 'text-gray-600 hover:bg-white/5 hover:text-[#D62F7F]/60'}`}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                            Transmissions
+                        </button>
+                    )}
+
                     {(isStaff) && (
                         <button onClick={() => setActiveTab('dev')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 w-full text-left font-rajdhani font-bold text-lg mt-1 ${activeTab === 'dev' ? 'bg-[#00FF41]/10 text-[#00FF41] shadow-[inset_0_0_20px_rgba(0,255,65,0.1)]' : 'text-gray-600 hover:bg-white/5 hover:text-[#00FF41]/60'}`}>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
@@ -500,8 +508,10 @@ function Dashboard({ session, signOut }) {
                         {activeTab === 'dossiers' && (isStaff || isCoach) && <Dossiers isStaff={isStaff} isCoach={isCoach} />}
                         {activeTab === 'dev' && (isStaff) && <DevPanel session={session} />}
                         {activeTab === 'evolution' && <Evolution session={session} isStaff={isStaff} isCoach={isCoach} />}
+                        {activeTab === 'webhooks' && <Webhooks session={session} roles={roles} />}
                     </>
                 )}
+               </main>
                 
                 {/* =========================================
                     FOOTER PREMIUM GOWRAX
@@ -523,8 +533,6 @@ function Dashboard({ session, signOut }) {
                         </div>
                     </div>
                 </footer>
-
-            </main>
         </div>
 
         {/* =========================================
@@ -577,6 +585,13 @@ function Dashboard({ session, signOut }) {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'dossiers' ? '2.5' : '2'} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </MobileNavButton>
             )}
+
+            {(roles.includes('Fondateur') || roles.includes('Chef du Staff')) && (
+                <MobileNavButton tab="webhooks" active={activeTab} onClick={() => setActiveTab('webhooks')} label="Coms" colorClass="text-[#D62F7F]" bgClass="bg-[#D62F7F]/20 shadow-[0_0_10px_rgba(214,47,127,0.2)]">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'webhooks' ? '2.5' : '2'} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                </MobileNavButton>
+            )}
+
 
             {(isStaff) && (
                 <MobileNavButton tab="dev" active={activeTab} onClick={() => setActiveTab('dev')} label="Dev" colorClass="text-[#00FF41]" bgClass="bg-[#00FF41]/20 shadow-[0_0_10px_rgba(0,255,65,0.2)]">

@@ -49,13 +49,31 @@ export default function Profil({ session, setActiveTab, isStaff, isCoach }) {
       if (vodData) setVods(vodData);
 
       // Charger les Documents (Publics + Personnels)
+// 3. Charger les Documents (Publics + Personnels + Roster)
+      // A. On récupère d'abord les vrais rôles de l'utilisateur en DB
+      const { data: userRolesData } = await supabase
+        .from('user_roles')
+        .select('roles(name)')
+        .eq('user_id', session.user.id);
+        
+      const userRosters = userRolesData?.map(ur => ur.roles?.name).filter(Boolean) || [];
+
+      // B. On construit le filtre dynamiquement
+      let docFilter = `is_public.eq.true,user_id.eq.${session.user.id}`;
+      
+      // Si le joueur appartient à des rosters, on ajoute la condition pour chercher ces documents
+      if (userRosters.length > 0) {
+        const formattedRosters = userRosters.map(r => `"${r}"`).join(',');
+        docFilter += `,target_roster.in.(${formattedRosters})`;
+      }
+
       const { data: docData } = await supabase
         .from('user_documents')
         .select('*')
-        .or(`is_public.eq.true,user_id.eq.${session.user.id}`)
+        .or(docFilter)
         .order('created_at', { ascending: false });
+        
       if (docData) setDocuments(docData);
-
       const { data: checkinData } = await supabase
         .from('checkins')
         .select('status')
@@ -267,8 +285,8 @@ export default function Profil({ session, setActiveTab, isStaff, isCoach }) {
                     <h3 className="font-rajdhani font-bold text-lg text-white group-hover:text-[#A2D2FF] transition-colors">{doc.title}</h3>
                     <p className="text-[10px] font-techMono text-gray-500 uppercase mt-1 flex items-center gap-2">
                       {new Date(doc.created_at).toLocaleDateString('fr-FR')} 
-                      <span className={`px-2 py-0.5 rounded border ${doc.is_public ? 'bg-white/5 text-gray-400 border-white/10' : 'bg-[#A2D2FF]/10 text-[#A2D2FF] border-[#A2D2FF]/30'}`}>
-                         {doc.is_public ? 'Global' : 'Personnel'}
+                      <span className={`px-2 py-0.5 rounded border ${doc.is_public ? 'bg-white/5 text-gray-400 border-white/10' : doc.target_roster ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' : 'bg-[#A2D2FF]/10 text-[#A2D2FF] border-[#A2D2FF]/30'}`}>
+                        {doc.is_public ? 'Global' : doc.target_roster ? `Roster: ${doc.target_roster}` : 'Personnel'}
                       </span>
                     </p>
                   </div>

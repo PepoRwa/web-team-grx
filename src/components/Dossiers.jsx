@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { FiUsers, FiFolder, FiUploadCloud, FiLock, FiGlobe, FiFileText, FiTrash2, FiDownload, FiCheck, FiClock, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiFolder, FiUploadCloud, FiLock, FiGlobe, FiFileText, FiTrash2, FiDownload, FiLayers } from 'react-icons/fi';
+
+const ROSTER_OPTIONS = ["High Roster", "Academy", "Tryhard", "Chill"];
 
 export default function Dossiers({ isStaff, isCoach }) {
   const [subTab, setSubTab] = useState('agents'); // 'agents' ou 'documents'
@@ -26,8 +28,9 @@ export default function Dossiers({ isStaff, isCoach }) {
   // Upload
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('');
-  const [uploadIsPublic, setUploadIsPublic] = useState(true);
+  const [uploadType, setUploadType] = useState('public'); // 'public', 'private', 'roster'
   const [uploadTargetUser, setUploadTargetUser] = useState('');
+  const [uploadTargetRoster, setUploadTargetRoster] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   // ==========================================
@@ -92,19 +95,11 @@ export default function Dossiers({ isStaff, isCoach }) {
     if (data) setDeclaredAbsences(data);
   };
 
-  // 🔄 MISE À JOUR : Calcul des stats identique à la page Profil
   const fetchStats = async (userId) => {
     setLoadingStats(true);
     
-    // 1. Récupérer les checkins
     const { data: checkinData } = await supabase.from('checkins').select('status').eq('user_id', userId);
-    
-    // 2. Récupérer les absences validées
-    const { data: absencesData } = await supabase
-        .from('absences')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'valide');
+    const { data: absencesData } = await supabase.from('absences').select('id').eq('user_id', userId).eq('status', 'valide');
 
     if (checkinData) {
       let present = 0, late = 0, absent = 0;
@@ -171,11 +166,12 @@ export default function Dossiers({ isStaff, isCoach }) {
     
     const fileExt = uploadFile.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `${uploadIsPublic ? 'global' : `private_${uploadTargetUser}`}/${fileName}`;
+    
+    // Chemin de stockage intelligent
+    const folder = uploadType === 'public' ? 'global' : uploadType === 'roster' ? `roster_${uploadTargetRoster}` : `private_${uploadTargetUser}`;
+    const filePath = `${folder}/${fileName}`;
 
-    const { error: storageError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, uploadFile);
+    const { error: storageError } = await supabase.storage.from('documents').upload(filePath, uploadFile);
 
     if (storageError) {
       alert("Erreur lors de l'upload du fichier dans le coffre.");
@@ -186,8 +182,9 @@ export default function Dossiers({ isStaff, isCoach }) {
     const { error: dbError } = await supabase.from('user_documents').insert({
       title: uploadTitle,
       file_path: filePath, 
-      is_public: uploadIsPublic,
-      user_id: uploadIsPublic ? null : uploadTargetUser,
+      is_public: uploadType === 'public',
+      user_id: uploadType === 'private' ? uploadTargetUser : null,
+      target_roster: uploadType === 'roster' ? uploadTargetRoster : null,
       uploaded_by: session.user.id
     });
 
@@ -197,16 +194,13 @@ export default function Dossiers({ isStaff, isCoach }) {
     } else {
       setUploadTitle('');
       setUploadFile(null);
-      fetchDocuments();
+      fetchDocuments(); // Refresh
     }
     setIsUploading(false);
   };
 
   const handleOpenDocument = async (filePath) => {
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(filePath, 60);
-
+    const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 60);
     if (data?.signedUrl) {
       window.open(data.signedUrl, '_blank');
     } else {
@@ -238,8 +232,6 @@ export default function Dossiers({ isStaff, isCoach }) {
   }
 
   const filteredProfiles = profiles.filter(p => p.username.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  // Calcul du "Vrai" nombre d'absences pour la jauge
   const unjustifiedAbsences = stats ? Math.max(0, stats.absent - stats.validAbsences) : 0;
 
   return (
@@ -277,10 +269,10 @@ export default function Dossiers({ isStaff, isCoach }) {
           ONGLET 1 : SUIVI DES AGENTS
           ========================================== */}
       {subTab === 'agents' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[800px]">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[650px]">
           
-          {/* COLONNE GAUCHE: Liste des joueurs */}
-          <div className={`col-span-1 lg:col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-xl flex flex-col h-full ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
+          {/* COLONNE GAUCHE: Liste des joueurs (HAUTEUR FIXE POUR ~7 PROFILS) */}
+          <div className={`col-span-1 lg:col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-xl flex flex-col h-fit ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
               <div className="mb-4 shrink-0">
                   <input 
                     type="text" 
@@ -291,7 +283,8 @@ export default function Dossiers({ isStaff, isCoach }) {
                   />
               </div>
               
-              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar flex-1">
+              {/* Le max-h-[500px] force l'apparition d'environ 7 joueurs avant de scroller */}
+              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar max-h-[600px]">
                   {loadingProfiles ? (
                       <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#A2D2FF] border-t-transparent rounded-full animate-spin"></div></div>
                   ) : filteredProfiles.length === 0 ? (
@@ -301,7 +294,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                           <button 
                               key={user.id}
                               onClick={() => handleSelectUser(user)}
-                              className={`flex items-center gap-3 p-3 rounded-xl transition-all border text-left ${selectedUser?.id === user.id ? 'bg-[#A2D2FF]/10 border-[#A2D2FF]/40 shadow-[0_0_15px_rgba(162,210,255,0.15)] text-white' : 'bg-transparent border-transparent hover:bg-white/5 text-gray-400 hover:text-white'}`}
+                              className={`flex items-center gap-3 p-3 rounded-xl transition-all border text-left shrink-0 ${selectedUser?.id === user.id ? 'bg-[#A2D2FF]/10 border-[#A2D2FF]/40 shadow-[0_0_15px_rgba(162,210,255,0.15)] text-white' : 'bg-transparent border-transparent hover:bg-white/5 text-gray-400 hover:text-white'}`}
                           >
                               {user.avatar_url ? (
                                   <img src={user.avatar_url} alt="avatar" className="w-10 h-10 rounded-full border border-white/10 object-cover shrink-0" />
@@ -313,7 +306,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                               <div className="flex flex-col overflow-hidden w-full">
                                   <span className="font-rajdhani font-bold truncate text-base">{user.username}</span>
                                   
-                                  {/* 🔄 MISE À JOUR : Affichage de tous les rosters */}
+                                  {/* Affichage de tous les rosters */}
                                   {user.teamRoles && user.teamRoles.length > 0 && (
                                       <div className="flex flex-wrap gap-1 mt-0.5">
                                           {user.teamRoles.map(role => (
@@ -362,7 +355,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                           <div>
                               <h3 className="text-3xl md:text-4xl font-rajdhani font-bold text-white tracking-widest drop-shadow-md mb-1">{selectedUser.username}</h3>
                               
-                              {/* 🔄 MISE À JOUR : Affichage de tous les rosters dans l'en-tête */}
+                              {/* Affichage de tous les rosters dans l'en-tête */}
                               {selectedUser.teamRoles && selectedUser.teamRoles.length > 0 ? (
                                   <div className="flex flex-wrap items-center gap-2 mt-1">
                                       {selectedUser.teamRoles.map(role => (
@@ -420,7 +413,6 @@ export default function Dossiers({ isStaff, isCoach }) {
                                 </h4>
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1 bg-black/60 h-2.5 rounded-full overflow-hidden border border-white/5">
-                                        {/* 🔄 MISE À JOUR : La jauge se remplit en fonction des absences INJUSTIFIÉES */}
                                         <div 
                                           className={`h-full transition-all ${unjustifiedAbsences > 2 ? 'bg-red-500' : unjustifiedAbsences > 0 ? 'bg-yellow-500' : 'bg-green-500'}`} 
                                           style={{ width: `${Math.min(unjustifiedAbsences * 33.33, 100)}%` }}
@@ -528,7 +520,7 @@ export default function Dossiers({ isStaff, isCoach }) {
           ONGLET 2 : BIBLIOTHÈQUE DE DOCUMENTS
           ========================================== */}
       {subTab === 'documents' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[800px]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[650px]">
           
           {/* COLONNE GAUCHE : Formulaire d'Upload */}
           <div className="col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-xl flex flex-col gap-6">
@@ -553,20 +545,34 @@ export default function Dossiers({ isStaff, isCoach }) {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-techMono text-[#A2D2FF] uppercase tracking-widest pl-1">Visibilité</label>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setUploadIsPublic(true)} className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${uploadIsPublic ? 'bg-[#A2D2FF]/20 border-[#A2D2FF]/50 text-[#A2D2FF]' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`}>
-                      <FiGlobe className="mb-1 text-lg" />
-                      <span className="text-[10px] font-techMono uppercase font-bold tracking-wider">Public (Tous)</span>
+                  <label className="text-[10px] font-techMono text-[#A2D2FF] uppercase tracking-widest pl-1">Cible du Document</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button type="button" onClick={() => setUploadType('public')} className={`p-2 rounded-xl border text-[9px] font-techMono flex flex-col items-center gap-1 transition-all ${uploadType === 'public' ? 'bg-[#A2D2FF]/20 border-[#A2D2FF] text-[#A2D2FF]' : 'border-white/10 text-gray-500 hover:bg-white/5'}`}>
+                      <FiGlobe /> PUBLIC
                     </button>
-                    <button type="button" onClick={() => setUploadIsPublic(false)} className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${!uploadIsPublic ? 'bg-[#F7CAD0]/20 border-[#F7CAD0]/50 text-[#F7CAD0]' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`}>
-                      <FiLock className="mb-1 text-lg" />
-                      <span className="text-[10px] font-techMono uppercase font-bold tracking-wider">Privé (Agent)</span>
+                    <button type="button" onClick={() => setUploadType('roster')} className={`p-2 rounded-xl border text-[9px] font-techMono flex flex-col items-center gap-1 transition-all ${uploadType === 'roster' ? 'bg-teal-500/20 border-teal-500 text-teal-400' : 'border-white/10 text-gray-500 hover:bg-white/5'}`}>
+                      <FiLayers /> ROSTER
+                    </button>
+                    <button type="button" onClick={() => setUploadType('private')} className={`p-2 rounded-xl border text-[9px] font-techMono flex flex-col items-center gap-1 transition-all ${uploadType === 'private' ? 'bg-[#F7CAD0]/20 border-[#F7CAD0] text-[#F7CAD0]' : 'border-white/10 text-gray-500 hover:bg-white/5'}`}>
+                      <FiLock /> AGENT
                     </button>
                   </div>
                 </div>
 
-                {!uploadIsPublic && (
+                {uploadType === 'roster' && (
+                  <div className="flex flex-col gap-1.5 animate-fade-in">
+                    <label className="text-[10px] font-techMono text-teal-400 uppercase tracking-widest pl-1">Roster Cible</label>
+                    <select 
+                      required value={uploadTargetRoster} onChange={e => setUploadTargetRoster(e.target.value)}
+                      className="w-full bg-black/40 border border-teal-500/30 rounded-xl p-3 text-white text-sm font-poppins focus:border-teal-400 outline-none transition-colors appearance-none"
+                    >
+                      <option value="">Sélectionner un Roster...</option>
+                      {ROSTER_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {uploadType === 'private' && (
                   <div className="flex flex-col gap-1.5 animate-fade-in">
                     <label className="text-[10px] font-techMono text-[#F7CAD0] uppercase tracking-widest pl-1">Agent Cible</label>
                     <select 
@@ -621,8 +627,8 @@ export default function Dossiers({ isStaff, isCoach }) {
                  documents.map(doc => (
                    <div key={doc.id} className="bg-white/[0.02] border border-white/5 hover:border-white/10 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 shadow-inner ${doc.is_public ? 'bg-[#A2D2FF]/10 text-[#A2D2FF] border-[#A2D2FF]/30' : 'bg-[#F7CAD0]/10 text-[#F7CAD0] border-[#F7CAD0]/30'}`}>
-                          {doc.is_public ? <FiGlobe className="w-5 h-5" /> : <FiLock className="w-5 h-5" />}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 shadow-inner ${doc.is_public ? 'bg-[#A2D2FF]/10 text-[#A2D2FF] border-[#A2D2FF]/30' : doc.target_roster ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' : 'bg-[#F7CAD0]/10 text-[#F7CAD0] border-[#F7CAD0]/30'}`}>
+                          {doc.is_public ? <FiGlobe className="w-5 h-5" /> : doc.target_roster ? <FiLayers className="w-5 h-5" /> : <FiLock className="w-5 h-5" />}
                         </div>
                         <div className="flex flex-col">
                           <h4 className="font-rajdhani font-bold text-lg text-white">{doc.title}</h4>
@@ -630,6 +636,11 @@ export default function Dossiers({ isStaff, isCoach }) {
                             <span className="text-[9px] font-techMono text-gray-500 uppercase">
                               Le {new Date(doc.created_at).toLocaleDateString('fr-FR')} par {doc.author?.username || 'Staff'}
                             </span>
+                            {!doc.is_public && doc.target_roster && (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-techMono uppercase tracking-widest bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                                Roster: {doc.target_roster}
+                              </span>
+                            )}
                             {!doc.is_public && doc.target?.username && (
                               <span className="px-2 py-0.5 rounded text-[8px] font-techMono uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20">
                                 Cible: {doc.target.username}
