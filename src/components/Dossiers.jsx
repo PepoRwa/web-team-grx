@@ -447,13 +447,13 @@ export default function Dossiers({ isStaff, isCoach }) {
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1 bg-black/60 h-2.5 rounded-full overflow-hidden border border-white/5">
                                         <div 
-                                          className={`h-full transition-all ${unjustifiedAbsences > 2 ? 'bg-red-500' : unjustifiedAbsences > 0 ? 'bg-yellow-500' : 'bg-green-500'}`} 
-                                          style={{ width: `${Math.min(unjustifiedAbsences * 33.33, 100)}%` }}
+                                          className={`h-full transition-all ${unjustifiedAbsences > 5 ? 'bg-red-500' : unjustifiedAbsences > 0 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                                          style={{ width: `${Math.min(unjustifiedAbsences * 20, 100)}%` }}
                                         ></div>
                                     </div>
-                                    <span className="text-white font-techMono text-xs">{unjustifiedAbsences}/3</span>
+                                    <span className="text-white font-techMono text-xs">{unjustifiedAbsences}/5</span>
                                 </div>
-                                <p className="text-[10px] text-red-200/50 font-poppins mt-3 italic">Le système tolère 3 absences non-justifiées. Au-delà, l'agent s'expose à une sanction de l'état major.</p>
+                                <p className="text-[10px] text-red-200/50 font-poppins mt-3 italic">Le système tolère 5 absences non-justifiées. Au-delà, l'agent s'expose à une sanction de l'état major.</p>
                             </div>
 
                             <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 max-h-[140px] overflow-y-auto custom-scrollbar">
