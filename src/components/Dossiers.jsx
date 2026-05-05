@@ -47,13 +47,13 @@ export default function Dossiers({ isStaff, isCoach }) {
     setLoadingProfiles(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select(`id, username, avatar_url, user_roles ( roles ( name ) )`)
+      // Ajout de discord_id pour l'envoi du DM via le bot
+      .select(`id, discord_id, username, avatar_url, user_roles ( roles ( name ) )`)
       .order('username', { ascending: true });
 
     if (!error && data) {
       const formattedData = data.map(profile => {
         const rolesList = profile.user_roles?.map(ur => ur.roles?.name).filter(Boolean) || [];
-        // On récupère TOUS les rôles d'équipe (Roster, Academy, etc.)
         const teamRoles = rolesList.filter(r => 
             r.toLowerCase().includes('roster') || 
             r.toLowerCase().includes('team') || 
@@ -167,7 +167,6 @@ export default function Dossiers({ isStaff, isCoach }) {
     const fileExt = uploadFile.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     
-    // Chemin de stockage intelligent
     const folder = uploadType === 'public' ? 'global' : uploadType === 'roster' ? `roster_${uploadTargetRoster}` : `private_${uploadTargetUser}`;
     const filePath = `${folder}/${fileName}`;
 
@@ -192,9 +191,46 @@ export default function Dossiers({ isStaff, isCoach }) {
       console.error("Erreur DB Document:", dbError);
       alert("Le fichier est dans le coffre, mais l'enregistrement a échoué: " + dbError.message);
     } else {
+      // ----------------------------------------------------
+      // SYSTÈME DE NOTIFICATIONS DISCORD VIA SUPABASE
+      // ----------------------------------------------------
+      try {
+        if (uploadType === 'public') {
+          await supabase.from('notifications').insert({
+            user_id: null,
+            target_roster: 'Tous',
+            type: 'global',
+            title: `📁 Nouveau document public : ${uploadTitle}`,
+            message: `<@&1474127750343168247>\nUn nouveau document officiel est disponible dans la bibliothèque : **${uploadTitle}**.\n⚠️ _Consultez les archives depuis l'Interface Tactique._`
+          });
+        } else if (uploadType === 'roster') {
+          // Injection spécifique pour le High Roster
+          const rolePing = uploadTargetRoster === 'High Roster' ? '<@&1474174283424075797>\n' : '';
+          await supabase.from('notifications').insert({
+            user_id: null,
+            target_roster: uploadTargetRoster,
+            type: 'global',
+            title: `📁 Nouveau document Roster : ${uploadTitle}`,
+            message: `${rolePing}Un document classifié a été ajouté pour le roster **${uploadTargetRoster}** : **${uploadTitle}**.\n⚠️ _Consultez la bibliothèque depuis l'Interface Tactique._`
+          });
+        } else if (uploadType === 'private') {
+          // Envoi d'un DM personnel
+          const targetProfile = profiles.find(p => p.id === uploadTargetUser);
+          await supabase.from('notifications').insert({
+            user_id: uploadTargetUser,
+            discord_id: targetProfile?.discord_id || null,
+            type: 'personal',
+            title: `🔒 Nouveau document privé : ${uploadTitle}`,
+            message: `Un document confidentiel vient de t'être assigné sur ton profil : **${uploadTitle}**.\n⚠️ _Connecte-toi sur l'Interface Tactique pour le consulter._`
+          });
+        }
+      } catch (notifError) {
+        console.error("Erreur lors de la génération de la notification:", notifError);
+      }
+
       setUploadTitle('');
       setUploadFile(null);
-      fetchDocuments(); // Refresh
+      fetchDocuments(); 
     }
     setIsUploading(false);
   };
@@ -271,7 +307,7 @@ export default function Dossiers({ isStaff, isCoach }) {
       {subTab === 'agents' && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[650px]">
           
-          {/* COLONNE GAUCHE: Liste des joueurs (HAUTEUR FIXE POUR ~7 PROFILS) */}
+          {/* COLONNE GAUCHE: Liste des joueurs */}
           <div className={`col-span-1 lg:col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-xl flex flex-col h-fit ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
               <div className="mb-4 shrink-0">
                   <input 
@@ -283,8 +319,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                   />
               </div>
               
-              {/* Le max-h-[500px] force l'apparition d'environ 7 joueurs avant de scroller */}
-              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar max-h-[600px]">
+              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
                   {loadingProfiles ? (
                       <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#A2D2FF] border-t-transparent rounded-full animate-spin"></div></div>
                   ) : filteredProfiles.length === 0 ? (
@@ -306,7 +341,6 @@ export default function Dossiers({ isStaff, isCoach }) {
                               <div className="flex flex-col overflow-hidden w-full">
                                   <span className="font-rajdhani font-bold truncate text-base">{user.username}</span>
                                   
-                                  {/* Affichage de tous les rosters */}
                                   {user.teamRoles && user.teamRoles.length > 0 && (
                                       <div className="flex flex-wrap gap-1 mt-0.5">
                                           {user.teamRoles.map(role => (
@@ -355,7 +389,6 @@ export default function Dossiers({ isStaff, isCoach }) {
                           <div>
                               <h3 className="text-3xl md:text-4xl font-rajdhani font-bold text-white tracking-widest drop-shadow-md mb-1">{selectedUser.username}</h3>
                               
-                              {/* Affichage de tous les rosters dans l'en-tête */}
                               {selectedUser.teamRoles && selectedUser.teamRoles.length > 0 ? (
                                   <div className="flex flex-wrap items-center gap-2 mt-1">
                                       {selectedUser.teamRoles.map(role => (
