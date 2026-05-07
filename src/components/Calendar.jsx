@@ -6,6 +6,27 @@ import { usePermissions } from '../hooks/usePermissions';
 import EventCard from './EventCard';
 import GlobalObjectiveBanner from './GlobalObjectiveBanner';
 
+// --- SOUS-COMPOSANT BOUTON GOOGLE (Design Officiel) ---
+const GoogleCalendarButton = ({ className }) => (
+  <a 
+    href="https://calendar.google.com/calendar/render?cid=teamgowrax@gmail.com" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className={`px-5 py-2.5 bg-white/[0.05] hover:bg-white/10 border border-white/10 hover:border-white/30 rounded-xl transition-all shadow-[0_4px_15px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 group ${className}`}
+  >
+    {/* Vrai logo officiel Google "G" */}
+    <svg viewBox="0 0 24 24" className="w-5 h-5 drop-shadow-sm transition-transform group-hover:scale-110" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.31-1.03 2.41-2.16 3.14v2.6h3.5c2.05-1.89 3.3-4.67 3.3-7.75z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.5-2.6c-.98.66-2.23 1.06-3.78 1.06-2.91 0-5.38-1.97-6.26-4.62H2.07v2.69C3.89 20.45 7.63 23 12 23z" fill="#34A853"/>
+      <path d="M5.74 14.18c-.22-.66-.35-1.36-.35-2.18s.13-1.52.35-2.18V7.13H2.07C1.38 8.5 1 10.18 1 12s.38 3.5 1.07 4.87l3.67-2.69z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.63 1 3.89 3.55 2.07 7.13l3.67 2.69c.88-2.65 3.35-4.44 6.26-4.44z" fill="#EA4335"/>
+    </svg>
+    <span className="font-rajdhani font-bold text-xs md:text-sm tracking-widest text-gray-300 group-hover:text-white transition-colors uppercase mt-0.5">
+      S'abonner à l'Agenda
+    </span>
+  </a>
+);
+
 export default function Calendar({ session }) {
   const { roles, loading: rolesLoading, isStaff, isCoach } = usePermissions(session);
   const [events, setEvents] = useState([]);
@@ -62,6 +83,29 @@ export default function Calendar({ session }) {
     const start_time = new Date(`${newDate}T${newTime}`).toISOString();
     const end_time = new Date(`${newDate}T${newEndTime}`).toISOString();
 
+    let googleEventId = null;
+
+    // --- 1. APPEL DE L'EDGE FUNCTION POUR GOOGLE CALENDAR ---
+    try {
+      const { data: edgeData, error: edgeError } = await supabase.functions.invoke('google-calendar-sync', {
+        body: { 
+          title: newTitle, 
+          start_time: start_time, 
+          end_time: end_time 
+        }
+      });
+
+      if (edgeError) {
+        console.error("Erreur d'invocation Edge Function :", edgeError);
+        alert("Attention : L'évènement n'a pas pu être synchronisé avec Google Calendar, mais sera tout de même ajouté au site.");
+      } else if (edgeData && edgeData.google_event_id) {
+        googleEventId = edgeData.google_event_id;
+      }
+    } catch (err) {
+      console.error("Crash réseau Edge Function :", err);
+    }
+
+    // --- 2. ENREGISTREMENT DANS SUPABASE (AVEC LE GOOGLE ID) ---
     const { data, error } = await supabase
       .from('events')
       .insert([
@@ -71,7 +115,8 @@ export default function Calendar({ session }) {
           start_time: start_time,
           end_time: end_time,
           roster_type: newRoster,
-          assigned_members: assignedMembers
+          assigned_members: assignedMembers,
+          google_event_id: googleEventId // On sauvegarde le lien Google !
         }
       ])
       .select()
@@ -166,22 +211,27 @@ export default function Calendar({ session }) {
               </p>
           </div>
           
-          {(isStaff || isCoach) && (
-             <button 
-               onClick={() => setShowForm(!showForm)}
-               className={`w-full md:w-auto px-6 py-3 font-rajdhani font-bold text-sm tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 border shrink-0 ${
-                 showForm 
-                  ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20' 
-                  : 'bg-[#B185DB]/10 text-[#B185DB] border-[#B185DB]/30 hover:bg-[#B185DB]/20 hover:shadow-[0_0_20px_rgba(177,133,219,0.3)]'
-               }`}
-             >
-               {showForm ? (
-                 <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg> FERMER LE PANNEAU</>
-               ) : (
-                 <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> AJOUTER UNE MISSION</>
-               )}
-             </button>
-          )}
+          <div className="flex flex-col w-full md:w-auto gap-3 shrink-0">
+             {/* BOUTON GOOGLE (VISIBLE UNIQUEMENT SUR MOBILE, AU-DESSUS DU BOUTON MISSION) */}
+             <GoogleCalendarButton className="md:hidden w-full" />
+
+             {(isStaff || isCoach) && (
+               <button 
+                 onClick={() => setShowForm(!showForm)}
+                 className={`w-full md:w-auto px-6 py-3 font-rajdhani font-bold text-sm tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 border shrink-0 ${
+                   showForm 
+                    ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20' 
+                    : 'bg-[#B185DB]/10 text-[#B185DB] border-[#B185DB]/30 hover:bg-[#B185DB]/20 hover:shadow-[0_0_20px_rgba(177,133,219,0.3)]'
+                 }`}
+               >
+                 {showForm ? (
+                   <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg> FERMER LE PANNEAU</>
+                 ) : (
+                   <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> AJOUTER UNE MISSION</>
+                 )}
+               </button>
+             )}
+          </div>
         </div>
 
         {/* ================= FORMULAIRE COACH ================= */}
@@ -284,58 +334,63 @@ export default function Calendar({ session }) {
           </form>
         )}
 
-        {/* ================= FILTRES DE VUE ================= */}
-        <div className="flex gap-2 md:gap-3 mb-6 md:mb-10 overflow-x-auto pb-4 custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-          <button 
-            onClick={() => setFilterType('all')}
-            className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
-              filterType === 'all' 
-                ? 'bg-white/10 text-white border-white/30 shadow-inner' 
-                : 'bg-transparent border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/5'
-            }`}
-          >
-            TOUT
-          </button>
-          <button 
-            onClick={() => setFilterType('training')}
-            className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
-              filterType === 'training' 
-                ? 'bg-[#B185DB]/20 text-[#B185DB] border-[#B185DB]/50 shadow-[0_0_15px_rgba(177,133,219,0.3)]' 
-                : 'bg-transparent border-white/10 text-gray-500 hover:text-[#B185DB]/70 hover:border-[#B185DB]/30 hover:bg-[#B185DB]/5'
-            }`}
-          >
-            ENTRAÎNEMENTS
-          </button>
-          <button 
-            onClick={() => setFilterType('match')}
-            className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
-              filterType === 'match' 
-                ? 'bg-[#F7CAD0]/20 text-[#F7CAD0] border-[#F7CAD0]/50 shadow-[0_0_15px_rgba(247,202,208,0.3)]' 
-                : 'bg-transparent border-white/10 text-gray-500 hover:text-[#F7CAD0]/70 hover:border-[#F7CAD0]/30 hover:bg-[#F7CAD0]/5'
-            }`}
-          >
-            MATCHS
-          </button>
-          <button 
-            onClick={() => setFilterType('tournament')}
-            className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
-              filterType === 'tournament' 
-                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]' 
-                : 'bg-transparent border-white/10 text-gray-500 hover:text-yellow-500/70 hover:border-yellow-500/30 hover:bg-yellow-500/5'
-            }`}
-          >
-            TOURNOIS
-          </button>
-          <button
-            onClick={() => setFilterType('meeting')}
-            className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
-              filterType === 'meeting' 
-                ? 'bg-[#A2D2FF]/20 text-[#A2D2FF] border-[#A2D2FF]/50 shadow-[0_0_15px_rgba(162,210,255,0.3)]' 
-                : 'bg-transparent border-white/10 text-gray-500 hover:text-[#A2D2FF]/70 hover:border-[#A2D2FF]/30 hover:bg-[#A2D2FF]/5'
-            }`}
-          >
-            RÉUNIONS
-          </button>
+        {/* ================= FILTRES DE VUE ET BOUTON GOOGLE (DESKTOP) ================= */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-4 w-full">
+          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-4 custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0 flex-1 w-full md:w-auto">
+            <button 
+              onClick={() => setFilterType('all')}
+              className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
+                filterType === 'all' 
+                  ? 'bg-white/10 text-white border-white/30 shadow-inner' 
+                  : 'bg-transparent border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/5'
+              }`}
+            >
+              TOUT
+            </button>
+            <button 
+              onClick={() => setFilterType('training')}
+              className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
+                filterType === 'training' 
+                  ? 'bg-[#B185DB]/20 text-[#B185DB] border-[#B185DB]/50 shadow-[0_0_15px_rgba(177,133,219,0.3)]' 
+                  : 'bg-transparent border-white/10 text-gray-500 hover:text-[#B185DB]/70 hover:border-[#B185DB]/30 hover:bg-[#B185DB]/5'
+              }`}
+            >
+              ENTRAÎNEMENTS
+            </button>
+            <button 
+              onClick={() => setFilterType('match')}
+              className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
+                filterType === 'match' 
+                  ? 'bg-[#F7CAD0]/20 text-[#F7CAD0] border-[#F7CAD0]/50 shadow-[0_0_15px_rgba(247,202,208,0.3)]' 
+                  : 'bg-transparent border-white/10 text-gray-500 hover:text-[#F7CAD0]/70 hover:border-[#F7CAD0]/30 hover:bg-[#F7CAD0]/5'
+              }`}
+            >
+              MATCHS
+            </button>
+            <button 
+              onClick={() => setFilterType('tournament')}
+              className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
+                filterType === 'tournament' 
+                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]' 
+                  : 'bg-transparent border-white/10 text-gray-500 hover:text-yellow-500/70 hover:border-yellow-500/30 hover:bg-yellow-500/5'
+              }`}
+            >
+              TOURNOIS
+            </button>
+            <button
+              onClick={() => setFilterType('meeting')}
+              className={`px-4 md:px-6 py-2 md:py-2.5 font-rajdhani font-bold text-xs md:text-sm tracking-widest rounded-xl transition-all whitespace-nowrap border shrink-0 ${
+                filterType === 'meeting' 
+                  ? 'bg-[#A2D2FF]/20 text-[#A2D2FF] border-[#A2D2FF]/50 shadow-[0_0_15px_rgba(162,210,255,0.3)]' 
+                  : 'bg-transparent border-white/10 text-gray-500 hover:text-[#A2D2FF]/70 hover:border-[#A2D2FF]/30 hover:bg-[#A2D2FF]/5'
+              }`}
+            >
+              RÉUNIONS
+            </button>
+          </div>
+
+          {/* BOUTON GOOGLE (VISIBLE UNIQUEMENT SUR DESKTOP, À DROITE DES FILTRES) */}
+          <GoogleCalendarButton className="hidden md:flex shrink-0 mb-4" />
         </div>
 
         {/* ================= LISTE DES ÉVÉNEMENTS ================= */}

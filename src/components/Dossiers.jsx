@@ -33,8 +33,12 @@ export default function Dossiers({ isStaff, isCoach }) {
   const [uploadTargetRoster, setUploadTargetRoster] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
+  // --- PAGINATION DOCUMENTS ---
+  const [currentPageDocs, setCurrentPageDocs] = useState(1);
+  const [itemsPerPageDocs, setItemsPerPageDocs] = useState(4); //4 par défaut (PC)
+
   // ==========================================
-  // INITIALISATION
+  // INITIALISATION & RESIZE LISTENER
   // ==========================================
   useEffect(() => {
     if (isStaff || isCoach) {
@@ -43,11 +47,27 @@ export default function Dossiers({ isStaff, isCoach }) {
     }
   }, [isStaff, isCoach]);
 
+  // Détecter la taille de l'écran pour la pagination (3 sur mobile, 5 sur PC)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) { // Breakpoint 'lg' de Tailwind
+        setItemsPerPageDocs(3);
+      } else {
+        setItemsPerPageDocs(4);
+      }
+    };
+    
+    // Initialisation au chargement
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchProfiles = async () => {
     setLoadingProfiles(true);
     const { data, error } = await supabase
       .from('profiles')
-      // Ajout de discord_id pour l'envoi du DM via le bot
       .select(`id, discord_id, username, avatar_url, user_roles ( roles ( name ) )`)
       .order('username', { ascending: true });
 
@@ -142,7 +162,7 @@ export default function Dossiers({ isStaff, isCoach }) {
   };
 
   // ==========================================
-  // LOGIQUE DOCUMENTS (SECURISEE)
+  // LOGIQUE DOCUMENTS
   // ==========================================
   const fetchDocuments = async () => {
     setLoadingDocs(true);
@@ -152,8 +172,11 @@ export default function Dossiers({ isStaff, isCoach }) {
       .order('created_at', { ascending: false });
       
     if (error) console.error("Erreur Fetch Documents :", error);
-    else if (data) setDocuments(data);
-    
+    else {
+      setDocuments(data);
+      // Réinitialiser la page à 1 au chargement de nouveaux docs
+      setCurrentPageDocs(1); 
+    }
     setLoadingDocs(false);
   };
 
@@ -191,9 +214,6 @@ export default function Dossiers({ isStaff, isCoach }) {
       console.error("Erreur DB Document:", dbError);
       alert("Le fichier est dans le coffre, mais l'enregistrement a échoué: " + dbError.message);
     } else {
-      // ----------------------------------------------------
-      // SYSTÈME DE NOTIFICATIONS DISCORD VIA SUPABASE
-      // ----------------------------------------------------
       try {
         if (uploadType === 'public') {
           await supabase.from('notifications').insert({
@@ -204,7 +224,6 @@ export default function Dossiers({ isStaff, isCoach }) {
             message: `<@&1474127750343168247>\nUn nouveau document officiel est disponible dans la bibliothèque : **${uploadTitle}**.\n⚠️ _Consultez les archives depuis l'Interface Tactique._`
           });
         } else if (uploadType === 'roster') {
-          // Injection spécifique pour le High Roster
           const rolePing = uploadTargetRoster === 'High Roster' ? '<@&1474174283424075797>\n' : '';
           await supabase.from('notifications').insert({
             user_id: null,
@@ -214,7 +233,6 @@ export default function Dossiers({ isStaff, isCoach }) {
             message: `${rolePing}Un document classifié a été ajouté pour le roster **${uploadTargetRoster}** : **${uploadTitle}**.\n⚠️ _Consultez la bibliothèque depuis l'Interface Tactique._`
           });
         } else if (uploadType === 'private') {
-          // Envoi d'un DM personnel
           const targetProfile = profiles.find(p => p.id === uploadTargetUser);
           await supabase.from('notifications').insert({
             user_id: uploadTargetUser,
@@ -251,6 +269,18 @@ export default function Dossiers({ isStaff, isCoach }) {
     fetchDocuments();
   };
 
+  // --- CALCULS DE PAGINATION ---
+  const indexOfLastDoc = currentPageDocs * itemsPerPageDocs;
+  const indexOfFirstDoc = indexOfLastDoc - itemsPerPageDocs;
+  const currentDocs = documents.slice(indexOfFirstDoc, indexOfLastDoc);
+  const totalPagesDocs = Math.ceil(documents.length / itemsPerPageDocs);
+
+  // Sécurité : si on supprime le dernier élément d'une page, on recule d'une page
+  useEffect(() => {
+    if (totalPagesDocs > 0 && currentPageDocs > totalPagesDocs) {
+      setCurrentPageDocs(totalPagesDocs);
+    }
+  }, [documents, totalPagesDocs, currentPageDocs]);
 
   // ==========================================
   // RENDU
@@ -305,10 +335,10 @@ export default function Dossiers({ isStaff, isCoach }) {
           ONGLET 1 : SUIVI DES AGENTS
           ========================================== */}
       {subTab === 'agents' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[650px]">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[650px]">
           
           {/* COLONNE GAUCHE: Liste des joueurs */}
-          <div className={`col-span-1 lg:col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-xl flex flex-col h-fit ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
+          <div className={`col-span-1 lg:col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-xl flex flex-col h-fit lg:h-full overflow-hidden ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
               <div className="mb-4 shrink-0">
                   <input 
                     type="text" 
@@ -319,7 +349,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                   />
               </div>
               
-              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar max-h-[500px]">
+              <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-[300px]">
                   {loadingProfiles ? (
                       <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#A2D2FF] border-t-transparent rounded-full animate-spin"></div></div>
                   ) : filteredProfiles.length === 0 ? (
@@ -358,7 +388,7 @@ export default function Dossiers({ isStaff, isCoach }) {
           </div>
 
           {/* COLONNE DROITE: Fiche Joueur & Notes */}
-          <div className={`col-span-1 lg:col-span-3 bg-[#0D0E15]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-xl flex flex-col h-full relative overflow-hidden ${!selectedUser ? 'hidden lg:flex' : 'flex'}`}>
+          <div className={`col-span-1 lg:col-span-3 bg-[#0D0E15]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-xl flex flex-col min-h-[600px] lg:h-full relative overflow-hidden ${!selectedUser ? 'hidden lg:flex' : 'flex'}`}>
               
               {!selectedUser ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-60">
@@ -553,10 +583,10 @@ export default function Dossiers({ isStaff, isCoach }) {
           ONGLET 2 : BIBLIOTHÈQUE DE DOCUMENTS
           ========================================== */}
       {subTab === 'documents' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[650px]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[650px]">
           
           {/* COLONNE GAUCHE : Formulaire d'Upload */}
-          <div className="col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-xl flex flex-col gap-6">
+          <div className="col-span-1 bg-[#1A1C2E]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-xl flex flex-col gap-6 shrink-0 h-fit">
              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                 <div className="w-10 h-10 rounded-xl bg-[#B185DB]/20 flex items-center justify-center border border-[#B185DB]/30">
                   <FiUploadCloud className="text-[#B185DB] w-5 h-5" />
@@ -636,8 +666,8 @@ export default function Dossiers({ isStaff, isCoach }) {
              </form>
           </div>
 
-          {/* COLONNE DROITE : Liste des Documents */}
-          <div className="col-span-1 lg:col-span-2 bg-[#0D0E15]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col h-full overflow-hidden">
+          {/* COLONNE DROITE : Liste des Documents AVEC PAGINATION */}
+          <div className="col-span-1 lg:col-span-2 bg-[#0D0E15]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col min-h-[500px] lg:h-full overflow-hidden">
              <div className="flex justify-between items-end border-b border-white/5 pb-4 mb-6 shrink-0">
                <div>
                  <h3 className="font-rajdhani text-2xl font-bold text-white">Archives de la Structure</h3>
@@ -657,7 +687,7 @@ export default function Dossiers({ isStaff, isCoach }) {
                     <p className="font-poppins text-sm text-gray-400">Le coffre est vide.</p>
                  </div>
                ) : (
-                 documents.map(doc => (
+                 currentDocs.map(doc => (
                    <div key={doc.id} className="bg-white/[0.02] border border-white/5 hover:border-white/10 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors group">
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 shadow-inner ${doc.is_public ? 'bg-[#A2D2FF]/10 text-[#A2D2FF] border-[#A2D2FF]/30' : doc.target_roster ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' : 'bg-[#F7CAD0]/10 text-[#F7CAD0] border-[#F7CAD0]/30'}`}>
@@ -702,6 +732,48 @@ export default function Dossiers({ isStaff, isCoach }) {
                  ))
                )}
              </div>
+
+             {/* UI DE PAGINATION DOCUMENTS */}
+             {totalPagesDocs > 1 && (
+               <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-white/5 shrink-0">
+                 <div className="flex items-center justify-center gap-2 font-techMono text-sm w-full overflow-x-auto custom-scrollbar">
+                   <button 
+                     disabled={currentPageDocs === 1}
+                     onClick={() => setCurrentPageDocs(prev => prev - 1)}
+                     className="px-3 py-2 border border-white/10 bg-white/5 rounded-xl disabled:opacity-30 hover:bg-white/10 hover:border-[#A2D2FF]/50 transition-all text-gray-300 hover:text-white flex items-center gap-1 shrink-0"
+                   >
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                   </button>
+                   
+                   <div className="flex flex-wrap justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 shrink-0">
+                     {[...Array(totalPagesDocs)].map((_, i) => (
+                       <button
+                         key={i}
+                         onClick={() => setCurrentPageDocs(i + 1)}
+                         className={`w-8 h-8 rounded-lg font-bold transition-all text-xs ${
+                           currentPageDocs === i + 1 
+                             ? 'bg-gradient-to-br from-[#A2D2FF] to-[#B185DB] text-[#1A1C2E] shadow-[0_0_15px_rgba(162,210,255,0.4)]' 
+                             : 'text-gray-400 hover:text-white hover:bg-white/10'
+                         }`}
+                       >
+                         {i + 1}
+                       </button>
+                     ))}
+                   </div>
+
+                   <button 
+                     disabled={currentPageDocs === totalPagesDocs}
+                     onClick={() => setCurrentPageDocs(prev => prev + 1)}
+                     className="px-3 py-2 border border-white/10 bg-white/5 rounded-xl disabled:opacity-30 hover:bg-white/10 hover:border-[#A2D2FF]/50 transition-all text-gray-300 hover:text-white flex items-center gap-1 shrink-0"
+                   >
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                   </button>
+                 </div>
+                 <span className="text-[9px] text-gray-500 uppercase tracking-widest">
+                   Page {currentPageDocs} sur {totalPagesDocs}
+                 </span>
+               </div>
+             )}
           </div>
         </div>
       )}
