@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ GOWRAX HUB | V2 Tactical Interface
+# ⚡ GOWRAX HUB | V3 Tactical Interface : Slow Bloom
 
 **Système d'Information, Portail Sécurisé & Intégration Discord de l'Équipe GOWRAX ESPORT**
 
@@ -14,42 +14,49 @@
 
 ---
 
-## 📌 Présentation Générale
+## 🌸 V3.0.0 : Refonte "Slow Bloom" & Mise en conformité
+*Build ID: GRX-V3OOZ | Date: Mai 2026*
 
-Bienvenue sur le portail d'administration de la structure e-sport **GOWRAX**. Conçu tel un "ERP" (Enterprise Resource Planning) pour le gaming compétitif, ce Hub centralise toute la vie de la structure : des strat-books aux disponibilités, en passant par le mentorat et l'historique des matchs.
+Cette mise à jour majeure marque un tournant décisif pour la Gowrax Tactical Interface. L'application délaisse son ancienne architecture pour adopter la nouvelle charte graphique **"Slow Bloom"** (Glassmorphism, tons pastels et lueurs dynamiques), tout en repensant intégralement sa sécurité et sa conformité RGPD.
 
-Dans cette **Version 2.0**, l'application devient l'épicentre d'un écosystème interconnecté. Le site web (React) communique en **temps réel** avec le Bot Discord Node.js de la structure via les websockets de Supabase.
+### ✨ Nouvelles Fonctionnalités (Features)
 
-L'application est également une **PWA (Progressive Web App)** : installable nativement sur iOS, Android et PC pour une expérience "App Mobile" optimale avec navigation tactile.
+*   **Refonte du Profil Agent (Remplace l'ancienne page Roster)** :
+    *   Véritable carte d'identité premium affichant les rôles, le pseudo Discord, et l'intégration du Tracker.gg.
+    *   Calcul automatisé et précis des statistiques de présence (Taux d'implication, retards, absences justifiées).
+*   **Coffre-fort de Documents (Bibliothèque classifiée)** :
+    *   Le Staff peut assigner des fichiers privés ou publics, avec génération d'URL signées éphémères pour une sécurité maximale.
+*   **Laboratoire Lineups** :
+    *   Nouvelle base de données visuelle pour le partage de lineups.
+    *   Filtres dynamiques par Carte, Agent et Side.
+    *   Tags de difficulté (ex: Pixel Perfect) et intégration de lecteurs vidéo (Smart YouTube Embeds).
+    *   Gestion des droits d'édition et de suppression (Auteur ou Staff).
+*   **VODs & Archives (Dual-System)** :
+    *   Séparation claire entre les *Rapports d'Opérations* (Matchs de l'équipe) et la *Veille Stratégique* (Analyse de matchs Pros).
+    *   Système d'assignation directe des joueurs présents sur les VODs de l'équipe (les identifiant visuellement dans le débrief).
+    *   Nouveau badge **VOD ANALYSÉE** (Check mark officiel du Staff) pour valider une session de review.
+*   **Global Footer** : 
+    *   Ajout d'un pied de page affichant dynamiquement la version, le build, la date d'inscription du membre et les liens légaux.
 
----
+### 🧪 En cours d'expérimentation (Bêta)
 
-## 🚀 Écosystème & Fonctionnalités (V2)
+*   **Module Évolution ("Slow Bloom")** :
+    *   *Note de développement* : L'interface de demande de promotion et l'assistant NLP (IA) sont actuellement implémentés à des fins de test. Le pipeline complet de traitement, les cooldowns d'anti-spam (30-60 jours) et l'analyse sémantique automatique seront pleinement opérationnels dans une mise à jour mineure ultérieure.
 
-### 🤖 1. Intégration Discord & Realtime (Le Cœur du Système)
-Le site web n'est plus isolé. Toutes les actions clés déclenchent des notifications silencieuses en base de données qui sont interceptées instantanément par le bot Discord officiel (`gowrax-bot`) :
-*   **Alerte Absence** : Dès qu'un joueur déclare une absence sur le Hub, le bot informe les salons Staff.
-*   **Notifications de Mentorat** : Quand un Coach assigne un objectif tactique depuis le site, le joueur reçoit un **Message Privé (DM)** formaté avec les couleurs GOWRAX (Embed) contenant ses consignes de VOD.
-*   **Alerte Match & Calendrier** : Planifier un Scrim sur le site envoie une alerte ping dans le salon du Roster concerné (High, Academy, etc.).
+### 🛠️ Optimisations & Refactoring
 
-### 🎓 2. Mentorat & Coaching Hub
-*   Interface asymétrique : Vue synthétique pour les joueurs (Mes objectifs, Ma progression), et Vue globale pour le Staff.
-*   Création d'objectifs personnalisés (ex: "Crosshair Placement", "Retake A Bind").
-*   Fiches de suivi des VODs personnelles.
+*   **Responsive & PWA (Mobile First)** : Refonte totale de la navigation sur mobile. La barre de menu inférieure est désormais scrollable horizontalement, garantissant l'accès à 100% des modules depuis un smartphone.
+*   **Disponibilités & Planning** : Interface épurée et ajout futur de filtres d'exportation pour la création rapide de plannings.
+*   **Stratbook** : Intégration améliorée des liens externes (ex: Valoplant) et traçabilité des modifications (Auteur/Dates).
 
-### ⏳ 3. Disponibilités & Absences (Heatmap)
-*   **Grille de Dispos** : Gestion au créneau près (par 30 minutes) inspirée des plannings pros.
-*   **Heatmap Staff** : Vue radar permettant aux Coachs de voir les trous de disponibilité d'un Roster entier pour planifier les matchs.
-*   **Module de Congés** : Soumission de motif d'absence et justificatif. Validation/Refus par le Staff avec changement de statut.
+### 🔒 Sécurité & RGPD (Suppressions)
 
-### 📅 4. Calendrier & Événements
-*   Séparation par typologie : *Pracc*, *Match Officiel*, *Tournoi*, *Réunion Tactique*.
-*   Filtre automatique : Un joueur "Academy" ne voit pas le planning "Tryhard" afin de réduire la charge mentale.
+Afin de garantir une stricte conformité au RGPD et alléger la charge de nos bases de données, plusieurs systèmes intrusifs ont été retirés :
 
-### 📖 5. Strat-Book & Archives VOD
-*   Librairie tactique classée par Map et Side (Attaque/Défense).
-*   Dossiers VODs de matchs : Historique avec scores, liens cachés, et codes couleurs (Victoire/Défaite).
-*   Garde-fous de suppression réservé aux Super-Admins et Créateurs de la strat.
+*   **Suppression du DevPanel V2** : Le panneau développeur complexe a été détruit. Il est remplacé par un "Centre de Contrôle" épuré permettant au Staff de gérer la version de l'application et de désactiver l'accès à certains modules à la volée.
+*   **Désactivation du Realtime Tracking** : Le radar temps réel (WebSockets) traçant l'activité des joueurs seconde par seconde a été supprimé.
+*   **Nettoyage BDD** : Destruction des tables `system_logs`, `discord_cache`, et `bug_reports`. Le tracking des bugs se fera désormais exclusivement via les Issues GitHub.
+*   **RLS (Row Level Security)** : Renforcement des règles de base de données, en particulier sur le Supabase Storage (seul le staff peut uploader/détruire des documents).
 
 ---
 
@@ -58,16 +65,15 @@ Le site web n'est plus isolé. Toutes les actions clés déclenchent des notific
 L'architecture repose sur un triangle robuste :
 
 1.  **Frontend Web (Ce Dépôt)** 👉 `React 19` + `Vite` + `Tailwind CSS v4`
-    *   Interface cyber-esport (Polices *Rajdhani* et *TechMono*).
+    *   Interface "Slow Bloom" (Glassmorphism, tons pastels).
     *   Design ultra-responsive (Bottom Nav Mobile, Side Panel Desktop).
     *   Intégration de balises **Open Graph** pour des prévisualisations enrichies parfaites lors des partages sur Discord.
 2.  **Backend "BaaS"** 👉 `Supabase`
     *   Authentification Discord OAuth (liaison automatique de l'`user_id` et du `discord_id`).
-    *   Row Level Security (RLS) pour sécuriser chaque donnée selon le roster.
-    *   **Postgres Changes (WebSockets)** : Signal en temps réel activé sur la table `notifications`.
+    *   Row Level Security (RLS) renforcé pour sécuriser chaque donnée et fichier.
 3.  **Bot Discord (Externe)** 👉 `Node.js` + `discord.js v14`
     *   Connecté avec la `SERVICE_ROLE_KEY` de Supabase.
-    *   Écouteur passif qui se réveille uniquement quand le site web écrit dans la BDD.
+    *   Écouteur backend pour interagir avec le frontend.
 
 ---
 
@@ -99,28 +105,14 @@ npm run dev
 
 ---
 
-## 📦 Déploiement
-
-Le site est hébergé de manière serverless. Pour compiler le code de production et l'envoyer en ligne :
-```bash
-npm run build
-npm run deploy
-```
-*(Ceci déploiera automatiquement le site sur la branche `gh-pages` hébergée par GitHub).*
-
-
-> [!ERROR]
-> Précision: Cette fonctionnalité n'est pas encore supportée. La repository étant privée
----
-
 ## 👥 Contributeurs & Équipe
 
 Un immense merci à ceux qui ont bâti et perfectionné l'infrastructure numérique de la structure :
 
-*   **�� Antoine (PepoRwa)** - *Fondateur, Architecte Principal & Lead Développeur* :
+*   **👑 Antoine (PepoRwa)** - *Fondateur, Architecte Principal & Lead Développeur* :
     Développement entier de l'interface React, structuration de la BDD Supabase, création du bot Discord `gowrax-bot`, design UI/UX et intégration de la logique PWA.
 *   **🤖 Assistant IA (GitHub Copilot)** - *Pair Programmer & DevOps Helper* :
-    Assistance au débogage collaboratif, refonte des layouts responsives, optimisation de la PWA, et mise en place sécurisée du pipeline temps réel "Web ➔ Supabase ➔ Bot Discord".
+    Assistance au débogage collaboratif, refonte de la DA "Slow Bloom", optimisation de la PWA et des mesures de sécurité.
 
 ---
 
