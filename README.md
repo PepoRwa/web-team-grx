@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ GOWRAX HUB | V3 Tactical Interface : Slow Bloom
+# 🌸 GOWRAX HUB | V3 Tactical Interface : Slow Bloom
 
 **Système d'Information, Portail Sécurisé & Intégration Discord de l'Équipe GOWRAX ESPORT**
 
@@ -14,49 +14,44 @@
 
 ---
 
-## 🌸 V3.0.0 : Refonte "Slow Bloom" & Mise en conformité
-*Build ID: GRX-V3OOZ | Date: Mai 2026*
+## 📌 Présentation Générale
 
-Cette mise à jour majeure marque un tournant décisif pour la Gowrax Tactical Interface. L'application délaisse son ancienne architecture pour adopter la nouvelle charte graphique **"Slow Bloom"** (Glassmorphism, tons pastels et lueurs dynamiques), tout en repensant intégralement sa sécurité et sa conformité RGPD.
+Bienvenue sur le portail d'administration de la structure e-sport **GOWRAX**. Conçu tel un "ERP" (Enterprise Resource Planning) pour le gaming compétitif, ce Hub centralise toute la vie de la structure : du suivi des performances à l'apprentissage stratégique, en passant par le stockage de documents sécurisés.
 
-### ✨ Nouvelles Fonctionnalités (Features)
+Avec cette **Version 3.0**, l'application adopte la nouvelle charte graphique **"Slow Bloom"** (Glassmorphism, tons pastels, lueurs dynamiques) et devient une **PWA (Progressive Web App)** Mobile-First. Le Hub ne se contente plus d'être un site : c'est l'épicentre d'un écosystème ultra-sécurisé connecté en temps réel avec notre Bot Discord.
 
-*   **Refonte du Profil Agent (Remplace l'ancienne page Roster)** :
-    *   Véritable carte d'identité premium affichant les rôles, le pseudo Discord, et l'intégration du Tracker.gg.
-    *   Calcul automatisé et précis des statistiques de présence (Taux d'implication, retards, absences justifiées).
-*   **Coffre-fort de Documents (Bibliothèque classifiée)** :
-    *   Le Staff peut assigner des fichiers privés ou publics, avec génération d'URL signées éphémères pour une sécurité maximale.
-*   **Laboratoire Lineups** :
-    *   Nouvelle base de données visuelle pour le partage de lineups.
-    *   Filtres dynamiques par Carte, Agent et Side.
-    *   Tags de difficulté (ex: Pixel Perfect) et intégration de lecteurs vidéo (Smart YouTube Embeds).
-    *   Gestion des droits d'édition et de suppression (Auteur ou Staff).
-*   **VODs & Archives (Dual-System)** :
-    *   Séparation claire entre les *Rapports d'Opérations* (Matchs de l'équipe) et la *Veille Stratégique* (Analyse de matchs Pros).
-    *   Système d'assignation directe des joueurs présents sur les VODs de l'équipe (les identifiant visuellement dans le débrief).
-    *   Nouveau badge **VOD ANALYSÉE** (Check mark officiel du Staff) pour valider une session de review.
-*   **Global Footer** : 
-    *   Ajout d'un pied de page affichant dynamiquement la version, le build, la date d'inscription du membre et les liens légaux.
+---
 
-### 🧪 En cours d'expérimentation (Bêta)
+## 🚀 Écosystème & Fonctionnalités (V3)
 
-*   **Module Évolution ("Slow Bloom")** :
-    *   *Note de développement* : L'interface de demande de promotion et l'assistant NLP (IA) sont actuellement implémentés à des fins de test. Le pipeline complet de traitement, les cooldowns d'anti-spam (30-60 jours) et l'analyse sémantique automatique seront pleinement opérationnels dans une mise à jour mineure ultérieure.
+### 📊 1. Profil Agent & Statistiques (Nouveau)
+*   **Carte d'identité premium** affichant les rôles, les liens Discord, et une intégration complète du profil **Tracker.gg**.
+*   Calcul automatisé des **statistiques de présence** (taux d'implication, retards, absences justifiées) pour un suivi managérial précis.
 
-### 🛠️ Optimisations & Refactoring
+### 🎥 2. Laboratoire Lineups & VODs (Dual-System)
+*   **Labo Lineups** : Base de données visuelle pour le partage de setups tactiques. Filtres dynamiques (Map, Side, Agent), tags de difficulté (ex: *Pixel Perfect*), et lecteurs vidéo intégrés (*Smart YouTube Embeds*).
+*   **VODs & Stratégie** : Séparation claire entre les *Rapports d'Opérations* (nos propres matchs) et la *Veille Stratégique* (analyses de matchs pros). 
+*   **Tracking VOD** : Système d'intégration visuelle des joueurs présents lors des scrims, et validation par le Staff via un badge officiel **VOD ANALYSÉE**.
 
-*   **Responsive & PWA (Mobile First)** : Refonte totale de la navigation sur mobile. La barre de menu inférieure est désormais scrollable horizontalement, garantissant l'accès à 100% des modules depuis un smartphone.
-*   **Disponibilités & Planning** : Interface épurée et ajout futur de filtres d'exportation pour la création rapide de plannings.
-*   **Stratbook** : Intégration améliorée des liens externes (ex: Valoplant) et traçabilité des modifications (Auteur/Dates).
+### 🔒 3. Coffre-fort & Bibliothèque Sécurisée
+*   Stockage de fichiers publics ou classifiés (confidentiels) assignés par le Staff.
+*   Génération d'**URL signées éphémères** via Supabase garantissant que seul le joueur autorisé peut ouvrir le document avant péremption du lien.
 
-### 🔒 Sécurité & RGPD (Suppressions)
+### 🤖 4. Intégration Discord Interactive
+Toutes les actions majeures sur le site Web dialoguent avec notre bot Discord (`gowrax-bot`) en arrière-plan :
+*   Notifier le Staff d'une absence directement sur le serveur Discord.
+*   Envoyer les objectifs de mentorat ou de VOD aux joueurs en DM (Messages Privés) via un formatage "Embed" ultra-propre.
 
-Afin de garantir une stricte conformité au RGPD et alléger la charge de nos bases de données, plusieurs systèmes intrusifs ont été retirés :
+---
 
-*   **Suppression du DevPanel V2** : Le panneau développeur complexe a été détruit. Il est remplacé par un "Centre de Contrôle" épuré permettant au Staff de gérer la version de l'application et de désactiver l'accès à certains modules à la volée.
-*   **Désactivation du Realtime Tracking** : Le radar temps réel (WebSockets) traçant l'activité des joueurs seconde par seconde a été supprimé.
-*   **Nettoyage BDD** : Destruction des tables `system_logs`, `discord_cache`, et `bug_reports`. Le tracking des bugs se fera désormais exclusivement via les Issues GitHub.
-*   **RLS (Row Level Security)** : Renforcement des règles de base de données, en particulier sur le Supabase Storage (seul le staff peut uploader/détruire des documents).
+## 🛡️ Sécurité & Conformité RGPD
+
+La transition vers la V3 marque notre engagement strict envers la protection des données et le **RGPD** :
+
+*   **Destruction du tracking temps réel** : Les WebSockets intrusifs retraçant l'activité des joueurs à la seconde ont été définitivement supprimés.
+*   **Nettoyage BDD** : Suppression des tables de logs invasives (`system_logs`, `discord_cache`).
+*   **Row Level Security (RLS)** : Renforcement absolu des bases de données Supabase. L'édition, la suppression et le téléversement de documents/vidéos sont mathématiquement impossibles sans un compte Staff certifié.
+*   **Centre de Contrôle Minimaliste** : Refonte du dev-panel en un espace épuré pour piloter les modules de la plateforme à la volée.
 
 ---
 
@@ -65,15 +60,12 @@ Afin de garantir une stricte conformité au RGPD et alléger la charge de nos ba
 L'architecture repose sur un triangle robuste :
 
 1.  **Frontend Web (Ce Dépôt)** 👉 `React 19` + `Vite` + `Tailwind CSS v4`
-    *   Interface "Slow Bloom" (Glassmorphism, tons pastels).
-    *   Design ultra-responsive (Bottom Nav Mobile, Side Panel Desktop).
-    *   Intégration de balises **Open Graph** pour des prévisualisations enrichies parfaites lors des partages sur Discord.
+    *   Design "Slow Bloom" immersif et responsivité totale (Navigation Mobile Horizontale).
 2.  **Backend "BaaS"** 👉 `Supabase`
-    *   Authentification Discord OAuth (liaison automatique de l'`user_id` et du `discord_id`).
-    *   Row Level Security (RLS) renforcé pour sécuriser chaque donnée et fichier.
+    *   Authentification Discord OAuth logicielle (liaison automatique des comptes).
+    *   Base hybride PostgreSQL avec règles strictes (RLS).
 3.  **Bot Discord (Externe)** 👉 `Node.js` + `discord.js v14`
-    *   Connecté avec la `SERVICE_ROLE_KEY` de Supabase.
-    *   Écouteur backend pour interagir avec le frontend.
+    *   Connecté et réveillé par les webhooks / logs de la base de données.
 
 ---
 
@@ -110,9 +102,9 @@ npm run dev
 Un immense merci à ceux qui ont bâti et perfectionné l'infrastructure numérique de la structure :
 
 *   **👑 Antoine (PepoRwa)** - *Fondateur, Architecte Principal & Lead Développeur* :
-    Développement entier de l'interface React, structuration de la BDD Supabase, création du bot Discord `gowrax-bot`, design UI/UX et intégration de la logique PWA.
+    Développement global de l'interface React V3, refonte UX/UI "Slow Bloom", structuration de la BDD Supabase, création du bot Discord `gowrax-bot`, et intégration PWA.
 *   **🤖 Assistant IA (GitHub Copilot)** - *Pair Programmer & DevOps Helper* :
-    Assistance au débogage collaboratif, refonte de la DA "Slow Bloom", optimisation de la PWA et des mesures de sécurité.
+    Assistance au débogage collaboratif, refonte de la DA "Slow Bloom", optimisation de la PWA et durcissement des mesures de sécurité.
 
 ---
 
