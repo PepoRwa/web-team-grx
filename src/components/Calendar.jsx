@@ -36,6 +36,9 @@ export default function Calendar({ session }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
 
+  // NOUVEAU : Pagination (Load More) pour les évènements futurs
+  const [visibleFutureCount, setVisibleFutureCount] = useState(3);
+
   // Formulaire Coach
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -55,6 +58,10 @@ export default function Calendar({ session }) {
     }
   }, [rolesLoading, roles]);
 
+  // Réinitialiser la limite d'affichage si on change de filtre
+  useEffect(() => {
+    setVisibleFutureCount(3);
+  }, [filterType]);
     
   const fetchEvents = async () => {
     setLoading(true);
@@ -85,7 +92,6 @@ export default function Calendar({ session }) {
 
     let googleEventId = null;
 
-    // --- 1. APPEL DE L'EDGE FUNCTION POUR GOOGLE CALENDAR ---
     try {
       const { data: edgeData, error: edgeError } = await supabase.functions.invoke('google-calendar-sync', {
         body: { 
@@ -105,7 +111,6 @@ export default function Calendar({ session }) {
       console.error("Crash réseau Edge Function :", err);
     }
 
-    // --- 2. ENREGISTREMENT DANS SUPABASE (AVEC LE GOOGLE ID) ---
     const { data, error } = await supabase
       .from('events')
       .insert([
@@ -116,7 +121,7 @@ export default function Calendar({ session }) {
           end_time: end_time,
           roster_type: newRoster,
           assigned_members: assignedMembers,
-          google_event_id: googleEventId // On sauvegarde le lien Google !
+          google_event_id: googleEventId 
         }
       ])
       .select()
@@ -180,6 +185,9 @@ export default function Calendar({ session }) {
 
   const futureEvents = accessibleEvents.filter(e => new Date(e.end_time) >= now);
   const filteredFutureEvents = futureEvents.filter(e => filterType === 'all' || e.event_type === filterType);
+  
+  // Limiter le nombre d'évènements futurs affichés
+  const displayedFutureEvents = filteredFutureEvents.slice(0, visibleFutureCount);
 
   const pastEvents = accessibleEvents
     .filter(e => new Date(e.end_time) < now)
@@ -212,7 +220,6 @@ export default function Calendar({ session }) {
           </div>
           
           <div className="flex flex-col w-full md:w-auto gap-3 shrink-0">
-             {/* BOUTON GOOGLE (VISIBLE UNIQUEMENT SUR MOBILE, AU-DESSUS DU BOUTON MISSION) */}
              <GoogleCalendarButton className="md:hidden w-full" />
 
              {(isStaff || isCoach) && (
@@ -260,7 +267,7 @@ export default function Calendar({ session }) {
                   className="p-3 md:p-3.5 bg-[#1A1C2E] border border-white/10 hover:border-white/20 rounded-xl text-white text-sm focus:border-[#A2D2FF] outline-none transition-colors appearance-none cursor-pointer w-full"
                 >
                   <option value="training">Entraînement</option>
-                  <option value="match">Match Officiel</option>
+                  <option value="match">Match Officiel / Scrim</option>
                   <option value="tournament">Tournoi / Qualif</option>
                   <option value="meeting">Réunion Tactique</option>
                 </select>
@@ -389,14 +396,13 @@ export default function Calendar({ session }) {
             </button>
           </div>
 
-          {/* BOUTON GOOGLE (VISIBLE UNIQUEMENT SUR DESKTOP, À DROITE DES FILTRES) */}
           <GoogleCalendarButton className="hidden md:flex shrink-0 mb-4" />
         </div>
 
         {/* ================= LISTE DES ÉVÉNEMENTS ================= */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 md:py-16 gap-4">
-              <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-[#A2D2FF] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 md:w-10 h-10 border-4 border-[#A2D2FF] border-t-transparent rounded-full animate-spin"></div>
               <span className="font-techMono text-[10px] md:text-xs text-[#A2D2FF] uppercase tracking-[0.3em] animate-pulse">Synchronisation...</span>
           </div>
         ) : filteredFutureEvents.length === 0 ? (
@@ -406,19 +412,36 @@ export default function Calendar({ session }) {
               <p className="font-poppins mt-2 text-xs md:text-sm text-gray-500">Reposez-vous, agent. Le radar est vide.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 md:gap-5">
-            {filteredFutureEvents.map((event) => (
-              <div key={event.id} className="transition-all hover:-translate-y-1">
-                <EventCard 
-                  event={event} 
-                  session={session} 
-                  isStaff={isStaff} 
-                  isCoach={isCoach}
-                  onDelete={handleDeleteEvent}
-                />
+          <>
+            <div className="flex flex-col gap-4 md:gap-5">
+              {displayedFutureEvents.map((event) => (
+                <div key={event.id} className="transition-all hover:-translate-y-1">
+                  <EventCard 
+                    event={event} 
+                    session={session} 
+                    isStaff={isStaff} 
+                    isCoach={isCoach}
+                    onDelete={handleDeleteEvent}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* BOUTON LOAD MORE (FUTURS) */}
+            {filteredFutureEvents.length > visibleFutureCount && (
+              <div className="flex justify-center mt-8 animate-fade-in">
+                <button
+                  onClick={() => setVisibleFutureCount(prev => prev + 3)}
+                  className="px-6 py-3 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-[#A2D2FF]/30 rounded-xl text-[#A2D2FF] font-rajdhani font-bold text-sm tracking-widest transition-all shadow-[0_0_10px_rgba(162,210,255,0)] hover:shadow-[0_0_15px_rgba(162,210,255,0.15)] flex items-center gap-3 group"
+                >
+                  Afficher Plus
+                  <svg className="w-4 h-4 transform group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* ================= ARCHIVES (ÉVÈNEMENTS PASSÉS) ================= */}
@@ -485,7 +508,7 @@ export default function Calendar({ session }) {
                         onClick={() => setCurrentPage(prev => prev + 1)}
                         className="px-3 md:px-4 py-2 border border-white/10 bg-white/5 rounded-xl disabled:opacity-30 hover:bg-white/10 hover:border-[#A2D2FF]/50 transition-all text-gray-300 hover:text-white flex items-center gap-1 shrink-0"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7-7"></path></svg>
                       </button>
                     </div>
                     <span className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest">
