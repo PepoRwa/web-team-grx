@@ -14,7 +14,7 @@ export default function Webhooks({ session, roles }) {
   const [selectedWebhook, setSelectedWebhook] = useState('');
   const [messageContent, setMessageContent] = useState('');
   const [customUsername, setCustomUsername] = useState('Gowrax System');
-  const [customAvatar, setCustomAvatar] = useState('https://i.imgur.com/r7Yc5G2.png'); // Logo par défaut
+  const [customAvatar, setCustomAvatar] = useState('https://pbs.twimg.com/media/GPK8zIHaMAA7kIe.jpg'); // Logo par défaut
   
   const [isSending, setIsSending] = useState(false);
 

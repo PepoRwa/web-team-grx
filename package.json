@@ -10,7 +10,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "publish": "npm run build && npm run deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
