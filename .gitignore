@@ -1,0 +1,24 @@
+# API = dépôt Git séparé (voir api/)
+/api/
+
+# Next.js web
+web/node_modules/
+web/.next/
+web/out/
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+web/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/

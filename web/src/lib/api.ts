@@ -1,0 +1,479 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.team.gowrax.me'
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+export async function apiFetch<T>(
+  path: string,
+  accessToken: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const maxAttempts = options.method && options.method !== 'GET' ? 1 : 2
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+      })
+
+      const data = (await res.json().catch(() => ({}))) as T & {
+        error?: string
+        code?: string
+      }
+
+      if (!res.ok) {
+        const err = new ApiError(data.error ?? 'Erreur API', res.status, data.code)
+        if (attempt < maxAttempts && (res.status >= 500 || res.status === 429)) {
+          await new Promise((r) => setTimeout(r, 800 * attempt))
+          lastError = err
+          continue
+        }
+        throw err
+      }
+
+      return data
+    } catch (err) {
+      if (err instanceof ApiError) throw err
+      lastError = err instanceof Error ? err : new Error('Erreur réseau')
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 800 * attempt))
+        continue
+      }
+    }
+  }
+
+  throw lastError ?? new Error('Erreur API')
+}
+
+export interface UserPermissions {
+  discordId: string
+  roleIds: string[]
+  roles: { roleId: string; name: string; category: string; permissionLevel: number }[]
+  isMember: boolean
+  isCEO: boolean
+  isTeamManager: boolean
+  isHeadCoach: boolean
+  isCoach: boolean
+  isStaff: boolean
+  isCaptain: boolean
+  rosters: string[]
+  canTransmit: boolean
+  canModerate: boolean
+  canAccessSite: boolean
+}
+
+export interface HubUser {
+  discordId: string
+  username: string | null
+  displayName: string | null
+  publicName: string | null
+  avatarUrl: string | null
+  twitchUsername: string | null
+  trackerUrl: string | null
+  riotId: string | null
+  steamId: string | null
+  game: string
+  onboardingCompletedAt: string | null
+}
+
+export interface SyncResponse {
+  user: HubUser
+  permissions: UserPermissions
+  roleSyncRequested: boolean
+}
+
+export async function syncSession(accessToken: string) {
+  return apiFetch<SyncResponse>('/auth/sync', accessToken, { method: 'POST' })
+}
+
+export async function getMe(accessToken: string) {
+  return apiFetch<{ user: HubUser; permissions: UserPermissions }>(
+    '/auth/me',
+    accessToken,
+  )
+}
+
+export async function resyncRoles(accessToken: string) {
+  return apiFetch<{ ok: boolean }>('/auth/resync-roles', accessToken, {
+    method: 'POST',
+  })
+}
+
+export async function checkApiHealth() {
+  const res = await fetch(`${API_URL}/health`)
+  return res.json() as Promise<{ status: string; checks: { mysql: string } }>
+}
+
+// ─── Launch ───────────────────────────────────────────────────────────────────
+
+export type LaunchPhase = 'countdown' | 'celebration' | 'live'
+
+export interface LaunchStatus {
+  phase: LaunchPhase
+  isActive: boolean
+  opensAt: string
+  celebrationEndsAt: string | null
+  secondsRemaining: number
+  progress: number
+  ceoMessageTitle: string | null
+  ceoMessageBody: string | null
+  manualUnlock: boolean
+}
+
+export async function getLaunchStatus() {
+  const res = await fetch(`${API_URL}/launch/status`)
+  const data = (await res.json().catch(() => ({}))) as {
+    status?: LaunchStatus
+    error?: string
+  }
+  if (!res.ok) throw new ApiError(data.error ?? 'Erreur launch', res.status)
+  return data as { status: LaunchStatus }
+}
+
+// ─── Saison / objectif ────────────────────────────────────────────────────────
+
+export interface SeasonBanner {
+  title: string
+  description: string | null
+  deadline: string | null
+  icon: string | null
+  updatedAt: string
+}
+
+export async function getSeasonBanner(accessToken: string) {
+  return apiFetch<{ banner: SeasonBanner | null }>('/season', accessToken)
+}
+
+// ─── VODs ───────────────────────────────────────────────────────────────────
+
+export type VodStatus = 'win' | 'loss' | 'draw'
+
+export interface VodPlayer {
+  discordId: string
+  username: string | null
+}
+
+export interface Vod {
+  id: number
+  authorDiscordId: string
+  authorUsername: string | null
+  title: string
+  link: string
+  map: string
+  matchDate: string
+  status: VodStatus
+  score: string
+  opponent: string | null
+  isPro: boolean
+  descriptionPro: string | null
+  playersPresent: string[]
+  players: VodPlayer[]
+  reviewedAt: string | null
+  reviewedByDiscordId: string | null
+  notifyDiscord: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface VodComment {
+  id: number
+  vodId: number
+  authorDiscordId: string
+  authorUsername: string | null
+  content: string
+  isPrivate: boolean
+  createdAt: string
+}
+
+export interface VodListResponse {
+  items: Vod[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function listVods(
+  accessToken: string,
+  params: { page?: number; limit?: number; isPro?: boolean; search?: string } = {},
+) {
+  const qs = new URLSearchParams()
+  if (params.page) qs.set('page', String(params.page))
+  if (params.limit) qs.set('limit', String(params.limit))
+  if (params.isPro !== undefined) qs.set('isPro', String(params.isPro))
+  if (params.search) qs.set('search', params.search)
+  const q = qs.toString()
+  return apiFetch<VodListResponse>(`/vods${q ? `?${q}` : ''}`, accessToken)
+}
+
+export async function getVod(accessToken: string, id: number) {
+  return apiFetch<{ vod: Vod }>(`/vods/${id}`, accessToken)
+}
+
+export async function getVodComments(accessToken: string, id: number) {
+  return apiFetch<{ comments: VodComment[] }>(`/vods/${id}/comments`, accessToken)
+}
+
+export async function addVodComment(
+  accessToken: string,
+  vodId: number,
+  content: string,
+  isPrivate = false,
+) {
+  return apiFetch<{ comments: VodComment[] }>(`/vods/${vodId}/comments`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ content, isPrivate }),
+  })
+}
+
+export interface VodInput {
+  title: string
+  link: string
+  map: string
+  matchDate: string
+  status: VodStatus
+  score: string
+  opponent?: string | null
+  isPro?: boolean
+  descriptionPro?: string | null
+  playersPresent?: string[]
+  notifyDiscord?: boolean
+}
+
+export async function createVod(accessToken: string, data: VodInput) {
+  return apiFetch<{ vod: Vod }>('/vods', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateVod(accessToken: string, id: number, data: Partial<VodInput>) {
+  return apiFetch<{ vod: Vod }>(`/vods/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteVod(accessToken: string, id: number) {
+  return apiFetch<{ ok: boolean }>(`/vods/${id}`, accessToken, { method: 'DELETE' })
+}
+
+// ─── Profils ──────────────────────────────────────────────────────────────────
+
+export type ProfileGame = 'valorant' | 'cs2' | 'other'
+
+export interface Profile {
+  discordId: string
+  username: string | null
+  displayName: string | null
+  publicName: string | null
+  avatarUrl: string | null
+  twitchUsername: string | null
+  trackerUrl: string | null
+  riotId: string | null
+  steamId: string | null
+  game: ProfileGame
+  notifyVodDm: boolean
+  notifyStratDm: boolean
+  onboardingCompletedAt: string | null
+  createdAt: string
+  updatedAt: string
+  roles: { roleId: string; name: string; category: string }[]
+}
+
+export interface ProfileUpdate {
+  displayName?: string | null
+  trackerUrl?: string | null
+  riotId?: string | null
+  steamId?: string | null
+  game?: ProfileGame
+  notifyVodDm?: boolean
+  notifyStratDm?: boolean
+  completeOnboarding?: boolean
+}
+
+export async function listProfiles(accessToken: string) {
+  return apiFetch<{ profiles: Profile[] }>('/profiles', accessToken)
+}
+
+export async function getMyProfile(accessToken: string) {
+  return apiFetch<{ profile: Profile }>('/profiles/me', accessToken)
+}
+
+export async function getProfile(accessToken: string, discordId: string) {
+  return apiFetch<{ profile: Profile }>(`/profiles/${discordId}`, accessToken)
+}
+
+export async function updateMyProfile(accessToken: string, data: ProfileUpdate) {
+  return apiFetch<{ profile: Profile }>('/profiles/me', accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+// ─── Strat-Book ─────────────────────────────────────────────────────────────
+
+export type StratSide = 'attack' | 'defense'
+export type StratStatus = 'published' | 'proposed'
+
+export interface Strat {
+  id: number
+  title: string
+  description: string | null
+  map: string
+  side: StratSide
+  valoplantUrl: string | null
+  vodUrl: string | null
+  imagePath: string | null
+  imageUrl: string | null
+  authorDiscordId: string
+  authorUsername: string | null
+  status: StratStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StratInput {
+  title: string
+  description?: string | null
+  map: string
+  side: StratSide
+  valoplantUrl?: string | null
+  vodUrl?: string | null
+  status?: StratStatus
+}
+
+export async function listStrats(
+  accessToken: string,
+  params: {
+    map?: string
+    side?: StratSide
+    search?: string
+    status?: StratStatus
+  } = {},
+) {
+  const qs = new URLSearchParams()
+  if (params.map) qs.set('map', params.map)
+  if (params.side) qs.set('side', params.side)
+  if (params.search) qs.set('search', params.search)
+  if (params.status) qs.set('status', params.status)
+  const q = qs.toString()
+  return apiFetch<{ strats: Strat[] }>(`/strats${q ? `?${q}` : ''}`, accessToken)
+}
+
+export async function getStrat(accessToken: string, id: number) {
+  return apiFetch<{ strat: Strat }>(`/strats/${id}`, accessToken)
+}
+
+export async function createStrat(accessToken: string, data: StratInput) {
+  return apiFetch<{ strat: Strat }>('/strats', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateStrat(accessToken: string, id: number, data: Partial<StratInput>) {
+  return apiFetch<{ strat: Strat }>(`/strats/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteStrat(accessToken: string, id: number) {
+  return apiFetch<{ ok: boolean }>(`/strats/${id}`, accessToken, { method: 'DELETE' })
+}
+
+export async function uploadStratImage(accessToken: string, stratId: number, file: File) {
+  const form = new FormData()
+  form.append('image', file)
+  const res = await fetch(`${API_URL}/strats/${stratId}/image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  })
+  const data = (await res.json().catch(() => ({}))) as { strat?: Strat; error?: string }
+  if (!res.ok) throw new ApiError(data.error ?? 'Upload échoué', res.status)
+  return data as { strat: Strat }
+}
+
+// ─── Annonces site ───────────────────────────────────────────────────────────
+
+export interface SiteAnnouncement {
+  id: number
+  authorDiscordId: string
+  authorDisplayName: string
+  authorAvatarUrl: string | null
+  authorRoleLabel: string
+  authorRoleColor: string
+  title: string
+  body: string
+  isFeatured: boolean
+  version: number
+  isRead: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function listAnnouncements(accessToken: string) {
+  return apiFetch<{ announcements: SiteAnnouncement[]; unreadCount: number }>(
+    '/announcements',
+    accessToken,
+  )
+}
+
+export async function listFeaturedUnread(accessToken: string) {
+  return apiFetch<{ announcements: SiteAnnouncement[] }>(
+    '/announcements/featured/unread',
+    accessToken,
+  )
+}
+
+export async function markAnnouncementRead(accessToken: string, id: number) {
+  return apiFetch<{ ok: boolean }>(`/announcements/${id}/read`, accessToken, {
+    method: 'PATCH',
+  })
+}
+
+// ─── Transmissions (CEO / TM) ───────────────────────────────────────────────
+
+export type TransmissionTarget = 'discord' | 'site' | 'both'
+
+export interface TransmissionChannel {
+  key: string
+  label: string
+}
+
+export async function listTransmissionChannels(accessToken: string) {
+  return apiFetch<{ channels: TransmissionChannel[] }>('/transmissions/channels', accessToken)
+}
+
+export async function sendTransmission(
+  accessToken: string,
+  data: {
+    target: TransmissionTarget
+    channelKey?: string
+    title: string
+    body: string
+    mentionRoleId?: string | null
+    featured?: boolean
+  },
+) {
+  return apiFetch<{ ok: boolean; discord?: boolean; site?: { id: number } }>(
+    '/transmissions/send',
+    accessToken,
+    { method: 'POST', body: JSON.stringify(data) },
+  )
+}
