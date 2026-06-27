@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -34,6 +35,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <Script src="/legacy-sw-cleanup.js" strategy="beforeInteractive" />
+      </head>
       <body className={`${dmSans.variable} antialiased`}>
         <ThemeProvider>
           <AuthProvider>
