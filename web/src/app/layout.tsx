@@ -32,10 +32,13 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+const SW_CLEANUP = `(function(){if(!('serviceWorker'in navigator))return;navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister()})});if('caches'in window){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})})}navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).catch(function(){})})();`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: SW_CLEANUP }} />
         <Script src="/legacy-sw-cleanup.js" strategy="beforeInteractive" />
       </head>
       <body className={`${dmSans.variable} antialiased`}>
