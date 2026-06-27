@@ -87,7 +87,7 @@ export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProp
         {phase === 'countdown' && (
           <>
             <h1 className="launch-title">Le hub Gowrax arrive.</h1>
-            <p className="launch-subtitle">27 juin 2026 · 19h30 · Team Hub</p>
+            <p className="launch-subtitle">27 juin 2026 · 19h45 · Team Hub</p>
 
             {status.ceoMessageBody && (
               <blockquote className="launch-ceo-message">
@@ -125,7 +125,7 @@ export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProp
                 ? 'Connexion…'
                 : isCEO
                   ? 'Accès anticipé CEO'
-                  : 'Ouverture à 19h30'}
+                  : 'Ouverture à 19h45'}
             </button>
             {loginError && <p className="mt-3 text-sm text-red-500">{loginError}</p>}
           </>

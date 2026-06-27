@@ -37,7 +37,7 @@ export function LaunchCountdown({ secondsRemaining, progress, label }: LaunchCou
           style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
         />
       </div>
-      <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Ouverture à 19h30</p>
+      <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Ouverture à 19h45</p>
     </div>
   )
 }
