@@ -2,17 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getLaunchStatus, type LaunchPhase, type LaunchStatus } from '@/lib/api'
+import type { SystemIncident } from '@/lib/system-health'
 
-const LIVE_STATUS: LaunchStatus = {
-  phase: 'live',
-  isActive: false,
-  opensAt: new Date().toISOString(),
-  celebrationEndsAt: null,
-  secondsRemaining: 0,
-  progress: 1,
-  ceoMessageTitle: null,
-  ceoMessageBody: null,
-  manualUnlock: false,
+function launchIncidentFromError(): SystemIncident {
+  return {
+    ref: `GRX-LAUNCH_STATUS-${Date.now().toString(36).toUpperCase()}`,
+    code: 'API_DEGRADED',
+    title: 'Configuration launch inaccessible',
+    message:
+      'Impossible de lire l’état du lancement (countdown / ouverture). L’API ou la base de données est probablement indisponible.',
+    component: 'API · /launch/status',
+    checkedAt: new Date().toISOString(),
+  }
 }
 
 function computePhase(status: LaunchStatus, now: number): LaunchPhase {
@@ -41,14 +42,17 @@ function computeDerived(status: LaunchStatus, now: number) {
 export function useLaunchStatus() {
   const [status, setStatus] = useState<LaunchStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const [incident, setIncident] = useState<SystemIncident | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
   const load = useCallback(async () => {
     try {
       const { status: s } = await getLaunchStatus()
       setStatus(s)
+      setIncident(null)
     } catch {
-      setStatus(LIVE_STATUS)
+      setStatus(null)
+      setIncident(launchIncidentFromError())
     } finally {
       setLoading(false)
     }
@@ -79,5 +83,5 @@ export function useLaunchStatus() {
     ? effective.isActive && effective.phase === 'countdown'
     : false
 
-  return { status: effective, loading, isPreLive, isHubLocked, refresh: load }
+  return { status: effective, loading, incident, isPreLive, isHubLocked, refresh: load }
 }

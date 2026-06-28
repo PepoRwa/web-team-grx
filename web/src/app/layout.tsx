@@ -5,6 +5,7 @@ import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ThemeProvider } from '@/components/providers'
 import { SiteOverlays } from '@/components/site-overlays'
+import { SystemGate } from '@/components/system-gate'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -44,8 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${dmSans.variable} antialiased`}>
         <ThemeProvider>
           <AuthProvider>
-            {children}
-            <SiteOverlays />
+            <SystemGate>
+              {children}
+              <SiteOverlays />
+            </SystemGate>
           </AuthProvider>
         </ThemeProvider>
       </body>

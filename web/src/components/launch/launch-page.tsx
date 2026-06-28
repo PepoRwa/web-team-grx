@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { LaunchCountdown } from '@/components/launch/launch-countdown'
 import { OrbitalHub } from '@/components/landing/landing-visuals'
+import { SystemOutage } from '@/components/system-outage'
 import { useTheme } from '@/components/providers'
 import { useAuth } from '@/hooks/useAuth'
 import { useLaunchStatus } from '@/hooks/useLaunchStatus'
@@ -33,7 +34,7 @@ const TEASERS = [
 ]
 
 export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProps) {
-  const { status, loading } = useLaunchStatus()
+  const { status, loading, incident, refresh } = useLaunchStatus()
   const { permissions, session } = useAuth()
   const { theme, toggle } = useTheme()
   const router = useRouter()
@@ -53,6 +54,10 @@ export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProp
       router.replace('/hub/')
     }
   }, [loading, session, permissions?.isCEO, phase, router])
+
+  if (incident) {
+    return <SystemOutage incident={incident} onRetry={() => void refresh()} />
+  }
 
   if (loading || !status || status.phase === 'live') {
     return (

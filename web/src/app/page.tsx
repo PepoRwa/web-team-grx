@@ -3,15 +3,17 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { LandingPage } from '@/components/landing/landing-page'
+import { SystemOutage } from '@/components/system-outage'
 import { useAuth } from '@/hooks/useAuth'
 import { useLaunchStatus } from '@/hooks/useLaunchStatus'
 
 export default function HomePage() {
   const { session, loading: authLoading, signInWithDiscord, error } = useAuth()
-  const { loading: launchLoading, isPreLive } = useLaunchStatus()
+  const { loading: launchLoading, isPreLive, incident: launchIncident, refresh } = useLaunchStatus()
   const router = useRouter()
 
   useEffect(() => {
+    if (launchIncident) return
     if (!launchLoading && isPreLive) {
       router.replace('/launch/')
       return
@@ -19,7 +21,11 @@ export default function HomePage() {
     if (!authLoading && !launchLoading && session && !isPreLive) {
       router.replace('/hub/')
     }
-  }, [authLoading, launchLoading, session, isPreLive, router])
+  }, [authLoading, launchLoading, session, isPreLive, launchIncident, router])
+
+  if (launchIncident) {
+    return <SystemOutage incident={launchIncident} onRetry={() => void refresh()} />
+  }
 
   if (authLoading || launchLoading || isPreLive) {
     return (
