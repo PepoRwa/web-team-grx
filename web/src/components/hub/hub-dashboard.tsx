@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowRight,
+  Binoculars,
   BookOpen,
   Calendar,
   ChevronRight,
@@ -22,6 +23,7 @@ import {
   getSeasonBanner,
   listAnnouncements,
   listProfiles,
+  listScoutingTournaments,
   listStrats,
   listVods,
   type SeasonBanner,
@@ -36,6 +38,7 @@ import type { LucideIcon } from 'lucide-react'
 interface DashboardStats {
   vodsTotal: number
   stratsTotal: number
+  scoutingTotal: number
   membersTotal: number
   unreadAnnouncements: number
   recentVods: Vod[]
@@ -46,6 +49,7 @@ interface DashboardStats {
 const EMPTY_STATS: DashboardStats = {
   vodsTotal: 0,
   stratsTotal: 0,
+  scoutingTotal: 0,
   membersTotal: 0,
   unreadAnnouncements: 0,
   recentVods: [],
@@ -73,17 +77,22 @@ export function HubDashboard() {
     if (!session?.access_token) return
     setLoading(true)
     try {
-      const [vodsRes, stratsRes, announcementsRes, profilesRes, seasonRes] = await Promise.all([
+      const [vodsRes, stratsRes, announcementsRes, profilesRes, seasonRes, scoutingRes] =
+        await Promise.all([
         listVods(session.access_token, { page: 1, limit: 4 }),
         listStrats(session.access_token),
         listAnnouncements(session.access_token),
         listProfiles(session.access_token),
         getSeasonBanner(session.access_token).catch(() => ({ banner: null })),
+        permissions?.canScout
+          ? listScoutingTournaments(session.access_token).catch(() => ({ tournaments: [] }))
+          : Promise.resolve({ tournaments: [] }),
       ])
 
       setStats({
         vodsTotal: vodsRes.total,
         stratsTotal: stratsRes.strats.length,
+        scoutingTotal: scoutingRes.tournaments.length,
         membersTotal: profilesRes.profiles.length,
         unreadAnnouncements: announcementsRes.unreadCount,
         recentVods: vodsRes.items.slice(0, 3),
@@ -95,7 +104,7 @@ export function HubDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, permissions?.canScout])
 
   useEffect(() => {
     if (session?.access_token) void load()
@@ -122,6 +131,18 @@ export function HubDashboard() {
       gradient: 'from-mint/45 via-sky/25 to-transparent',
       stat: loading ? '…' : String(stats.stratsTotal),
     },
+    ...(permissions?.canScout
+      ? [
+          {
+            icon: Binoculars,
+            title: 'Scouting',
+            desc: 'Tournois, équipes adverses, joueurs.',
+            href: '/hub/scouting/',
+            gradient: 'from-coral/40 via-sky/25 to-transparent',
+            stat: loading ? '…' : String(stats.scoutingTotal),
+          } satisfies HubModule,
+        ]
+      : []),
     {
       icon: User,
       title: 'Profils',

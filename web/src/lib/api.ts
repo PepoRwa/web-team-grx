@@ -74,6 +74,7 @@ export interface UserPermissions {
   canTransmit: boolean
   canModerate: boolean
   canAccessSite: boolean
+  canScout: boolean
 }
 
 export interface HubUser {
@@ -476,4 +477,255 @@ export async function sendTransmission(
     accessToken,
     { method: 'POST', body: JSON.stringify(data) },
   )
+}
+
+// ─── Scouting ───────────────────────────────────────────────────────────────
+
+export type ScoutingRole = 'duellist' | 'initiator' | 'controller' | 'sentinel' | 'flex'
+export type ScoutingVerificationStatus = 'pending' | 'verified'
+
+export interface ScoutingAgentPoolEntry {
+  agent: string
+  pickRate: number | null
+}
+
+export interface ScoutingTeamStats {
+  verifiedCount: number
+  pendingCount: number
+  avgAcs: number | null
+  avgKda: number | null
+  avgWinrate: number | null
+  avgRank: number | null
+  medianRank: number | null
+  rankStdDev: number | null
+  strongestPlayerId: number | null
+  weakestPlayerId: number | null
+  trustScore: number | null
+}
+
+export interface ScoutingTournament {
+  id: number
+  name: string
+  startDate: string | null
+  endDate: string | null
+  format: string | null
+  rulesUrl: string | null
+  notes: string | null
+  createdByDiscordId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScoutingTeam {
+  id: number
+  name: string
+  tag: string | null
+  notes: string | null
+  createdByDiscordId: string
+  createdAt: string
+  updatedAt: string
+  stats: ScoutingTeamStats | null
+  seed?: string | null
+  linkNotes?: string | null
+  playerCount?: number
+}
+
+export interface ScoutingPlayer {
+  id: number
+  teamId: number
+  riotId: string
+  riotTag: string
+  riotDisplay: string
+  role: ScoutingRole | null
+  isStarter: boolean | null
+  currentRank: string | null
+  peakRankCurrent: string | null
+  peakRankPrev: string | null
+  endRankPrev: string | null
+  currentRankValue: number | null
+  gamesThisSeason: number | null
+  recentWinrate: number | null
+  avgAcs: number | null
+  avgKda: number | null
+  agentPool: ScoutingAgentPoolEntry[] | null
+  formerTeam: string | null
+  notes: string | null
+  verificationStatus: ScoutingVerificationStatus
+  updatedByDiscordId: string
+  updatedByUsername: string | null
+  verifiedByDiscordId: string | null
+  verifiedByUsername: string | null
+  verifiedAt: string | null
+  trustFactor: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScoutingTournamentInput {
+  name: string
+  startDate?: string | null
+  endDate?: string | null
+  format?: string | null
+  rulesUrl?: string | null
+  notes?: string | null
+}
+
+export interface ScoutingTeamInput {
+  name: string
+  tag?: string | null
+  notes?: string | null
+}
+
+export interface ScoutingLinkTeamInput {
+  teamId?: number
+  name?: string
+  tag?: string | null
+  notes?: string | null
+  seed?: string | null
+  linkNotes?: string | null
+}
+
+export interface ScoutingPlayerInput {
+  riotId: string
+  riotTag: string
+  role?: ScoutingRole | null
+  isStarter?: boolean | null
+  currentRank?: string | null
+  peakRankCurrent?: string | null
+  peakRankPrev?: string | null
+  endRankPrev?: string | null
+  gamesThisSeason?: number | null
+  recentWinrate?: number | null
+  avgAcs?: number | null
+  avgKda?: number | null
+  agentPool?: ScoutingAgentPoolEntry[] | null
+  formerTeam?: string | null
+  notes?: string | null
+}
+
+export async function listScoutingTournaments(accessToken: string) {
+  return apiFetch<{ tournaments: ScoutingTournament[] }>('/scouting/tournaments', accessToken)
+}
+
+export async function getScoutingTournament(accessToken: string, id: number) {
+  return apiFetch<{ tournament: ScoutingTournament; teams: ScoutingTeam[] }>(
+    `/scouting/tournaments/${id}`,
+    accessToken,
+  )
+}
+
+export async function createScoutingTournament(accessToken: string, data: ScoutingTournamentInput) {
+  return apiFetch<{ tournament: ScoutingTournament }>('/scouting/tournaments', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateScoutingTournament(
+  accessToken: string,
+  id: number,
+  data: Partial<ScoutingTournamentInput>,
+) {
+  return apiFetch<{ tournament: ScoutingTournament }>(`/scouting/tournaments/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteScoutingTournament(accessToken: string, id: number) {
+  return apiFetch<void>(`/scouting/tournaments/${id}`, accessToken, { method: 'DELETE' })
+}
+
+export async function linkScoutingTeamToTournament(
+  accessToken: string,
+  tournamentId: number,
+  data: ScoutingLinkTeamInput,
+) {
+  return apiFetch<{ team: ScoutingTeam }>(
+    `/scouting/tournaments/${tournamentId}/teams`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify(data) },
+  )
+}
+
+export async function unlinkScoutingTeamFromTournament(
+  accessToken: string,
+  tournamentId: number,
+  teamId: number,
+) {
+  return apiFetch<void>(
+    `/scouting/tournaments/${tournamentId}/teams/${teamId}`,
+    accessToken,
+    { method: 'DELETE' },
+  )
+}
+
+export async function listScoutingTeams(accessToken: string, search?: string) {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : ''
+  return apiFetch<{ teams: ScoutingTeam[] }>(`/scouting/teams${qs}`, accessToken)
+}
+
+export async function getScoutingTeam(accessToken: string, id: number) {
+  return apiFetch<{ team: ScoutingTeam; players: ScoutingPlayer[] }>(
+    `/scouting/teams/${id}`,
+    accessToken,
+  )
+}
+
+export async function createScoutingTeam(accessToken: string, data: ScoutingTeamInput) {
+  return apiFetch<{ team: ScoutingTeam }>('/scouting/teams', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateScoutingTeam(
+  accessToken: string,
+  id: number,
+  data: Partial<ScoutingTeamInput>,
+) {
+  return apiFetch<{ team: ScoutingTeam }>(`/scouting/teams/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteScoutingTeam(accessToken: string, id: number) {
+  return apiFetch<void>(`/scouting/teams/${id}`, accessToken, { method: 'DELETE' })
+}
+
+export async function getScoutingPlayer(accessToken: string, id: number) {
+  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}`, accessToken)
+}
+
+export async function createScoutingPlayer(
+  accessToken: string,
+  teamId: number,
+  data: ScoutingPlayerInput,
+) {
+  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/teams/${teamId}/players`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateScoutingPlayer(
+  accessToken: string,
+  id: number,
+  data: Partial<ScoutingPlayerInput>,
+) {
+  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function verifyScoutingPlayer(accessToken: string, id: number) {
+  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}/verify`, accessToken, {
+    method: 'POST',
+  })
+}
+
+export async function deleteScoutingPlayer(accessToken: string, id: number) {
+  return apiFetch<void>(`/scouting/players/${id}`, accessToken, { method: 'DELETE' })
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {
+  Binoculars,
   BookOpen,
   Film,
   LayoutDashboard,
@@ -9,7 +10,13 @@ import {
   User,
 } from 'lucide-react'
 
-export type HubNavKey = 'hub' | 'vods' | 'strats' | 'announcements' | 'profile'
+export type HubNavKey =
+  | 'hub'
+  | 'vods'
+  | 'strats'
+  | 'scouting'
+  | 'announcements'
+  | 'profile'
 
 const NAV_ITEMS: {
   key: HubNavKey
@@ -20,6 +27,7 @@ const NAV_ITEMS: {
   { key: 'hub', href: '/hub/', label: 'Hub', icon: LayoutDashboard },
   { key: 'vods', href: '/hub/vods/', label: 'VODs', icon: Film },
   { key: 'strats', href: '/hub/strats/', label: 'Strats', icon: BookOpen },
+  { key: 'scouting', href: '/hub/scouting/', label: 'Scout', icon: Binoculars },
   { key: 'announcements', href: '/hub/announcements/', label: 'News', icon: Megaphone },
   { key: 'profile', href: '/hub/profiles/me/', label: 'Profil', icon: User },
 ]
@@ -35,14 +43,14 @@ export function HubNav({ active, announcementBadge = 0 }: HubNavProps) {
       className="hub-bottom-nav fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 backdrop-blur-md"
       aria-label="Navigation principale"
     >
-      <div className="mx-auto flex max-w-2xl justify-around px-1 pt-1.5">
+      <div className="mx-auto flex max-w-2xl justify-around px-0.5 pt-1.5">
         {NAV_ITEMS.map((item) => {
           const isActive = item.key === active
           return (
             <Link
               key={item.key}
               href={item.href}
-              className={`relative flex min-h-[3rem] min-w-[3.25rem] flex-1 max-w-[5rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[10px] font-medium transition active:scale-95 sm:text-[11px] ${
+              className={`relative flex min-h-[3rem] min-w-[2.75rem] flex-1 max-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[9px] font-medium transition active:scale-95 sm:min-w-[3rem] sm:max-w-[5rem] sm:text-[10px] ${
                 isActive
                   ? 'text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'

@@ -118,6 +118,12 @@ Ordre d'exécution sur YorkHost :
 006_site_notifications.sql
 007_site_transmissions.sql
 008_site_season.sql
+009_display_name_announcements.sql
+010_announcements_featured.sql
+011_onboarding.sql
+012_site_launch.sql
+013_launch_1945.sql
+014_site_scouting.sql
 ```
 
 Envoyer `BOT_INTEGRATION.md` à l'agent bot **avant** d'appliquer `002_sync_roles.sql`.
