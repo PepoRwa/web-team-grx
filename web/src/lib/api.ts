@@ -729,3 +729,26 @@ export async function verifyScoutingPlayer(accessToken: string, id: number) {
 export async function deleteScoutingPlayer(accessToken: string, id: number) {
   return apiFetch<void>(`/scouting/players/${id}`, accessToken, { method: 'DELETE' })
 }
+
+export interface ScoutingAiAnalysis {
+  teamId: number
+  tournamentId: number | null
+  model: string
+  generatedAt: string
+  text: string
+}
+
+export async function analyzeScoutingTeam(
+  accessToken: string,
+  teamId: number,
+  tournamentId?: number,
+) {
+  return apiFetch<{ analysis: ScoutingAiAnalysis }>(
+    `/scouting/teams/${teamId}/analyze`,
+    accessToken,
+    {
+      method: 'POST',
+      body: JSON.stringify(tournamentId ? { tournamentId } : {}),
+    },
+  )
+}

@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { HubShell } from '@/components/hub/hub-shell'
 import { ScoutingPlayerCard } from '@/components/scouting-player-card'
+import { ScoutingAiPanel } from '@/components/scouting-ai-panel'
 import { ScoutingTeamStatsPanel } from '@/components/scouting-team-stats'
 import { useAuth } from '@/hooks/useAuth'
 import { ApiError, getScoutingTeam, type ScoutingPlayer, type ScoutingTeam } from '@/lib/api'
@@ -88,6 +89,13 @@ function TeamViewContent() {
             </section>
 
             <ScoutingTeamStatsPanel stats={team.stats} players={players} />
+
+            <ScoutingAiPanel
+              teamId={team.id}
+              tournamentId={tournamentId}
+              accessToken={session.access_token}
+              disabled={players.length === 0}
+            />
 
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Joueurs</h2>
