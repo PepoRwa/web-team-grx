@@ -1,27 +1,47 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   checkSystemHealth,
   type SystemIncident,
 } from '@/lib/system-health'
 
+/** Ping /health une fois au chargement — jamais de re-mount de l'app ensuite. */
 export function useSystemStatus() {
-  const [loading, setLoading] = useState(true)
+  const [isInitializing, setIsInitializing] = useState(true)
   const [incident, setIncident] = useState<SystemIncident | null>(null)
+  const [retrying, setRetrying] = useState(false)
+  const wasOperationalRef = useRef(false)
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    const result = await checkSystemHealth()
-    setIncident(result.ok ? null : result.incident)
-    setLoading(false)
+  const check = useCallback(async (opts?: { manual?: boolean }) => {
+    if (opts?.manual) setRetrying(true)
+    try {
+      const result = await checkSystemHealth()
+      if (result.ok) {
+        wasOperationalRef.current = true
+        setIncident(null)
+      } else {
+        setIncident(result.incident)
+      }
+    } finally {
+      setIsInitializing(false)
+      if (opts?.manual) setRetrying(false)
+    }
   }, [])
 
   useEffect(() => {
-    void refresh()
-    const poll = setInterval(() => void refresh(), 30_000)
-    return () => clearInterval(poll)
-  }, [refresh])
+    void check()
+  }, [check])
 
-  return { loading, incident, refresh, isOperational: !loading && !incident }
+  const blockApp = isInitializing || (Boolean(incident) && !wasOperationalRef.current)
+
+  return {
+    isInitializing,
+    incident,
+    retrying,
+    blockApp,
+    showBanner: Boolean(incident) && wasOperationalRef.current,
+    retry: () => check({ manual: true }),
+    isOperational: !incident,
+  }
 }
