@@ -410,7 +410,7 @@ export async function adminSetAccess(
   disabled: boolean,
   reason?: string,
 ) {
-  return apiFetch<{ user: AdminUser }>(
+  return apiFetch<{ user: AdminUser & { emailSent?: boolean } }>(
     `/admin/users/${encodeURIComponent(discordId)}/access`,
     accessToken,
     {
@@ -422,6 +422,13 @@ export async function adminSetAccess(
 
 export async function adminBackfillEmails(accessToken: string) {
   return apiFetch<{ scanned: number; updated: number }>('/admin/backfill-emails', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+export async function adminSendTestEmail(accessToken: string) {
+  return apiFetch<{ sent: boolean; to: string }>('/admin/test-email', accessToken, {
     method: 'POST',
     body: JSON.stringify({}),
   })

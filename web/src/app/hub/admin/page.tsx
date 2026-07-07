@@ -21,6 +21,7 @@ import {
   adminBackfillEmails,
   adminDownloadUserData,
   adminListUsers,
+  adminSendTestEmail,
   adminSetAccess,
   type AdminUser,
 } from '@/lib/api'
@@ -35,6 +36,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [syncingEmails, setSyncingEmails] = useState(false)
+  const [testingEmail, setTestingEmail] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
   const isFounder = permissions?.canAdmin === true
@@ -84,6 +86,7 @@ export default function AdminPage() {
         : undefined
       setBusyId(user.discordId)
       setError(null)
+      setNotice(null)
       try {
         const { user: updated } = await adminSetAccess(
           session.access_token,
@@ -92,6 +95,13 @@ export default function AdminPage() {
           reason,
         )
         setUsers((prev) => prev.map((u) => (u.discordId === updated.discordId ? updated : u)))
+        if (willDisable) {
+          setNotice(
+            updated.emailSent
+              ? `Accès désactivé. Un email de notification a été envoyé à ${label}.`
+              : `Accès désactivé. (Aucun email envoyé : pas d'adresse connue ou envoi non configuré.)`,
+          )
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Action impossible')
       } finally {
@@ -116,6 +126,21 @@ export default function AdminPage() {
       setSyncingEmails(false)
     }
   }, [session?.access_token, load])
+
+  const handleTestEmail = useCallback(async () => {
+    if (!session?.access_token) return
+    setTestingEmail(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const { to } = await adminSendTestEmail(session.access_token)
+      setNotice(`Email de test envoyé à ${to}. Vérifie ta boîte (et les spams).`)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Envoi du test impossible')
+    } finally {
+      setTestingEmail(false)
+    }
+  }, [session?.access_token])
 
   const handleExport = useCallback(
     async (user: AdminUser) => {
@@ -169,15 +194,26 @@ export default function AdminPage() {
                 Les emails ne se remplissent qu&apos;à la connexion de chaque membre. Utilise
                 « Synchroniser les emails » pour les récupérer depuis Supabase pour tout le monde.
               </p>
-              <button
-                type="button"
-                onClick={handleSyncEmails}
-                disabled={syncingEmails}
-                className="btn-ghost mt-3 text-xs disabled:opacity-50"
-              >
-                <RefreshCw size={14} className={syncingEmails ? 'animate-spin' : ''} />
-                {syncingEmails ? 'Synchronisation…' : 'Synchroniser les emails'}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleSyncEmails}
+                  disabled={syncingEmails}
+                  className="btn-ghost text-xs disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={syncingEmails ? 'animate-spin' : ''} />
+                  {syncingEmails ? 'Synchronisation…' : 'Synchroniser les emails'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestEmail}
+                  disabled={testingEmail}
+                  className="btn-ghost text-xs disabled:opacity-50"
+                >
+                  <Mail size={14} />
+                  {testingEmail ? 'Envoi…' : "M'envoyer un email de test"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
