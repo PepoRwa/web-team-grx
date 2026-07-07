@@ -70,11 +70,13 @@ export interface UserPermissions {
   isCoach: boolean
   isStaff: boolean
   isCaptain: boolean
+  isFounder: boolean
   rosters: string[]
   canTransmit: boolean
   canModerate: boolean
   canAccessSite: boolean
   canScout: boolean
+  canAdmin: boolean
 }
 
 export interface HubUser {
@@ -323,6 +325,117 @@ export async function updateMyProfile(accessToken: string, data: ProfileUpdate) 
     method: 'PATCH',
     body: JSON.stringify(data),
   })
+}
+
+// ─── RGPD — export de ses données ───────────────────────────────────────────
+
+/** Télécharge l'export RGPD (JSON) du membre connecté et déclenche le download. */
+export async function downloadMyData(accessToken: string): Promise<void> {
+  const res = await fetch(`${API_URL}/profiles/me/export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+    throw new ApiError(data.error ?? 'Export impossible', res.status, data.code)
+  }
+  const blob = await res.blob()
+  triggerDownload(blob, 'mes-donnees-gowrax.json')
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+// ─── Admin fondateur ────────────────────────────────────────────────────────
+
+export interface AdminUser extends Profile {
+  email: string | null
+  emailUpdatedAt: string | null
+  supabaseUserId: string | null
+  isDisabled: boolean
+  disabledAt: string | null
+  disabledByDiscordId: string | null
+  disabledReason: string | null
+  lastLoginAt: string | null
+  roleCount: number
+}
+
+export interface AdminUserDetail extends AdminUser {
+  contributions: {
+    vods: number
+    comments: number
+    strats: number
+    scouting: number
+    announcements: number
+  }
+}
+
+export interface AuditEntry {
+  id: number
+  actorDiscordId: string
+  action: string
+  targetDiscordId: string | null
+  detail: unknown
+  createdAt: string
+}
+
+export async function adminListUsers(
+  accessToken: string,
+  opts: { search?: string; includeDisabled?: boolean } = {},
+) {
+  const params = new URLSearchParams()
+  if (opts.search) params.set('search', opts.search)
+  if (opts.includeDisabled) params.set('includeDisabled', 'true')
+  const qs = params.toString()
+  return apiFetch<{ users: AdminUser[] }>(`/admin/users${qs ? `?${qs}` : ''}`, accessToken)
+}
+
+export async function adminGetUser(accessToken: string, discordId: string) {
+  return apiFetch<{ user: AdminUserDetail }>(
+    `/admin/users/${encodeURIComponent(discordId)}`,
+    accessToken,
+  )
+}
+
+export async function adminSetAccess(
+  accessToken: string,
+  discordId: string,
+  disabled: boolean,
+  reason?: string,
+) {
+  return apiFetch<{ user: AdminUser }>(
+    `/admin/users/${encodeURIComponent(discordId)}/access`,
+    accessToken,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ disabled, reason }),
+    },
+  )
+}
+
+export async function adminListAudit(accessToken: string, target?: string) {
+  const qs = target ? `?${new URLSearchParams({ target }).toString()}` : ''
+  return apiFetch<{ entries: AuditEntry[] }>(`/admin/audit${qs}`, accessToken)
+}
+
+/** Télécharge l'export RGPD complet d'un membre (fondateur). */
+export async function adminDownloadUserData(accessToken: string, discordId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/users/${encodeURIComponent(discordId)}/export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+    throw new ApiError(data.error ?? 'Export impossible', res.status, data.code)
+  }
+  const blob = await res.blob()
+  triggerDownload(blob, `gowrax-user-${discordId}.json`)
 }
 
 // ─── Strat-Book ─────────────────────────────────────────────────────────────

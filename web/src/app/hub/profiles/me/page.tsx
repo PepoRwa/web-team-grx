@@ -1,13 +1,20 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { Download, ShieldCheck } from 'lucide-react'
 import { HubShell } from '@/components/hub/hub-shell'
 import { ProfileDetail } from '@/components/profile-card'
 import { ProfileForm } from '@/components/profile-form'
 import { useAuth } from '@/hooks/useAuth'
-import { ApiError, getMyProfile, updateMyProfile, type Profile, type ProfileUpdate } from '@/lib/api'
+import {
+  ApiError,
+  downloadMyData,
+  getMyProfile,
+  updateMyProfile,
+  type Profile,
+  type ProfileUpdate,
+} from '@/lib/api'
 
 export default function MyProfilePage() {
   const { session, loading: authLoading } = useAuth()
@@ -16,6 +23,8 @@ export default function MyProfilePage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !session) router.replace('/')
@@ -52,6 +61,19 @@ export default function MyProfilePage() {
     [session?.access_token],
   )
 
+  const handleExport = useCallback(async () => {
+    if (!session?.access_token) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      await downloadMyData(session.access_token)
+    } catch (err) {
+      setExportError(err instanceof ApiError ? err.message : 'Export impossible')
+    } finally {
+      setExporting(false)
+    }
+  }, [session?.access_token])
+
   if (authLoading || !session) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -70,6 +92,29 @@ export default function MyProfilePage() {
           <>
             <ProfileDetail profile={profile} isOwn />
             <ProfileForm initial={profile} submitting={submitting} onSubmit={handleSubmit} />
+
+            <div className="card p-5">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 shrink-0 text-[var(--accent)]" size={20} />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-semibold">Mes données personnelles (RGPD)</h3>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Télécharge une copie complète des données que Gowrax détient sur toi (profil,
+                    rôles, VODs, strats, scouting, notifications…) au format JSON.
+                  </p>
+                  {exportError && <p className="mt-2 text-xs text-red-500">{exportError}</p>}
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="btn-ghost mt-3 text-sm disabled:opacity-50"
+                  >
+                    <Download size={16} />
+                    {exporting ? 'Préparation…' : 'Télécharger mes données'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         ) : null}
       </main>

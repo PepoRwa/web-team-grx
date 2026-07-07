@@ -13,6 +13,7 @@ import {
   Megaphone,
   Plus,
   Radio,
+  ShieldAlert,
   Sparkles,
   Target,
   User,
@@ -167,6 +168,18 @@ export function HubDashboard() {
             desc: 'Diffuser vers Discord & le site.',
             href: '/hub/transmissions/',
             gradient: 'from-lavender/50 via-rose/30 to-transparent',
+            staffOnly: true,
+          } satisfies HubModule,
+        ]
+      : []),
+    ...(permissions?.canAdmin
+      ? [
+          {
+            icon: ShieldAlert,
+            title: 'Administration',
+            desc: 'Comptes, emails, accès. Fondateur.',
+            href: '/hub/admin/',
+            gradient: 'from-rose/45 via-coral/30 to-transparent',
             staffOnly: true,
           } satisfies HubModule,
         ]
