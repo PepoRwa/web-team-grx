@@ -10,6 +10,7 @@ import {
   Download,
   Mail,
   RefreshCw,
+  ScrollText,
   Search,
   Shield,
   ShieldAlert,
@@ -20,10 +21,12 @@ import {
   ApiError,
   adminBackfillEmails,
   adminDownloadUserData,
+  adminListAudit,
   adminListUsers,
   adminSendTestEmail,
   adminSetAccess,
   type AdminUser,
+  type AuditEntry,
 } from '@/lib/api'
 
 export default function AdminPage() {
@@ -38,6 +41,9 @@ export default function AdminPage() {
   const [syncingEmails, setSyncingEmails] = useState(false)
   const [testingEmail, setTestingEmail] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([])
+  const [auditLoading, setAuditLoading] = useState(true)
+  const [auditFilter, setAuditFilter] = useState<string | null>(null)
 
   const isFounder = permissions?.canAdmin === true
 
@@ -66,9 +72,26 @@ export default function AdminPage() {
     }
   }, [session?.access_token, isFounder, includeDisabled])
 
+  const loadAudit = useCallback(async () => {
+    if (!session?.access_token || !isFounder) return
+    setAuditLoading(true)
+    try {
+      const data = await adminListAudit(session.access_token, auditFilter ?? undefined)
+      setAuditEntries(data.entries)
+    } catch {
+      setAuditEntries([])
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [session?.access_token, isFounder, auditFilter])
+
   useEffect(() => {
     if (!authLoading && isFounder) void load()
   }, [load, authLoading, isFounder])
+
+  useEffect(() => {
+    if (!authLoading && isFounder) void loadAudit()
+  }, [loadAudit, authLoading, isFounder])
 
   const handleToggleAccess = useCallback(
     async (user: AdminUser) => {
@@ -102,13 +125,14 @@ export default function AdminPage() {
               : `Accès désactivé. (Aucun email envoyé : pas d'adresse connue ou envoi non configuré.)`,
           )
         }
+        void loadAudit()
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Action impossible')
       } finally {
         setBusyId(null)
       }
     },
-    [session?.access_token],
+    [session?.access_token, loadAudit],
   )
 
   const handleSyncEmails = useCallback(async () => {
@@ -120,12 +144,13 @@ export default function AdminPage() {
       const { scanned, updated } = await adminBackfillEmails(session.access_token)
       setNotice(`Emails synchronisés : ${updated} mis à jour sur ${scanned} comptes Supabase scannés.`)
       await load()
+      void loadAudit()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Synchronisation impossible')
     } finally {
       setSyncingEmails(false)
     }
-  }, [session?.access_token, load])
+  }, [session?.access_token, load, loadAudit])
 
   const handleTestEmail = useCallback(async () => {
     if (!session?.access_token) return
@@ -135,12 +160,13 @@ export default function AdminPage() {
     try {
       const { to } = await adminSendTestEmail(session.access_token)
       setNotice(`Aperçu du mail de blocage envoyé à ${to}. Vérifie ta boîte (et les spams).`)
+      void loadAudit()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Envoi du test impossible')
     } finally {
       setTestingEmail(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, loadAudit])
 
   const handleExport = useCallback(
     async (user: AdminUser) => {
@@ -277,6 +303,14 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+
+        <AuditJournal
+          entries={auditEntries}
+          loading={auditLoading}
+          filterTarget={auditFilter}
+          onFilterTarget={setAuditFilter}
+          onRefresh={() => void loadAudit()}
+        />
       </main>
     </HubShell>
   )
@@ -386,5 +420,116 @@ function AdminUserRow({
         </div>
       </div>
     </div>
+  )
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  'user.disable': 'Accès désactivé',
+  'user.enable': 'Accès réactivé',
+  'emails.backfill': 'Sync emails Supabase',
+  'email.test_disabled': 'Test mail de blocage',
+  'email.test': 'Test email',
+}
+
+function formatAuditDetail(action: string, detail: unknown): string | null {
+  if (!detail || typeof detail !== 'object') return null
+  const d = detail as Record<string, unknown>
+  const parts: string[] = []
+  if (typeof d.reason === 'string' && d.reason) parts.push(`Motif : ${d.reason}`)
+  if (d.emailSent === true) parts.push('Email envoyé')
+  if (d.emailSent === false) parts.push('Email non envoyé')
+  if (typeof d.scanned === 'number' && typeof d.updated === 'number') {
+    parts.push(`${d.updated} mis à jour / ${d.scanned} scannés`)
+  }
+  if (d.sent === true) parts.push('Envoi OK')
+  if (d.sent === false) parts.push('Envoi échoué')
+  return parts.length ? parts.join(' · ') : null
+}
+
+function AuditJournal({
+  entries,
+  loading,
+  filterTarget,
+  onFilterTarget,
+  onRefresh,
+}: {
+  entries: AuditEntry[]
+  loading: boolean
+  filterTarget: string | null
+  onFilterTarget: (id: string | null) => void
+  onRefresh: () => void
+}) {
+  return (
+    <section className="mt-10">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ScrollText size={18} className="text-[var(--accent)]" />
+          <h2 className="font-semibold">Journal d&apos;audit</h2>
+          <span className="text-xs text-[var(--text-muted)]">({entries.length} entrées)</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {filterTarget && (
+            <button
+              type="button"
+              onClick={() => onFilterTarget(null)}
+              className="badge badge-lavender text-[10px] hover:opacity-80"
+            >
+              Filtre : {filterTarget.slice(0, 8)}… ✕
+            </button>
+          )}
+          <button type="button" onClick={onRefresh} className="btn-ghost text-xs">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Actualiser
+          </button>
+        </div>
+      </div>
+
+      <p className="mb-3 text-xs text-[var(--text-muted)]">
+        Historique des actions sensibles : désactivations, emails, synchronisations. Conservé en base
+        MySQL (table <code className="text-[10px]">admin_audit_log</code>).
+      </p>
+
+      {loading ? (
+        <div className="card h-32 animate-pulse bg-[var(--accent-soft)]/30" />
+      ) : entries.length === 0 ? (
+        <div className="card p-8 text-center text-sm text-[var(--text-muted)]">
+          Aucune entrée pour l&apos;instant. Les actions apparaîtront ici après une désactivation, un
+          test email, etc.
+        </div>
+      ) : (
+        <div className="card max-h-[28rem] overflow-y-auto divide-y divide-[var(--border)]">
+          {entries.map((e) => (
+            <div key={e.id} className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-sm">
+              <time className="shrink-0 text-xs text-[var(--text-muted)]">
+                {new Date(e.createdAt).toLocaleString('fr-FR', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </time>
+              <span className="min-w-[8rem] font-medium text-[var(--accent)]">
+                {ACTION_LABELS[e.action] ?? e.action}
+              </span>
+              {e.targetDiscordId && (
+                <button
+                  type="button"
+                  onClick={() => onFilterTarget(e.targetDiscordId)}
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] hover:underline"
+                  title="Filtrer par ce compte"
+                >
+                  cible {e.targetDiscordId}
+                </button>
+              )}
+              {formatAuditDetail(e.action, e.detail) && (
+                <span className="text-xs text-[var(--text-muted)]">
+                  {formatAuditDetail(e.action, e.detail)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
