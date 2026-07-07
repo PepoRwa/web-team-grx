@@ -420,6 +420,13 @@ export async function adminSetAccess(
   )
 }
 
+export async function adminBackfillEmails(accessToken: string) {
+  return apiFetch<{ scanned: number; updated: number }>('/admin/backfill-emails', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
 export async function adminListAudit(accessToken: string, target?: string) {
   const qs = target ? `?${new URLSearchParams({ target }).toString()}` : ''
   return apiFetch<{ entries: AuditEntry[] }>(`/admin/audit${qs}`, accessToken)

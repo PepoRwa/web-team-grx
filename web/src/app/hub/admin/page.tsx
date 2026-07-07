@@ -9,6 +9,7 @@ import {
   Copy,
   Download,
   Mail,
+  RefreshCw,
   Search,
   Shield,
   ShieldAlert,
@@ -17,6 +18,7 @@ import { HubShell } from '@/components/hub/hub-shell'
 import { useAuth } from '@/hooks/useAuth'
 import {
   ApiError,
+  adminBackfillEmails,
   adminDownloadUserData,
   adminListUsers,
   adminSetAccess,
@@ -32,6 +34,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [syncingEmails, setSyncingEmails] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const isFounder = permissions?.canAdmin === true
 
@@ -97,6 +101,22 @@ export default function AdminPage() {
     [session?.access_token],
   )
 
+  const handleSyncEmails = useCallback(async () => {
+    if (!session?.access_token) return
+    setSyncingEmails(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const { scanned, updated } = await adminBackfillEmails(session.access_token)
+      setNotice(`Emails synchronisés : ${updated} mis à jour sur ${scanned} comptes Supabase scannés.`)
+      await load()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Synchronisation impossible')
+    } finally {
+      setSyncingEmails(false)
+    }
+  }, [session?.access_token, load])
+
   const handleExport = useCallback(
     async (user: AdminUser) => {
       if (!session?.access_token) return
@@ -145,9 +165,28 @@ export default function AdminPage() {
                 Emails, comptes inconnus et kill-switch d&apos;accès. Toute désactivation est
                 journalisée. Ton compte fondateur ne peut jamais être désactivé.
               </p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                Les emails ne se remplissent qu&apos;à la connexion de chaque membre. Utilise
+                « Synchroniser les emails » pour les récupérer depuis Supabase pour tout le monde.
+              </p>
+              <button
+                type="button"
+                onClick={handleSyncEmails}
+                disabled={syncingEmails}
+                className="btn-ghost mt-3 text-xs disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={syncingEmails ? 'animate-spin' : ''} />
+                {syncingEmails ? 'Synchronisation…' : 'Synchroniser les emails'}
+              </button>
             </div>
           </div>
         </div>
+
+        {notice && (
+          <p className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)]/20 px-4 py-2 text-sm text-[var(--accent)]">
+            {notice}
+          </p>
+        )}
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="relative flex flex-1 items-center">
@@ -220,7 +259,9 @@ function AdminUserRow({
 }) {
   const avatar = user.avatarUrl ?? 'https://cdn.discordapp.com/embed/avatars/0.png'
   const name = user.publicName ?? user.username ?? 'Sans pseudo'
-  const isUnknown = user.roleCount === 0
+  const roles = user.roles ?? []
+  const roleCount = user.roleCount ?? roles.length
+  const isUnknown = roleCount === 0
 
   return (
     <div
@@ -253,15 +294,15 @@ function AdminUserRow({
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
             <span>ID {user.discordId}</span>
             {user.riotId && <span>· {user.riotId}</span>}
-            <span>· {user.roleCount} rôle{user.roleCount !== 1 ? 's' : ''}</span>
+            <span>· {roleCount} rôle{roleCount !== 1 ? 's' : ''}</span>
             {user.lastLoginAt && (
               <span>· vu {new Date(user.lastLoginAt).toLocaleDateString('fr-FR')}</span>
             )}
           </div>
 
-          {user.roles.length > 0 && (
+          {roles.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {user.roles.slice(0, 5).map((r) => (
+              {roles.slice(0, 5).map((r) => (
                 <span key={r.roleId} className="badge badge-lavender text-[10px]">
                   {r.name}
                 </span>
