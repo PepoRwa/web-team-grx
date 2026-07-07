@@ -19,6 +19,7 @@ import { SystemOutage } from '@/components/system-outage'
 import { useTheme } from '@/components/providers'
 import { useAuth } from '@/hooks/useAuth'
 import { useLaunchStatus } from '@/hooks/useLaunchStatus'
+import { LegalLoginNotice } from '@/components/legal-login-notice'
 
 interface LaunchPageProps {
   onLogin: () => void
@@ -133,6 +134,7 @@ export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProp
                   : 'Ouverture à 19h45'}
             </button>
             {loginError && <p className="mt-3 text-sm text-red-500">{loginError}</p>}
+            <LegalLoginNotice className="mx-auto mt-6 max-w-md text-center" />
           </>
         )}
       </main>

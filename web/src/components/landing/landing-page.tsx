@@ -31,6 +31,7 @@ import {
 } from '@/components/landing/landing-visuals'
 import { useInView } from '@/hooks/useInView'
 import { useScrollContainerProgress } from '@/hooks/useScrollContainerProgress'
+import { LegalLoginNotice } from '@/components/legal-login-notice'
 
 interface LandingPageProps {
   onLogin: () => void
@@ -208,7 +209,8 @@ export function LandingPage({ onLogin, loginLoading, loginError }: LandingPagePr
                 </a>
               </div>
               {loginError && <p className="mt-4 text-sm text-red-500">{loginError}</p>}
-              <p className="landing-disclaimer">Réservé aux membres Gowrax validés.</p>
+              <LegalLoginNotice className="mt-4 max-w-md" />
+              <p className="landing-disclaimer mt-2">Réservé aux membres Gowrax validés.</p>
             </div>
 
             <div className="landing-hero-visual">
@@ -319,6 +321,7 @@ export function LandingPage({ onLogin, loginLoading, loginError }: LandingPagePr
               <LayoutDashboard size={22} />
               Connexion Discord
             </button>
+            <LegalLoginNotice className="mx-auto mt-6 max-w-lg text-center" />
           </div>
 
           <footer className="landing-footer">
