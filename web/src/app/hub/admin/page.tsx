@@ -134,7 +134,7 @@ export default function AdminPage() {
     setNotice(null)
     try {
       const { to } = await adminSendTestEmail(session.access_token)
-      setNotice(`Email de test envoyé à ${to}. Vérifie ta boîte (et les spams).`)
+      setNotice(`Aperçu du mail de blocage envoyé à ${to}. Vérifie ta boîte (et les spams).`)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Envoi du test impossible')
     } finally {
@@ -191,8 +191,8 @@ export default function AdminPage() {
                 journalisée. Ton compte fondateur ne peut jamais être désactivé.
               </p>
               <p className="mt-2 text-xs text-[var(--text-muted)]">
-                Les emails ne se remplissent qu&apos;à la connexion de chaque membre. Utilise
-                « Synchroniser les emails » pour les récupérer depuis Supabase pour tout le monde.
+                Les emails partent d&apos;une adresse <strong>no-reply</strong> (pas de réception).
+                Le bouton de test t&apos;envoie l&apos;aperçu exact du mail de blocage.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -211,7 +211,7 @@ export default function AdminPage() {
                   className="btn-ghost text-xs disabled:opacity-50"
                 >
                   <Mail size={14} />
-                  {testingEmail ? 'Envoi…' : "M'envoyer un email de test"}
+                  {testingEmail ? 'Envoi…' : "M'envoyer le mail de blocage (test)"}
                 </button>
               </div>
             </div>
