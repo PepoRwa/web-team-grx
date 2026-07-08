@@ -391,6 +391,7 @@ Référence routes : `api/src/routes/index.ts`, `api/README.md`.
 3. **Durées de conservation** par catégorie (comptes inactifs, VODs, scouting, logs Render/YorkHost, file `notifications`).
 4. **Procédure droit à l’effacement** : qui traite la demande (teamgowrax@gmail.com) ? suppression Supabase + ligne `users` + contenus ? rôle du bot ?
 5. **Données scouting** (joueurs adverses Riot ID) : base légale, information des personnes concernées, durée ?
+5bis. **Données tryouts** (candidats recrutement non membres : Riot ID, stats tracker, notes staff, évaluations privées) : base légale intérêt légitime recrutement ; durée conservation recommandée 12 mois après statut `rejected` ou `joined` ; pas d'accès candidat au hub en V1 ; transparence lors du premier contact Discord (hors site).
 6. **Gemini** : acceptation envoi données adverses à Google ? DPA Google AI / désactivation prod ?
 7. **Mineurs** dans l’effectif / roster : règle d’éligibilité association ?
 8. **Localisation** projet Supabase (EU vs US) et DPA signés (Supabase, Render, YorkHost).
@@ -406,7 +407,7 @@ Copier/adapter dans `docs/LEGAL_KNOWN.md` côté gowrax.me :
 
 - **Service `team.gowrax.me`** : hub privé réservé aux membres de l’association Gowrax Esport (authentification Discord via Supabase). Contact : teamgowrax@gmail.com.
 - **Responsable de traitement** : Association Gowrax Esport (à confirmer statuts).
-- **Données traitées (hub)** : identifiant Discord, pseudo et avatar Discord, **adresse email** (connexion Discord/Supabase), pseudo d’affichage choisi, rôles synchronisés depuis le serveur Discord, identifiants de jeu (Riot, Steam), URL tracker, préférences de notification, contenus publiés (VODs, tactiques, annonces), données de scouting compétitif sur équipes adverses (dont identifiants Riot publics), journal d’audit des actions administrateur (sans IP en clair si sel configuré).
+- **Données traitées (hub)** : identifiant Discord, pseudo et avatar Discord, **adresse email** (connexion Discord/Supabase), pseudo d’affichage choisi, rôles synchronisés depuis le serveur Discord, identifiants de jeu (Riot, Steam), URL tracker, préférences de notification, contenus publiés (VODs, tactiques, annonces), données de scouting compétitif sur équipes adverses (dont identifiants Riot publics), **données tryouts** sur candidats recrutement tiers (Riot ID, stats, notes staff — sans accès candidat V1), journal d’audit des actions administrateur (sans IP en clair si sel configuré).
 - **Hébergement** : site statique GitHub Pages ; API Render ; base de données YorkHost ; authentification Supabase ; images tactiques Supabase Storage ; emails transactionnels Resend (no-reply).
 - **Destinataires / sous-traitants** : Supabase, Render, GitHub, YorkHost, Discord, **Resend** ; Google (Gemini) uniquement si fonction analyse IA scouting activée.
 - **Transferts hors UE** : possibles selon localisation Supabase/Render/Resend/Google — vérifier région projet et garanties (DPA, SCC).
@@ -427,7 +428,7 @@ Copier/adapter dans `docs/LEGAL_KNOWN.md` côté gowrax.me :
 |---------|--------|
 | `ARCHITECTURE.md` | Stack, flow auth |
 | `BOT_INTEGRATION.md` | Partage MySQL, bot vs site |
-| `migrations/001_initial.sql` – `014_site_scouting.sql` | Schéma données |
+| `migrations/001_initial.sql` – `017_tryouts.sql` | Schéma données |
 | `api/src/lib/supabase.ts` | JWT, champs Discord/email |
 | `api/src/services/users.service.ts` | Upsert user MySQL |
 | `api/src/lib/permissions.ts` | RBAC |
@@ -462,7 +463,7 @@ Copier/adapter dans `docs/LEGAL_KNOWN.md` côté gowrax.me :
 | 07/07 | Emails Resend (désactivation, no-reply) | Information + transparence origine email |
 | 07/07 | Alerte Discord nouvelle inscription | Sécurité ; dédup `signup_notified` (016) |
 | 07/07 | Liens PC/CGU page connexion | Information pré-contractuelle |
-| 07/07 | Roster filtré (membres réels uniquement) | Minimisation visibilité comptes inconnus |
+| 08/07 | Module Try Outs interne (`017_tryouts.sql`) | Données tiers candidats recrutement ; accès staff + capitaines lecture seule |
 
 ---
 

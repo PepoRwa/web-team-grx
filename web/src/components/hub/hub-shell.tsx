@@ -25,7 +25,7 @@ export function HubShell({
   subtitle,
   backHref,
 }: HubShellProps) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, permissions } = useAuth()
   const { theme, toggle } = useTheme()
   const announcementBadge = useHubAnnouncementBadge()
 
@@ -116,7 +116,11 @@ export function HubShell({
       {children}
 
       <PwaInstallBanner placement="hub" />
-      <HubNav active={activeNav} announcementBadge={announcementBadge} />
+      <HubNav
+        active={activeNav}
+        announcementBadge={announcementBadge}
+        showTryouts={Boolean(permissions?.canTryoutRead)}
+      />
     </div>
   )
 }

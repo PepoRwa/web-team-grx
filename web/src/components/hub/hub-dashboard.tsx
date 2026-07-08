@@ -17,6 +17,7 @@ import {
   Sparkles,
   Target,
   User,
+  UserPlus,
   Users,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,6 +28,7 @@ import {
   listScoutingTournaments,
   listStrats,
   listVods,
+  getTryoutStats,
   type SeasonBanner,
   type SiteAnnouncement,
   type Vod,
@@ -40,6 +42,7 @@ interface DashboardStats {
   vodsTotal: number
   stratsTotal: number
   scoutingTotal: number
+  tryoutCandidates: number
   membersTotal: number
   unreadAnnouncements: number
   recentVods: Vod[]
@@ -51,6 +54,7 @@ const EMPTY_STATS: DashboardStats = {
   vodsTotal: 0,
   stratsTotal: 0,
   scoutingTotal: 0,
+  tryoutCandidates: 0,
   membersTotal: 0,
   unreadAnnouncements: 0,
   recentVods: [],
@@ -78,7 +82,7 @@ export function HubDashboard() {
     if (!session?.access_token) return
     setLoading(true)
     try {
-      const [vodsRes, stratsRes, announcementsRes, profilesRes, seasonRes, scoutingRes] =
+      const [vodsRes, stratsRes, announcementsRes, profilesRes, seasonRes, scoutingRes, tryoutRes] =
         await Promise.all([
         listVods(session.access_token, { page: 1, limit: 4 }),
         listStrats(session.access_token),
@@ -88,12 +92,19 @@ export function HubDashboard() {
         permissions?.canScout
           ? listScoutingTournaments(session.access_token).catch(() => ({ tournaments: [] }))
           : Promise.resolve({ tournaments: [] }),
+        permissions?.canTryoutRead
+          ? getTryoutStats(session.access_token).catch(() => ({
+              activeCampaigns: 0,
+              activeCandidates: 0,
+            }))
+          : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
       ])
 
       setStats({
         vodsTotal: vodsRes.total,
         stratsTotal: stratsRes.strats.length,
         scoutingTotal: scoutingRes.tournaments.length,
+        tryoutCandidates: tryoutRes.activeCandidates,
         membersTotal: profilesRes.profiles.length,
         unreadAnnouncements: announcementsRes.unreadCount,
         recentVods: vodsRes.items.slice(0, 3),
@@ -105,7 +116,7 @@ export function HubDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, permissions?.canScout])
+  }, [session?.access_token, permissions?.canScout, permissions?.canTryoutRead])
 
   useEffect(() => {
     if (session?.access_token) void load()
@@ -141,6 +152,19 @@ export function HubDashboard() {
             href: '/hub/scouting/',
             gradient: 'from-coral/40 via-sky/25 to-transparent',
             stat: loading ? '…' : String(stats.scoutingTotal),
+          } satisfies HubModule,
+        ]
+      : []),
+    ...(permissions?.canTryoutRead
+      ? [
+          {
+            icon: UserPlus,
+            title: 'Try Outs',
+            desc: 'Recrutement, candidats, pipeline staff.',
+            href: '/hub/tryouts/',
+            gradient: 'from-mint/40 via-lavender/25 to-transparent',
+            stat: loading ? '…' : String(stats.tryoutCandidates),
+            staffOnly: !permissions.canTryoutWrite,
           } satisfies HubModule,
         ]
       : []),
@@ -321,7 +345,11 @@ export function HubDashboard() {
                 <ArrowRight size={14} />
               </span>
               {mod.staffOnly && (
-                <span className="absolute right-3 top-3 badge badge-mint text-[10px]">Staff</span>
+                <span className="absolute right-3 top-3 badge badge-mint text-[10px]">
+                  {mod.title === 'Try Outs' && permissions?.canTryoutRead && !permissions?.canTryoutWrite
+                    ? 'Lecture'
+                    : 'Staff'}
+                </span>
               )}
             </Link>
           ))}

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Megaphone,
   User,
+  UserPlus,
 } from 'lucide-react'
 
 export type HubNavKey =
@@ -15,19 +16,22 @@ export type HubNavKey =
   | 'vods'
   | 'strats'
   | 'scouting'
+  | 'tryouts'
   | 'announcements'
   | 'profile'
 
-const NAV_ITEMS: {
+const ALL_NAV_ITEMS: {
   key: HubNavKey
   href: string
   label: string
   icon: typeof Film
+  requiresTryout?: boolean
 }[] = [
   { key: 'hub', href: '/hub/', label: 'Hub', icon: LayoutDashboard },
   { key: 'vods', href: '/hub/vods/', label: 'VODs', icon: Film },
   { key: 'strats', href: '/hub/strats/', label: 'Strats', icon: BookOpen },
   { key: 'scouting', href: '/hub/scouting/', label: 'Scout', icon: Binoculars },
+  { key: 'tryouts', href: '/hub/tryouts/', label: 'Tryouts', icon: UserPlus, requiresTryout: true },
   { key: 'announcements', href: '/hub/announcements/', label: 'News', icon: Megaphone },
   { key: 'profile', href: '/hub/profiles/me/', label: 'Profil', icon: User },
 ]
@@ -35,9 +39,11 @@ const NAV_ITEMS: {
 interface HubNavProps {
   active: HubNavKey
   announcementBadge?: number
+  showTryouts?: boolean
 }
 
-export function HubNav({ active, announcementBadge = 0 }: HubNavProps) {
+export function HubNav({ active, announcementBadge = 0, showTryouts = false }: HubNavProps) {
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((item) => !item.requiresTryout || showTryouts)
   return (
     <nav
       className="hub-bottom-nav fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 backdrop-blur-md"

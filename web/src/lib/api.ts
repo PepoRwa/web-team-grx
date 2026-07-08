@@ -98,6 +98,8 @@ export interface UserPermissions {
   canModerate: boolean
   canAccessSite: boolean
   canScout: boolean
+  canTryoutRead: boolean
+  canTryoutWrite: boolean
   canAdmin: boolean
 }
 
@@ -901,3 +903,294 @@ export async function analyzeScoutingTeam(
     },
   )
 }
+
+// ─── Try Outs ─────────────────────────────────────────────────────────────────
+
+export type TryoutGame = 'valorant' | 'cs2' | 'other'
+export type TryoutTargetRoster = 'high_roster' | 'game_changers' | 'high_roster_cs2'
+export type TryoutCampaignStatus = 'draft' | 'active' | 'closed'
+export type TryoutPipelineStatus =
+  | 'new'
+  | 'contacted'
+  | 'scrim_scheduled'
+  | 'in_trial'
+  | 'shortlist'
+  | 'rejected'
+  | 'offered'
+  | 'joined'
+  | 'withdrawn'
+export type TryoutCandidateSource =
+  | 'discord_ticket'
+  | 'referral'
+  | 'open_application'
+  | 'staff_scout'
+  | 'other'
+export type TryoutSessionType = 'scrim' | 'review' | 'interview' | 'other'
+export type TryoutSessionOutcome = 'pending' | 'positive' | 'neutral' | 'negative'
+export type TryoutRecommendation = 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no'
+
+export interface TryoutCampaign {
+  id: number
+  name: string
+  game: TryoutGame
+  targetRoster: TryoutTargetRoster
+  status: TryoutCampaignStatus
+  startDate: string | null
+  endDate: string | null
+  slotsTarget: number | null
+  notes: string | null
+  createdByDiscordId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TryoutCandidate {
+  id: number
+  riotId: string
+  riotTag: string
+  displayName: string | null
+  trackerUrl: string | null
+  discordId: string | null
+  role: ScoutingRole | null
+  currentRank: string | null
+  peakRankCurrent: string | null
+  peakRankPrev: string | null
+  endRankPrev: string | null
+  gamesThisSeason: number | null
+  recentWinrate: number | null
+  avgAcs: number | null
+  avgKda: number | null
+  agentPool: ScoutingAgentPoolEntry[] | null
+  source: TryoutCandidateSource
+  notes: string | null
+  createdByDiscordId: string
+  createdAt: string
+  updatedAt: string
+  campaignId?: number
+  status?: TryoutPipelineStatus
+  priority?: number | null
+  campaignNotes?: string | null
+  campaigns?: TryoutCampaign[]
+  sessions?: TryoutSession[]
+  evaluations?: TryoutEvaluation[]
+  evaluationCount?: number
+}
+
+export interface TryoutSession {
+  id: number
+  campaignId: number
+  candidateId: number
+  sessionType: TryoutSessionType
+  scheduledAt: string | null
+  map: string | null
+  staffPresent: string[] | null
+  vodId: number | null
+  outcome: TryoutSessionOutcome
+  notes: string | null
+  createdByDiscordId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TryoutEvaluation {
+  id: number
+  candidateId: number
+  sessionId: number | null
+  evaluatorDiscordId: string
+  scores: Record<string, number> | null
+  recommendation: TryoutRecommendation
+  comment: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TryoutCampaignInput {
+  name: string
+  game?: TryoutGame
+  targetRoster: TryoutTargetRoster
+  status?: TryoutCampaignStatus
+  startDate?: string | null
+  endDate?: string | null
+  slotsTarget?: number | null
+  notes?: string | null
+}
+
+export interface TryoutCandidateInput {
+  riotId: string
+  riotTag: string
+  displayName?: string | null
+  trackerUrl?: string | null
+  discordId?: string | null
+  role?: ScoutingRole | null
+  currentRank?: string | null
+  peakRankCurrent?: string | null
+  peakRankPrev?: string | null
+  endRankPrev?: string | null
+  gamesThisSeason?: number | null
+  recentWinrate?: number | null
+  avgAcs?: number | null
+  avgKda?: number | null
+  agentPool?: ScoutingAgentPoolEntry[] | null
+  source?: TryoutCandidateSource
+  notes?: string | null
+  campaignId?: number
+  status?: TryoutPipelineStatus
+  priority?: number | null
+  campaignNotes?: string | null
+}
+
+export interface TryoutSessionInput {
+  campaignId: number
+  sessionType?: TryoutSessionType
+  scheduledAt?: string | null
+  map?: string | null
+  staffPresent?: string[] | null
+  vodId?: number | null
+  outcome?: TryoutSessionOutcome
+  notes?: string | null
+}
+
+export interface TryoutEvaluationInput {
+  sessionId?: number | null
+  scores?: Record<string, number> | null
+  recommendation?: TryoutRecommendation
+  comment?: string | null
+}
+
+export async function getTryoutStats(accessToken: string) {
+  return apiFetch<{ activeCampaigns: number; activeCandidates: number }>(
+    '/tryouts/stats',
+    accessToken,
+  )
+}
+
+export async function listTryoutCampaigns(
+  accessToken: string,
+  opts?: { status?: TryoutCampaignStatus },
+) {
+  const qs = opts?.status ? `?status=${opts.status}` : ''
+  return apiFetch<{ campaigns: TryoutCampaign[] }>(`/tryouts/campaigns${qs}`, accessToken)
+}
+
+export async function getTryoutCampaign(accessToken: string, id: number) {
+  return apiFetch<{ campaign: TryoutCampaign; statusCounts: Record<string, number> }>(
+    `/tryouts/campaigns/${id}`,
+    accessToken,
+  )
+}
+
+export async function getTryoutCampaignBoard(accessToken: string, id: number) {
+  return apiFetch<{
+    campaign: TryoutCampaign
+    columns: { status: TryoutPipelineStatus; candidates: TryoutCandidate[] }[]
+  }>(`/tryouts/campaigns/${id}/board`, accessToken)
+}
+
+export async function createTryoutCampaign(accessToken: string, data: TryoutCampaignInput) {
+  return apiFetch<{ campaign: TryoutCampaign }>('/tryouts/campaigns', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateTryoutCampaign(
+  accessToken: string,
+  id: number,
+  data: Partial<TryoutCampaignInput>,
+) {
+  return apiFetch<{ campaign: TryoutCampaign }>(`/tryouts/campaigns/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteTryoutCampaign(accessToken: string, id: number) {
+  return apiFetch<void>(`/tryouts/campaigns/${id}`, accessToken, { method: 'DELETE' })
+}
+
+export async function listTryoutCandidates(
+  accessToken: string,
+  opts?: { campaignId?: number; status?: TryoutPipelineStatus; search?: string },
+) {
+  const params = new URLSearchParams()
+  if (opts?.campaignId) params.set('campaignId', String(opts.campaignId))
+  if (opts?.status) params.set('status', opts.status)
+  if (opts?.search) params.set('search', opts.search)
+  const qs = params.toString() ? `?${params}` : ''
+  return apiFetch<{ candidates: TryoutCandidate[] }>(`/tryouts/candidates${qs}`, accessToken)
+}
+
+export async function getTryoutCandidate(
+  accessToken: string,
+  id: number,
+  campaignId?: number,
+) {
+  const qs = campaignId ? `?campaignId=${campaignId}` : ''
+  return apiFetch<{ candidate: TryoutCandidate }>(`/tryouts/candidates/${id}${qs}`, accessToken)
+}
+
+export async function createTryoutCandidate(accessToken: string, data: TryoutCandidateInput) {
+  return apiFetch<{ candidate: TryoutCandidate }>('/tryouts/candidates', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateTryoutCandidate(
+  accessToken: string,
+  id: number,
+  data: Partial<TryoutCandidateInput>,
+) {
+  return apiFetch<{ candidate: TryoutCandidate }>(`/tryouts/candidates/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function linkTryoutCandidateToCampaign(
+  accessToken: string,
+  campaignId: number,
+  data: Partial<TryoutCandidateInput> & { candidateId?: number },
+) {
+  return apiFetch<{ candidate: TryoutCandidate }>(
+    `/tryouts/campaigns/${campaignId}/candidates`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify(data) },
+  )
+}
+
+export async function createTryoutSession(
+  accessToken: string,
+  candidateId: number,
+  data: TryoutSessionInput,
+) {
+  return apiFetch<{ session: TryoutSession }>(
+    `/tryouts/candidates/${candidateId}/sessions`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify(data) },
+  )
+}
+
+export async function updateTryoutSession(
+  accessToken: string,
+  sessionId: number,
+  data: Partial<Omit<TryoutSessionInput, 'campaignId'>>,
+) {
+  return apiFetch<{ session: TryoutSession }>(`/tryouts/sessions/${sessionId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function createTryoutEvaluation(
+  accessToken: string,
+  candidateId: number,
+  data: TryoutEvaluationInput,
+) {
+  return apiFetch<{ evaluation: TryoutEvaluation }>(
+    `/tryouts/candidates/${candidateId}/evaluations`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify(data) },
+  )
+}
+
