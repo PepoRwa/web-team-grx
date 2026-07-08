@@ -37,6 +37,28 @@ export async function apiFetch<T>(
 
       if (!res.ok) {
         const err = new ApiError(data.error ?? 'Erreur API', res.status, data.code)
+        const isGet = !options.method || options.method === 'GET'
+        const canRetryNotMember =
+          attempt < maxAttempts &&
+          isGet &&
+          res.status === 403 &&
+          data.code === 'NOT_MEMBER'
+
+        // Cas "rôles Discord pas encore synchros" : on retente une fois après avoir
+        // demandé au bot une resync. Évite la boucle 403 en log.
+        if (canRetryNotMember) {
+          await fetch(`${API_URL}/auth/resync-roles`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }).catch(() => {})
+          await new Promise((r) => setTimeout(r, 1200))
+          lastError = err
+          continue
+        }
+
         if (attempt < maxAttempts && (res.status >= 500 || res.status === 429)) {
           await new Promise((r) => setTimeout(r, 800 * attempt))
           lastError = err
