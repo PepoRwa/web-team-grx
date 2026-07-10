@@ -9,6 +9,7 @@ import { HubPageBar } from '@/components/hub/hub-page-bar'
 import { useTheme } from '@/components/providers'
 import { useAuth } from '@/hooks/useAuth'
 import { useHubAnnouncementBadge } from '@/hooks/useHubAnnouncementBadge'
+import { useAssoAccess } from '@/hooks/useAssoAccess'
 
 interface HubShellProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ interface HubShellProps {
   title?: string
   subtitle?: string
   backHref?: string
+  showAsso?: boolean
 }
 
 export function HubShell({
@@ -24,10 +26,13 @@ export function HubShell({
   title,
   subtitle,
   backHref,
+  showAsso: showAssoProp,
 }: HubShellProps) {
-  const { user, signOut, permissions } = useAuth()
+  const { user, signOut, permissions, session } = useAuth()
   const { theme, toggle } = useTheme()
   const announcementBadge = useHubAnnouncementBadge()
+  const { access: assoAccess } = useAssoAccess(session?.access_token, Boolean(session))
+  const showAsso = showAssoProp ?? assoAccess.hasAccess
 
   const avatar = user?.avatarUrl ?? 'https://cdn.discordapp.com/embed/avatars/0.png'
   const showPageBar = Boolean(title)
@@ -120,6 +125,7 @@ export function HubShell({
         active={activeNav}
         announcementBadge={announcementBadge}
         showTryouts={Boolean(permissions?.canTryoutRead)}
+        showAsso={showAsso}
       />
     </div>
   )

@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Binoculars,
   BookOpen,
+  Building2,
   Calendar,
   ChevronRight,
   Film,
@@ -36,6 +37,7 @@ import {
 import { formatMatchDate, statusBadgeClass, statusLabel } from '@/lib/format'
 import { hubGreeting, relativeTime } from '@/lib/greeting'
 import { gameBadgeClass, gameLabel } from '@/lib/profiles'
+import { useAssoAccess } from '@/hooks/useAssoAccess'
 import type { LucideIcon } from 'lucide-react'
 
 interface DashboardStats {
@@ -75,6 +77,7 @@ interface HubModule {
 
 export function HubDashboard() {
   const { session, user, permissions } = useAuth()
+  const { access: assoAccess } = useAssoAccess(session?.access_token, Boolean(session))
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
   const [loading, setLoading] = useState(true)
 
@@ -205,6 +208,20 @@ export function HubDashboard() {
             href: '/hub/admin/',
             gradient: 'from-rose/45 via-coral/30 to-transparent',
             staffOnly: true,
+          } satisfies HubModule,
+        ]
+      : []),
+    ...(assoAccess.hasAccess
+      ? [
+          {
+            icon: Building2,
+            title: 'Gestion asso',
+            desc: assoAccess.isBureau
+              ? 'Dossiers adhérents, liaison Discord.'
+              : 'Mon dossier d\'adhésion.',
+            href: assoAccess.isBureau ? '/hub/asso/' : '/hub/asso/me/',
+            gradient: 'from-gold/35 via-lavender/30 to-transparent',
+            staffOnly: assoAccess.isBureau,
           } satisfies HubModule,
         ]
       : []),

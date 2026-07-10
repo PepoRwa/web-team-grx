@@ -1194,3 +1194,138 @@ export async function createTryoutEvaluation(
   )
 }
 
+// ─── Module asso ─────────────────────────────────────────────────────────────
+
+export interface AssoAccess {
+  hasAccess: boolean
+  isBureau: boolean
+  dossierId: number | null
+}
+
+export type AssoDossierStatus = 'actif' | 'inactif'
+export type AssoCotisationType = 'complete' | 'partielle' | 'dispense'
+export type AssoCotisationStatus = 'paye' | 'en_attente' | 'expire' | 'dispense'
+
+export interface AssoDossier {
+  id: number
+  discordId: string | null
+  siteAccess: boolean
+  status: AssoDossierStatus
+  linkedAt: string | null
+  linkedByDiscordId: string | null
+  firstName: string
+  lastName: string
+  pseudo: string
+  email: string | null
+  phone: string | null
+  trackerUrl: string | null
+  riotId: string | null
+  discordPseudo: string | null
+  dateOfBirth: string | null
+  birthPlace: string | null
+  nationality: string | null
+  residenceCountry: string | null
+  cotisationType: AssoCotisationType
+  cotisationStatus: AssoCotisationStatus
+  joinedAt: string
+  createdAt: string
+  updatedAt: string
+  teamTrackerUrl?: string | null
+}
+
+export interface AssoLinkCandidate {
+  discordId: string
+  username: string | null
+  displayName: string | null
+  avatarUrl: string | null
+  email: string | null
+  riotId: string | null
+  teamTrackerUrl: string | null
+  alreadyLinked: boolean
+  linkedDossierId: number | null
+}
+
+export type AssoDossierInput = {
+  discordId?: string | null
+  siteAccess?: boolean
+  firstName: string
+  lastName: string
+  pseudo: string
+  email?: string | null
+  phone?: string | null
+  trackerUrl?: string | null
+  riotId?: string | null
+  discordPseudo?: string | null
+  dateOfBirth?: string | null
+  birthPlace?: string | null
+  nationality?: string | null
+  residenceCountry?: string | null
+  cotisationType?: AssoCotisationType
+  cotisationStatus?: AssoCotisationStatus
+  joinedAt?: string
+  status?: AssoDossierStatus
+}
+
+export async function getAssoAccess(accessToken: string) {
+  return apiFetch<AssoAccess>('/asso/access', accessToken)
+}
+
+export async function getMyAssoDossier(accessToken: string) {
+  return apiFetch<{ dossier: AssoDossier }>('/asso/me', accessToken)
+}
+
+export async function listAssoDossiers(accessToken: string) {
+  return apiFetch<{ dossiers: AssoDossier[] }>('/asso/dossiers', accessToken)
+}
+
+export async function getAssoDossier(accessToken: string, id: number) {
+  return apiFetch<{ dossier: AssoDossier }>(`/asso/dossiers/${id}`, accessToken)
+}
+
+export async function listAssoLinkCandidates(accessToken: string, search?: string) {
+  const qs = search ? `?${new URLSearchParams({ search }).toString()}` : ''
+  return apiFetch<{ candidates: AssoLinkCandidate[] }>(
+    `/asso/link-candidates${qs}`,
+    accessToken,
+  )
+}
+
+export async function createAssoDossier(accessToken: string, data: AssoDossierInput) {
+  return apiFetch<{ dossier: AssoDossier }>('/asso/dossiers', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateAssoDossier(
+  accessToken: string,
+  id: number,
+  data: Partial<AssoDossierInput>,
+) {
+  return apiFetch<{ dossier: AssoDossier }>(`/asso/dossiers/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function linkAssoDiscord(
+  accessToken: string,
+  dossierId: number,
+  discordId: string,
+  siteAccess = true,
+) {
+  return apiFetch<{ dossier: AssoDossier }>(
+    `/asso/dossiers/${dossierId}/link-discord`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify({ discordId, siteAccess }) },
+  )
+}
+
+export async function unlinkAssoDiscord(accessToken: string, dossierId: number) {
+  return apiFetch<{ dossier: AssoDossier }>(
+    `/asso/dossiers/${dossierId}/unlink-discord`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify({}) },
+  )
+}
+
