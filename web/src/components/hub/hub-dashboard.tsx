@@ -219,7 +219,7 @@ export function HubDashboard() {
             desc: assoAccess.isBureau
               ? 'Dossiers adhérents, liaison Discord.'
               : 'Mon dossier d\'adhésion.',
-            href: assoAccess.isBureau ? '/hub/asso/' : '/hub/asso/me/',
+            href: access.isBureau ? '/hub/asso/dossiers/' : '/hub/asso/me/',
             gradient: 'from-gold/35 via-lavender/30 to-transparent',
             staffOnly: assoAccess.isBureau,
           } satisfies HubModule,

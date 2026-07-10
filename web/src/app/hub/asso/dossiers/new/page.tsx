@@ -1,23 +1,16 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { HubShell } from '@/components/hub/hub-shell'
+import { useState } from 'react'
 import { AssoDossierForm } from '@/components/asso/asso-dossier-form'
-import { useAuth } from '@/hooks/useAuth'
-import { useAssoAccess } from '@/hooks/useAssoAccess'
+import { AssoShell } from '@/components/asso/asso-shell'
+import { useAssoGate } from '@/hooks/useAssoGate'
 import { createAssoDossier, type AssoDossierInput } from '@/lib/api'
 
 export default function AssoNewDossierPage() {
-  const { session, loading: authLoading } = useAuth()
   const router = useRouter()
-  const { access, loading: assoLoading } = useAssoAccess(session?.access_token, Boolean(session))
+  const { session, ready } = useAssoGate({ bureauOnly: true })
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (!authLoading && !session) router.replace('/')
-    if (!authLoading && !assoLoading && session && !access.isBureau) router.replace('/hub/')
-  }, [authLoading, assoLoading, session, access.isBureau, router])
 
   async function handleSubmit(data: AssoDossierInput) {
     if (!session?.access_token) return
@@ -31,21 +24,15 @@ export default function AssoNewDossierPage() {
     }
   }
 
-  if (authLoading || assoLoading || !session || !access.isBureau) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-lavender/40" />
-      </div>
-    )
-  }
+  if (!ready || !session) return null
 
   return (
-    <HubShell
-      activeNav="asso"
+    <AssoShell
+      activeNav="dossiers"
       title="Nouveau dossier"
-      subtitle="Adhésion — saisie bureau"
-      backHref="/hub/asso/"
-      showAsso
+      subtitle="Saisie bureau"
+      backHref="/hub/asso/dossiers/"
+      bureauOnly
     >
       <main className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
         <AssoDossierForm
@@ -54,6 +41,6 @@ export default function AssoNewDossierPage() {
           onSubmit={handleSubmit}
         />
       </main>
-    </HubShell>
+    </AssoShell>
   )
 }

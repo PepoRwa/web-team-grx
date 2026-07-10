@@ -2,11 +2,10 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useState } from 'react'
-import { HubShell } from '@/components/hub/hub-shell'
 import { AssoDossierDetail } from '@/components/asso/asso-dossier-detail'
+import { AssoShell } from '@/components/asso/asso-shell'
 import { LinkCandidatePicker } from '@/components/asso/link-candidate-picker'
-import { useAuth } from '@/hooks/useAuth'
-import { useAssoAccess } from '@/hooks/useAssoAccess'
+import { useAssoGate } from '@/hooks/useAssoGate'
 import {
   ApiError,
   getAssoDossier,
@@ -18,22 +17,16 @@ import {
 } from '@/lib/api'
 
 function DossierViewContent() {
-  const { session, loading: authLoading } = useAuth()
+  const { session, ready } = useAssoGate({ bureauOnly: true })
   const router = useRouter()
   const params = useSearchParams()
   const id = Number(params.get('id'))
-  const { access, loading: assoLoading } = useAssoAccess(session?.access_token, Boolean(session))
 
   const [dossier, setDossier] = useState<AssoDossier | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showLinkPicker, setShowLinkPicker] = useState(false)
-
-  useEffect(() => {
-    if (!authLoading && !session) router.replace('/')
-    if (!authLoading && !assoLoading && session && !access.isBureau) router.replace('/hub/')
-  }, [authLoading, assoLoading, session, access.isBureau, router])
 
   const load = useCallback(async () => {
     if (!session?.access_token || !id) return
@@ -50,8 +43,12 @@ function DossierViewContent() {
   }, [session?.access_token, id])
 
   useEffect(() => {
-    if (!assoLoading && access.isBureau && session?.access_token && id) void load()
-  }, [load, assoLoading, access.isBureau, session?.access_token, id])
+    if (ready && session?.access_token && id) void load()
+  }, [load, ready, session?.access_token, id])
+
+  useEffect(() => {
+    if (ready && !id) router.replace('/hub/asso/dossiers/')
+  }, [ready, id, router])
 
   async function toggleAccess() {
     if (!session?.access_token || !dossier) return
@@ -102,21 +99,15 @@ function DossierViewContent() {
     }
   }
 
-  if (authLoading || assoLoading || !session || !access.isBureau) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-lavender/40" />
-      </div>
-    )
-  }
+  if (!ready) return null
 
   return (
-    <HubShell
-      activeNav="asso"
+    <AssoShell
+      activeNav="dossiers"
       title={dossier?.pseudo ?? 'Dossier'}
-      subtitle="Gestion bureau"
-      backHref="/hub/asso/"
-      showAsso
+      subtitle="Fiche adhérent"
+      backHref="/hub/asso/dossiers/"
+      bureauOnly
     >
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:py-8">
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -126,7 +117,7 @@ function DossierViewContent() {
             <AssoDossierDetail dossier={dossier} bureauView />
 
             <div className="card space-y-4 p-6">
-              <h3 className="font-semibold">Accès & liaison</h3>
+              <h3 className="font-semibold">Accès & liaison Discord</h3>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -163,7 +154,7 @@ function DossierViewContent() {
           </>
         )}
       </main>
-    </HubShell>
+    </AssoShell>
   )
 }
 
