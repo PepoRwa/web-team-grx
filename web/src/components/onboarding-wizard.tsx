@@ -272,7 +272,8 @@ export function OnboardingWizard() {
                 <span className="text-sm font-medium">Tracker.gg (optionnel)</span>
                 <input
                   className={inputClass}
-                  type="url"
+                  type="text"
+                  inputMode="url"
                   value={trackerUrl}
                   onChange={(e) => setTrackerUrl(e.target.value)}
                   placeholder="https://tracker.gg/…"

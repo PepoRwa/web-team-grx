@@ -31,12 +31,15 @@ interface AssoDossierEnrichmentProps {
   dateOfBirth: string
   values: DossierEnrichmentValues
   onChange: (values: DossierEnrichmentValues) => void
+  /** Charte déjà signée — affichage lecture seule en édition */
+  charteReadOnly?: boolean
 }
 
 export function AssoDossierEnrichment({
   dateOfBirth,
   values,
   onChange,
+  charteReadOnly = false,
 }: AssoDossierEnrichmentProps) {
   const [roles, setRoles] = useState({
     joueur: values.structureRoles.some((r) => r.kind === 'joueur'),
@@ -178,22 +181,29 @@ export function AssoDossierEnrichment({
       </section>
 
       <section className="space-y-2">
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={values.charteAccepted}
-            onChange={(e) =>
-              emit({
-                charteAccepted: e.target.checked,
-                charteVersion: e.target.checked ? CHARTE_VERSION : values.charteVersion,
-              })
-            }
-          />
-          <span>
-            J&apos;accepte la charte Gowrax ({CHARTE_VERSION}) et le règlement intérieur de
-            l&apos;association.
-          </span>
-        </label>
+        {charteReadOnly ? (
+          <p className="text-sm text-[var(--text-muted)]">
+            Charte acceptée ({values.charteVersion ?? CHARTE_VERSION})
+            {values.charteAccepted ? ' ✓' : ''}
+          </p>
+        ) : (
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={values.charteAccepted}
+              onChange={(e) =>
+                emit({
+                  charteAccepted: e.target.checked,
+                  charteVersion: e.target.checked ? CHARTE_VERSION : values.charteVersion,
+                })
+              }
+            />
+            <span>
+              J&apos;accepte la charte Gowrax ({CHARTE_VERSION}) et le règlement intérieur de
+              l&apos;association.
+            </span>
+          </label>
+        )}
       </section>
 
       {needsGuardian && (

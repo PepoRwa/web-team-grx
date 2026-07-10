@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import type { AssoDossierInput, AssoLinkCandidate } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import type { AssoDossier, AssoDossierInput, AssoLinkCandidate } from '@/lib/api'
 import { LinkCandidatePicker } from '@/components/asso/link-candidate-picker'
 import {
   AssoDossierEnrichment,
@@ -19,30 +19,69 @@ const inputClass =
 interface AssoDossierFormProps {
   accessToken: string
   submitting: boolean
+  mode?: 'create' | 'edit'
+  initial?: AssoDossier
   onSubmit: (data: AssoDossierInput) => Promise<void>
+  onCancel?: () => void
 }
 
-export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossierFormProps) {
+export function AssoDossierForm({
+  accessToken,
+  submitting,
+  mode = 'create',
+  initial,
+  onSubmit,
+  onCancel,
+}: AssoDossierFormProps) {
+  const isEdit = mode === 'edit'
+  const charteAlreadyAccepted = Boolean(initial?.charteAcceptedAt)
+
   const [selected, setSelected] = useState<AssoLinkCandidate | null>(null)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [pseudo, setPseudo] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [assoTracker, setAssoTracker] = useState('')
-  const [riotId, setRiotId] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState('')
-  const [birthPlace, setBirthPlace] = useState('')
-  const [nationality, setNationality] = useState('')
-  const [residenceCountry, setResidenceCountry] = useState('')
-  const [siteAccess, setSiteAccess] = useState(true)
+  const [firstName, setFirstName] = useState(initial?.firstName ?? '')
+  const [lastName, setLastName] = useState(initial?.lastName ?? '')
+  const [pseudo, setPseudo] = useState(initial?.pseudo ?? '')
+  const [email, setEmail] = useState(initial?.email ?? '')
+  const [phone, setPhone] = useState(initial?.phone ?? '')
+  const [assoTracker, setAssoTracker] = useState(initial?.trackerUrl ?? '')
+  const [riotId, setRiotId] = useState(initial?.riotId ?? '')
+  const [dateOfBirth, setDateOfBirth] = useState(initial?.dateOfBirth ?? '')
+  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '')
+  const [nationality, setNationality] = useState(initial?.nationality ?? '')
+  const [residenceCountry, setResidenceCountry] = useState(initial?.residenceCountry ?? '')
+  const [status, setStatus] = useState<'actif' | 'inactif'>(initial?.status ?? 'actif')
+  const [joinedAt, setJoinedAt] = useState(initial?.joinedAt ?? '')
+  const [siteAccess, setSiteAccess] = useState(initial?.siteAccess ?? true)
   const [enrichment, setEnrichment] = useState<DossierEnrichmentValues>({
-    structureRoles: [],
-    charteAccepted: false,
-    charteVersion: CHARTE_VERSION,
-    legalGuardian: null,
+    structureRoles: initial?.structureRoles ?? [],
+    charteAccepted: charteAlreadyAccepted,
+    charteVersion: initial?.charteVersion ?? CHARTE_VERSION,
+    legalGuardian: initial?.legalGuardian ?? null,
   })
   const [formError, setFormError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!initial) return
+    setFirstName(initial.firstName)
+    setLastName(initial.lastName)
+    setPseudo(initial.pseudo)
+    setEmail(initial.email ?? '')
+    setPhone(initial.phone ?? '')
+    setAssoTracker(initial.trackerUrl ?? '')
+    setRiotId(initial.riotId ?? '')
+    setDateOfBirth(initial.dateOfBirth ?? '')
+    setBirthPlace(initial.birthPlace ?? '')
+    setNationality(initial.nationality ?? '')
+    setResidenceCountry(initial.residenceCountry ?? '')
+    setStatus(initial.status)
+    setJoinedAt(initial.joinedAt)
+    setSiteAccess(initial.siteAccess)
+    setEnrichment({
+      structureRoles: initial.structureRoles ?? [],
+      charteAccepted: Boolean(initial.charteAcceptedAt),
+      charteVersion: initial.charteVersion ?? CHARTE_VERSION,
+      legalGuardian: initial.legalGuardian ?? null,
+    })
+  }, [initial])
 
   function applyCandidate(c: AssoLinkCandidate | null) {
     setSelected(c)
@@ -62,11 +101,8 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
       return
     }
 
-    if (
-      selected?.teamTrackerUrl &&
-      assoTracker.trim() &&
-      assoTracker.trim() === selected.teamTrackerUrl.trim()
-    ) {
+    const teamTracker = initial?.teamTrackerUrl ?? selected?.teamTrackerUrl
+    if (teamTracker && assoTracker.trim() && assoTracker.trim() === teamTracker.trim()) {
       setFormError(
         'Le tracker asso doit être différent du tracker profil team (ou laissez vide).',
       )
@@ -79,7 +115,7 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
       return
     }
 
-    if (!enrichment.charteAccepted) {
+    if (!isEdit && !enrichment.charteAccepted) {
       setFormError("L'acceptation de la charte est obligatoire.")
       return
     }
@@ -94,8 +130,8 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
 
     try {
       await onSubmit({
-        discordId: selected?.discordId ?? null,
-        siteAccess: selected ? siteAccess : false,
+        discordId: isEdit ? undefined : selected?.discordId ?? null,
+        siteAccess: isEdit ? siteAccess : selected ? siteAccess : false,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         pseudo: pseudo.trim(),
@@ -103,15 +139,17 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
         phone: phone.trim() || null,
         trackerUrl: assoTracker.trim() || null,
         riotId: riotId.trim() || null,
-        discordPseudo: selected?.username ?? null,
+        discordPseudo: isEdit ? undefined : selected?.username ?? null,
         dateOfBirth: dateOfBirth || null,
         birthPlace: birthPlace.trim() || null,
         nationality: nationality.trim() || null,
         residenceCountry: residenceCountry.trim() || null,
         structureRoles: enrichment.structureRoles,
-        charteAccepted: true,
+        charteAccepted: !isEdit || !charteAlreadyAccepted ? enrichment.charteAccepted : undefined,
         charteVersion: enrichment.charteVersion,
         legalGuardian: requiresLegalGuardian(dateOfBirth) ? enrichment.legalGuardian : null,
+        status: isEdit ? status : undefined,
+        joinedAt: isEdit && joinedAt ? joinedAt : undefined,
       })
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Enregistrement échoué')
@@ -122,33 +160,46 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
     <form onSubmit={handleSubmit} className="card space-y-6 p-6">
       {formError && <p className="text-sm text-red-500">{formError}</p>}
 
-      <LinkCandidatePicker
-        accessToken={accessToken}
-        selectedDiscordId={selected?.discordId ?? null}
-        onSelect={applyCandidate}
-      />
-
-      {selected && (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={siteAccess}
-            onChange={(e) => setSiteAccess(e.target.checked)}
+      {!isEdit && (
+        <>
+          <LinkCandidatePicker
+            accessToken={accessToken}
+            selectedDiscordId={selected?.discordId ?? null}
+            onSelect={applyCandidate}
           />
-          Activer l&apos;accès module asso pour ce compte
-        </label>
+
+          {selected && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={siteAccess}
+                onChange={(e) => setSiteAccess(e.target.checked)}
+              />
+              Activer l&apos;accès module asso pour ce compte
+            </label>
+          )}
+
+          {selected?.teamTrackerUrl && (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text-muted)]">
+              <span className="font-medium text-[var(--text)]">Tracker team (lecture seule) :</span>{' '}
+              <a
+                href={selected.teamTrackerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline"
+              >
+                {selected.teamTrackerUrl}
+              </a>
+            </div>
+          )}
+        </>
       )}
 
-      {selected?.teamTrackerUrl && (
+      {isEdit && initial?.teamTrackerUrl && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text-muted)]">
-          <span className="font-medium text-[var(--text)]">Tracker team (lecture seule) :</span>{' '}
-          <a
-            href={selected.teamTrackerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--accent)] underline"
-          >
-            {selected.teamTrackerUrl}
+          Tracker team lié :{' '}
+          <a href={initial.teamTrackerUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] underline">
+            {initial.teamTrackerUrl}
           </a>
         </div>
       )}
@@ -180,12 +231,7 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
         </label>
         <label className="block space-y-1">
           <span className="text-sm font-medium">Date de naissance</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-          />
+          <input type="date" className={inputClass} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
         </label>
         <label className="block space-y-1">
           <span className="text-sm font-medium">Lieu de naissance</span>
@@ -197,23 +243,39 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
         </label>
         <label className="block space-y-1">
           <span className="text-sm font-medium">Pays de résidence</span>
-          <input
-            className={inputClass}
-            value={residenceCountry}
-            onChange={(e) => setResidenceCountry(e.target.value)}
-          />
+          <input className={inputClass} value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} />
         </label>
+        {isEdit && (
+          <>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Statut adhérent</span>
+              <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value as 'actif' | 'inactif')}>
+                <option value="actif">Actif</option>
+                <option value="inactif">Inactif</option>
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Date d&apos;adhésion</span>
+              <input type="date" className={inputClass} value={joinedAt} onChange={(e) => setJoinedAt(e.target.value)} />
+            </label>
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" checked={siteAccess} onChange={(e) => setSiteAccess(e.target.checked)} />
+              Accès module asso activé
+            </label>
+          </>
+        )}
         <label className="block space-y-1 sm:col-span-2">
           <span className="text-sm font-medium">Tracker asso</span>
           <input
             className={inputClass}
-            type="url"
+            type="text"
+            inputMode="url"
             value={assoTracker}
             onChange={(e) => setAssoTracker(e.target.value)}
-            placeholder="https://tracker.gg/…"
+            placeholder="https://tracker.gg/… (optionnel)"
           />
           <span className="text-xs text-[var(--text-muted)]">
-            Distinct du tracker profil team — ne pas dupliquer.
+            Distinct du tracker profil team — laissez vide si non applicable.
           </span>
         </label>
       </div>
@@ -222,11 +284,19 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
         dateOfBirth={dateOfBirth}
         values={enrichment}
         onChange={setEnrichment}
+        charteReadOnly={isEdit && charteAlreadyAccepted}
       />
 
-      <button type="submit" className="btn-primary" disabled={submitting}>
-        {submitting ? 'Création…' : 'Créer le dossier'}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer le dossier'}
+        </button>
+        {onCancel && (
+          <button type="button" className="btn-ghost" disabled={submitting} onClick={onCancel}>
+            Annuler
+          </button>
+        )}
+      </div>
     </form>
   )
 }

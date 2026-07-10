@@ -1650,6 +1650,7 @@ export interface AssoPermissionProfile {
   id: string
   label: string
   description: string
+  grantsBureau?: boolean
 }
 
 export interface AssoBureauGrant {

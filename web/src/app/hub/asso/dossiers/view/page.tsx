@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { AssoDossierDetail } from '@/components/asso/asso-dossier-detail'
 import { AssoRgpdExportButton } from '@/components/asso/asso-rgpd-export-button'
@@ -18,7 +19,7 @@ import {
 } from '@/lib/api'
 
 function DossierViewContent() {
-  const { session, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
+  const { session, access, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
   const router = useRouter()
   const params = useSearchParams()
   const id = Number(params.get('id'))
@@ -102,6 +103,9 @@ function DossierViewContent() {
 
   if (!ready) return null
 
+  const canEdit =
+    access.modules?.membres === 'edition' || access.modules?.membres === 'admin' || access.isBureau
+
   return (
     <AssoShell
       activeNav="dossiers"
@@ -114,6 +118,14 @@ function DossierViewContent() {
         {loading && <div className="card h-48 animate-pulse bg-lavender/10" />}
         {dossier && (
           <>
+            <div className="flex flex-wrap justify-end gap-2">
+              {canEdit && (
+                <Link href={`/hub/asso/dossiers/edit/?id=${dossier.id}`} className="btn-primary">
+                  Modifier le dossier
+                </Link>
+              )}
+            </div>
+
             <AssoDossierDetail dossier={dossier} bureauView />
 
             <AssoRgpdExportButton

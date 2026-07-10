@@ -8,7 +8,7 @@ import { useAssoGate } from '@/hooks/useAssoGate'
 import { ApiError, listAssoDossiers, type AssoDossier } from '@/lib/api'
 
 export default function AssoDossiersPage() {
-  const { session, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
+  const { session, access, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
   const [dossiers, setDossiers] = useState<AssoDossier[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +33,9 @@ export default function AssoDossiersPage() {
 
   if (!ready) return null
 
+  const canCreate =
+    access.modules?.membres === 'edition' || access.modules?.membres === 'admin' || access.isBureau
+
   return (
     <AssoShell
       activeNav="dossiers"
@@ -44,10 +47,12 @@ export default function AssoDossiersPage() {
           <p className="text-sm text-[var(--text-muted)]">
             Saisie bureau uniquement — pas d&apos;inscription publique.
           </p>
-          <Link href="/hub/asso/dossiers/new/" className="btn-primary inline-flex w-fit">
-            <Plus size={18} />
-            Nouveau dossier
-          </Link>
+          {canCreate && (
+            <Link href="/hub/asso/dossiers/new/" className="btn-primary inline-flex w-fit">
+              <Plus size={18} />
+              Nouveau dossier
+            </Link>
+          )}
         </div>
 
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
