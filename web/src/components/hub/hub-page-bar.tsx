@@ -23,7 +23,7 @@ export function HubPageBar({ title, subtitle, backHref }: HubPageBarProps) {
           </Link>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold md:text-lg">{title}</h1>
+          <h1 className="font-display truncate text-2xl md:text-3xl">{title}</h1>
           {subtitle && (
             <p className="truncate text-xs text-[var(--text-muted)] md:text-sm">{subtitle}</p>
           )}

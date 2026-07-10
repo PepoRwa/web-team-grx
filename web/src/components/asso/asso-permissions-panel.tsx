@@ -100,7 +100,7 @@ export function AssoPermissionsPanel({ accessToken, enabled }: AssoPermissionsPa
     <div className="card space-y-6 p-6">
       <div className="flex items-center gap-2">
         <Shield size={18} className="text-[var(--accent)]" />
-        <h3 className="font-semibold">Permissions & rôles bureau</h3>
+        <h3 className="card-title">Permissions & rôles bureau</h3>
       </div>
 
       <p className="text-xs text-[var(--text-muted)]">

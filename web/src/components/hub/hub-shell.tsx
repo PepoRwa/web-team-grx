@@ -68,7 +68,7 @@ export function HubShell({
           {/* Titre compact dans le header sur mobile quand pas de page bar séparée */}
           {showPageBar && (
             <div className="min-w-0 flex-1 px-1 md:hidden">
-              <p className="truncate text-center text-sm font-semibold">{title}</p>
+              <p className="font-display truncate text-center text-xl">{title}</p>
             </div>
           )}
 

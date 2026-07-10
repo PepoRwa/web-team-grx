@@ -355,7 +355,7 @@ export function HubDashboard() {
                   )}
                 </div>
               </div>
-              <h3 className="mt-4 font-semibold">{mod.title}</h3>
+              <h3 className="card-title mt-4">{mod.title}</h3>
               <p className="mt-1 text-sm text-[var(--text-muted)]">{mod.desc}</p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent)] opacity-0 transition group-hover:opacity-100">
                 Ouvrir

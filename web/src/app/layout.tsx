@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { DM_Sans } from 'next/font/google'
+import { DM_Sans, Good_Vibes } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ThemeProvider } from '@/components/providers'
@@ -10,6 +10,12 @@ import { SystemGate } from '@/components/system-gate'
 const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
+})
+
+const goodVibes = Good_Vibes({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-good-vibes',
 })
 
 export const metadata: Metadata = {
@@ -42,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: SW_CLEANUP }} />
         <Script src="/legacy-sw-cleanup.js" strategy="beforeInteractive" />
       </head>
-      <body className={`${dmSans.variable} antialiased`}>
+      <body className={`${dmSans.variable} ${goodVibes.variable} antialiased`}>
         <ThemeProvider>
           <AuthProvider>
             <SystemGate>

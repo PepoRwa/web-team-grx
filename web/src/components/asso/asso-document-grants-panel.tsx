@@ -83,7 +83,7 @@ export function AssoDocumentGrantsPanel({
     <div className="card space-y-4 p-6">
       <div className="flex items-center gap-2">
         <FileKey size={18} className="text-[var(--accent)]" />
-        <h3 className="font-semibold">Accès par document</h3>
+        <h3 className="card-title">Accès par document</h3>
       </div>
       <p className="text-xs text-[var(--text-muted)]">
         Chaque PV ou document sensible est attribué individuellement (pas par groupe de dossier).
