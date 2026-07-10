@@ -2,7 +2,8 @@
 
 import { HubShell } from '@/components/hub/hub-shell'
 import { AssoModuleBadge, AssoNav, type AssoNavKey } from '@/components/asso/asso-nav'
-import { useAssoGate, AssoLoadingScreen } from '@/hooks/useAssoGate'
+import { useAssoGate } from '@/hooks/useAssoGate'
+import { AssoLoadingScreen } from '@/components/asso/asso-loading-screen'
 
 interface AssoShellProps {
   children: React.ReactNode

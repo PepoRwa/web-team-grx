@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { AssoLoadingScreen } from '@/hooks/useAssoGate'
+import { AssoLoadingScreen } from '@/components/asso/asso-loading-screen'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssoAccess } from '@/hooks/useAssoAccess'
 
