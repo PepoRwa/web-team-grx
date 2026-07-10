@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { AssoLoadingScreen } from '@/components/asso/asso-loading-screen'
+import { assoDefaultPath } from '@/components/asso/asso-nav'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssoAccess } from '@/hooks/useAssoAccess'
 
@@ -21,7 +22,7 @@ export default function AssoIndexPage() {
       router.replace('/hub/')
       return
     }
-    router.replace(access.isBureau ? '/hub/asso/dossiers/' : '/hub/asso/me/')
+    router.replace(assoDefaultPath(access))
   }, [authLoading, assoLoading, session, access, router])
 
   return <AssoLoadingScreen />

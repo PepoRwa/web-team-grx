@@ -3,6 +3,15 @@
 import { useState } from 'react'
 import type { AssoDossierInput, AssoLinkCandidate } from '@/lib/api'
 import { LinkCandidatePicker } from '@/components/asso/link-candidate-picker'
+import {
+  AssoDossierEnrichment,
+  CHARTE_VERSION,
+  type DossierEnrichmentValues,
+} from '@/components/asso/asso-dossier-enrichment'
+import {
+  requiresLegalGuardian,
+  validateStructureRoles,
+} from '@/lib/asso-dossier-rules'
 
 const inputClass =
   'w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
@@ -22,7 +31,17 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
   const [phone, setPhone] = useState('')
   const [assoTracker, setAssoTracker] = useState('')
   const [riotId, setRiotId] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [birthPlace, setBirthPlace] = useState('')
+  const [nationality, setNationality] = useState('')
+  const [residenceCountry, setResidenceCountry] = useState('')
   const [siteAccess, setSiteAccess] = useState(true)
+  const [enrichment, setEnrichment] = useState<DossierEnrichmentValues>({
+    structureRoles: [],
+    charteAccepted: false,
+    charteVersion: CHARTE_VERSION,
+    legalGuardian: null,
+  })
   const [formError, setFormError] = useState<string | null>(null)
 
   function applyCandidate(c: AssoLinkCandidate | null) {
@@ -54,6 +73,25 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
       return
     }
 
+    const roleError = validateStructureRoles(enrichment.structureRoles)
+    if (roleError) {
+      setFormError(roleError)
+      return
+    }
+
+    if (!enrichment.charteAccepted) {
+      setFormError("L'acceptation de la charte est obligatoire.")
+      return
+    }
+
+    if (requiresLegalGuardian(dateOfBirth)) {
+      const g = enrichment.legalGuardian
+      if (!g?.firstName || !g.lastName || !g.email || !g.phone) {
+        setFormError('Autorisation parentale incomplète (mineur < 16 ans).')
+        return
+      }
+    }
+
     try {
       await onSubmit({
         discordId: selected?.discordId ?? null,
@@ -66,6 +104,14 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
         trackerUrl: assoTracker.trim() || null,
         riotId: riotId.trim() || null,
         discordPseudo: selected?.username ?? null,
+        dateOfBirth: dateOfBirth || null,
+        birthPlace: birthPlace.trim() || null,
+        nationality: nationality.trim() || null,
+        residenceCountry: residenceCountry.trim() || null,
+        structureRoles: enrichment.structureRoles,
+        charteAccepted: true,
+        charteVersion: enrichment.charteVersion,
+        legalGuardian: requiresLegalGuardian(dateOfBirth) ? enrichment.legalGuardian : null,
       })
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Enregistrement échoué')
@@ -133,6 +179,31 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
           <input className={inputClass} value={riotId} onChange={(e) => setRiotId(e.target.value)} />
         </label>
         <label className="block space-y-1">
+          <span className="text-sm font-medium">Date de naissance</span>
+          <input
+            type="date"
+            className={inputClass}
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Lieu de naissance</span>
+          <input className={inputClass} value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Nationalité</span>
+          <input className={inputClass} value={nationality} onChange={(e) => setNationality(e.target.value)} />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Pays de résidence</span>
+          <input
+            className={inputClass}
+            value={residenceCountry}
+            onChange={(e) => setResidenceCountry(e.target.value)}
+          />
+        </label>
+        <label className="block space-y-1 sm:col-span-2">
           <span className="text-sm font-medium">Tracker asso</span>
           <input
             className={inputClass}
@@ -146,6 +217,12 @@ export function AssoDossierForm({ accessToken, submitting, onSubmit }: AssoDossi
           </span>
         </label>
       </div>
+
+      <AssoDossierEnrichment
+        dateOfBirth={dateOfBirth}
+        values={enrichment}
+        onChange={setEnrichment}
+      />
 
       <button type="submit" className="btn-primary" disabled={submitting}>
         {submitting ? 'Création…' : 'Créer le dossier'}

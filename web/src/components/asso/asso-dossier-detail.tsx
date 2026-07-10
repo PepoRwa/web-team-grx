@@ -2,6 +2,10 @@
 
 import { ExternalLink } from 'lucide-react'
 import type { AssoDossier } from '@/lib/api'
+import {
+  playerDivisionLabels,
+  structureRoleKindLabels,
+} from '@/lib/asso-module-labels'
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -51,9 +55,53 @@ export function AssoDossierDetail({ dossier, bureauView }: AssoDossierDetailProp
         )}
         <Row label="Email" value={dossier.email ?? '—'} />
         <Row label="Téléphone" value={dossier.phone ?? '—'} />
+        <Row label="Date de naissance" value={dossier.dateOfBirth ?? '—'} />
+        <Row label="Lieu de naissance" value={dossier.birthPlace ?? '—'} />
+        <Row label="Nationalité" value={dossier.nationality ?? '—'} />
+        <Row label="Pays de résidence" value={dossier.residenceCountry ?? '—'} />
         <Row label="Riot ID" value={dossier.riotId ?? '—'} />
         <Row label="Cotisation" value={`${dossier.cotisationType} · ${dossier.cotisationStatus}`} />
+        {(dossier.cotisationType === 'partielle' || dossier.cotisationType === 'dispense') && (
+          <>
+            <Row label="N° délibération" value={dossier.cotisationExemptionRef ?? '—'} />
+            <Row
+              label="Engagement / motifs"
+              value={dossier.cotisationExemptionNote ?? '—'}
+            />
+          </>
+        )}
         <Row label="Adhésion depuis" value={dossier.joinedAt} />
+        {dossier.structureRoles && dossier.structureRoles.length > 0 && (
+          <Row
+            label="Rôles structure"
+            value={
+              <ul className="space-y-1 text-right">
+                {dossier.structureRoles.map((role, i) => (
+                  <li key={i}>
+                    {structureRoleKindLabels[role.kind]}
+                    {role.division ? ` · ${playerDivisionLabels[role.division]}` : ''}
+                    {role.function ? ` · ${role.function}` : ''}
+                    {role.label ? ` · ${role.label}` : ''}
+                  </li>
+                ))}
+              </ul>
+            }
+          />
+        )}
+        <Row
+          label="Charte"
+          value={
+            dossier.charteAcceptedAt
+              ? `Acceptée (${dossier.charteVersion ?? '—'}) le ${new Date(dossier.charteAcceptedAt).toLocaleDateString('fr-FR')}`
+              : 'Non acceptée'
+          }
+        />
+        {dossier.legalGuardian && (
+          <Row
+            label="Représentant légal"
+            value={`${dossier.legalGuardian.firstName} ${dossier.legalGuardian.lastName} (${dossier.legalGuardian.relation})`}
+          />
+        )}
         {dossier.teamTrackerUrl && (
           <Row
             label="Tracker team"

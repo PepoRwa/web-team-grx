@@ -40,7 +40,7 @@ export function AssoShell({
           <span className="text-xs text-[var(--text-muted)]">Espace associatif · retour Hub via ←</span>
         </div>
       </div>
-      <AssoNav active={activeNav} isBureau={access.isBureau} />
+      <AssoNav active={activeNav} access={access} />
       <div className="pb-24">{children}</div>
     </HubShell>
   )

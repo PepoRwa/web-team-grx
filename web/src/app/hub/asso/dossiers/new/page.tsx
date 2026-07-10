@@ -9,7 +9,7 @@ import { createAssoDossier, type AssoDossierInput } from '@/lib/api'
 
 export default function AssoNewDossierPage() {
   const router = useRouter()
-  const { session, ready } = useAssoGate({ bureauOnly: true })
+  const { session, ready } = useAssoGate({ module: 'membres', moduleMin: 'edition' })
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(data: AssoDossierInput) {
@@ -32,7 +32,6 @@ export default function AssoNewDossierPage() {
       title="Nouveau dossier"
       subtitle="Saisie bureau"
       backHref="/hub/asso/dossiers/"
-      bureauOnly
     >
       <main className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
         <AssoDossierForm

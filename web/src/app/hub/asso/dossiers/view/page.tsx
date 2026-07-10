@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { AssoDossierDetail } from '@/components/asso/asso-dossier-detail'
+import { AssoRgpdExportButton } from '@/components/asso/asso-rgpd-export-button'
 import { AssoShell } from '@/components/asso/asso-shell'
 import { LinkCandidatePicker } from '@/components/asso/link-candidate-picker'
 import { useAssoGate } from '@/hooks/useAssoGate'
@@ -17,7 +18,7 @@ import {
 } from '@/lib/api'
 
 function DossierViewContent() {
-  const { session, ready } = useAssoGate({ bureauOnly: true })
+  const { session, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
   const router = useRouter()
   const params = useSearchParams()
   const id = Number(params.get('id'))
@@ -107,7 +108,6 @@ function DossierViewContent() {
       title={dossier?.pseudo ?? 'Dossier'}
       subtitle="Fiche adhérent"
       backHref="/hub/asso/dossiers/"
-      bureauOnly
     >
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:py-8">
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -115,6 +115,12 @@ function DossierViewContent() {
         {dossier && (
           <>
             <AssoDossierDetail dossier={dossier} bureauView />
+
+            <AssoRgpdExportButton
+              accessToken={session!.access_token}
+              dossierId={dossier.id}
+              fileName={`gowrax-asso-${dossier.pseudo}.json`}
+            />
 
             <div className="card space-y-4 p-6">
               <h3 className="font-semibold">Accès & liaison Discord</h3>

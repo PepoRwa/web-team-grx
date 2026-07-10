@@ -8,7 +8,7 @@ import { useAssoGate } from '@/hooks/useAssoGate'
 import { ApiError, listAssoDossiers, type AssoDossier } from '@/lib/api'
 
 export default function AssoDossiersPage() {
-  const { session, ready } = useAssoGate({ bureauOnly: true })
+  const { session, ready } = useAssoGate({ module: 'membres', moduleMin: 'lecture' })
   const [dossiers, setDossiers] = useState<AssoDossier[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +38,6 @@ export default function AssoDossiersPage() {
       activeNav="dossiers"
       title="Dossiers adhérents"
       subtitle="Création, liaison Discord, accès"
-      bureauOnly
     >
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

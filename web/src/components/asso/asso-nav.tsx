@@ -11,6 +11,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
+import type { AssoAccess, AssoAccessLevel, AssoModule } from '@/lib/api'
 
 export type AssoNavKey =
   | 'dossiers'
@@ -25,54 +26,79 @@ type NavItem = {
   href: string
   label: string
   icon: typeof Users
-  bureauOnly?: boolean
+  visible: (access: AssoAccess) => boolean
+}
+
+const LEVEL_RANK: Record<AssoAccessLevel, number> = {
+  aucun: 0,
+  lecture: 1,
+  edition: 2,
+  admin: 3,
+}
+
+function moduleAtLeast(
+  access: AssoAccess,
+  module: AssoModule,
+  min: AssoAccessLevel = 'lecture',
+): boolean {
+  const level = access.modules?.[module]
+  if (!level) return false
+  return LEVEL_RANK[level] >= LEVEL_RANK[min]
 }
 
 const ITEMS: NavItem[] = [
-  { key: 'dossiers', href: '/hub/asso/dossiers/', label: 'Dossiers', icon: Users, bureauOnly: true },
+  {
+    key: 'dossiers',
+    href: '/hub/asso/dossiers/',
+    label: 'Dossiers',
+    icon: Users,
+    visible: (access) => moduleAtLeast(access, 'membres'),
+  },
   {
     key: 'cotisations',
     href: '/hub/asso/cotisations/',
     label: 'Cotisations',
     icon: Wallet,
-    bureauOnly: true,
+    visible: (access) => access.isBureau && moduleAtLeast(access, 'cotisations'),
   },
   {
     key: 'documents',
     href: '/hub/asso/documents/',
     label: 'Documents',
     icon: FolderOpen,
+    visible: (access) => Boolean(access.documents?.canAccess),
   },
   {
     key: 'assemblees',
     href: '/hub/asso/assemblees/',
     label: 'Assemblées',
     icon: Gavel,
-    bureauOnly: true,
+    visible: (access) => moduleAtLeast(access, 'assemblees'),
   },
-  { key: 'me', href: '/hub/asso/me/', label: 'Mon dossier', icon: UserCircle },
+  {
+    key: 'me',
+    href: '/hub/asso/me/',
+    label: 'Mon dossier',
+    icon: UserCircle,
+    visible: () => true,
+  },
   {
     key: 'parametres',
     href: '/hub/asso/parametres/',
     label: 'Paramètres',
     icon: Settings,
-    bureauOnly: true,
+    visible: (access) => moduleAtLeast(access, 'parametres'),
   },
 ]
 
 interface AssoNavProps {
   active: AssoNavKey
-  isBureau: boolean
+  access: AssoAccess
 }
 
-export function AssoNav({ active, isBureau }: AssoNavProps) {
+export function AssoNav({ active, access }: AssoNavProps) {
   const pathname = usePathname()
-
-  const visible = ITEMS.filter((item) => {
-    if (item.bureauOnly && !isBureau) return false
-    if (item.key === 'me' && isBureau) return true
-    return true
-  })
+  const visible = ITEMS.filter((item) => item.visible(access))
 
   return (
     <nav
@@ -116,4 +142,9 @@ export function AssoModuleBadge() {
       Asso
     </span>
   )
+}
+
+export function assoDefaultPath(access: AssoAccess): string {
+  if (moduleAtLeast(access, 'membres')) return '/hub/asso/dossiers/'
+  return '/hub/asso/me/'
 }

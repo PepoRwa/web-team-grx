@@ -1196,15 +1196,74 @@ export async function createTryoutEvaluation(
 
 // ─── Module asso ─────────────────────────────────────────────────────────────
 
+export type AssoModule =
+  | 'membres'
+  | 'documents'
+  | 'cotisations'
+  | 'assemblees'
+  | 'parametres'
+
 export interface AssoAccess {
   hasAccess: boolean
   isBureau: boolean
   dossierId: number | null
+  modules?: Record<AssoModule, AssoAccessLevel> | null
+  canManagePermissions?: boolean
+  documents?: {
+    canAccess: boolean
+    canUpload: boolean
+    accessibleFolders: AssoDocumentFolder[]
+    documentsLevel: AssoAccessLevel
+  } | null
+}
+
+export type AssoDocumentFolder =
+  | 'statuts'
+  | 'pv_ag'
+  | 'pv_bureau'
+  | 'conventions'
+  | 'interne'
+
+export type AssoAccessLevel = 'aucun' | 'lecture' | 'edition' | 'admin'
+
+export interface AssoDocument {
+  id: number
+  folder: AssoDocumentFolder
+  name: string
+  fileType: string
+  sizeLabel: string
+  uploadedAt: string
+  hasFile: boolean
+}
+
+export interface AssoDocumentsMeta {
+  accessibleFolders: AssoDocumentFolder[]
+  canUpload: boolean
+  documentsLevel: AssoAccessLevel
+  canManagePermissions: boolean
 }
 
 export type AssoDossierStatus = 'actif' | 'inactif'
 export type AssoCotisationType = 'complete' | 'partielle' | 'dispense'
 export type AssoCotisationStatus = 'paye' | 'en_attente' | 'expire' | 'dispense'
+
+export type StructureRoleKind = 'joueur' | 'staff_sportif' | 'staff_com' | 'medias' | 'autre'
+export type PlayerDivision = 'ascendants' | 'valkyries' | 'cs2'
+
+export interface StructureRole {
+  kind: StructureRoleKind
+  division?: PlayerDivision
+  function?: string
+  label?: string
+}
+
+export interface LegalGuardian {
+  firstName: string
+  lastName: string
+  relation: string
+  phone: string
+  email: string
+}
 
 export interface AssoDossier {
   id: number
@@ -1227,6 +1286,12 @@ export interface AssoDossier {
   residenceCountry: string | null
   cotisationType: AssoCotisationType
   cotisationStatus: AssoCotisationStatus
+  cotisationExemptionRef?: string | null
+  cotisationExemptionNote?: string | null
+  structureRoles?: StructureRole[] | null
+  charteAcceptedAt?: string | null
+  charteVersion?: string | null
+  legalGuardian?: LegalGuardian | null
   joinedAt: string
   createdAt: string
   updatedAt: string
@@ -1262,6 +1327,12 @@ export type AssoDossierInput = {
   residenceCountry?: string | null
   cotisationType?: AssoCotisationType
   cotisationStatus?: AssoCotisationStatus
+  cotisationExemptionRef?: string | null
+  cotisationExemptionNote?: string | null
+  structureRoles?: StructureRole[]
+  charteAccepted?: boolean
+  charteVersion?: string | null
+  legalGuardian?: LegalGuardian | null
   joinedAt?: string
   status?: AssoDossierStatus
 }
@@ -1327,5 +1398,337 @@ export async function unlinkAssoDiscord(accessToken: string, dossierId: number) 
     accessToken,
     { method: 'POST', body: JSON.stringify({}) },
   )
+}
+
+export async function getAssoDocumentsMeta(accessToken: string) {
+  return apiFetch<AssoDocumentsMeta>('/asso/documents/meta', accessToken)
+}
+
+export async function listAssoDocuments(accessToken: string) {
+  return apiFetch<{ documents: AssoDocument[] }>('/asso/documents', accessToken)
+}
+
+export async function downloadAssoDocument(accessToken: string, id: number) {
+  return apiFetch<{ url: string; name: string }>(
+    `/asso/documents/${id}/download`,
+    accessToken,
+  )
+}
+
+export async function uploadAssoDocument(
+  accessToken: string,
+  folder: AssoDocumentFolder,
+  file: File,
+) {
+  const form = new FormData()
+  form.append('folder', folder)
+  form.append('file', file)
+
+  const res = await fetch(`${API_URL}/asso/documents/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  })
+
+  const data = (await res.json().catch(() => ({}))) as {
+    document?: AssoDocument
+    error?: string
+    code?: string
+  }
+
+  if (!res.ok) {
+    throw new ApiError(data.error ?? 'Échec upload', res.status, data.code)
+  }
+
+  return data.document!
+}
+
+export async function deleteAssoDocument(accessToken: string, id: number) {
+  return apiFetch<{ ok: boolean }>(`/asso/documents/${id}`, accessToken, {
+    method: 'DELETE',
+  })
+}
+
+export interface AssoModulePermission {
+  discordId: string
+  module: AssoModule
+  accessLevel: AssoAccessLevel
+  grantedByDiscordId: string
+  grantedAt: string
+}
+
+export interface AssoDocumentFolderGrant {
+  discordId: string
+  folder: 'pv_ag' | 'pv_bureau'
+  grantedByDiscordId: string
+  grantedAt: string
+}
+
+export async function listAssoDocumentPermissions(accessToken: string) {
+  return apiFetch<{
+    permissions: AssoModulePermission[]
+    folderGrants: AssoDocumentFolderGrant[]
+  }>('/asso/permissions/documents', accessToken)
+}
+
+export async function setAssoDocumentPermission(
+  accessToken: string,
+  discordId: string,
+  accessLevel: AssoAccessLevel,
+) {
+  return apiFetch<{ permission: AssoModulePermission }>(
+    '/asso/permissions/documents',
+    accessToken,
+    { method: 'PUT', body: JSON.stringify({ discordId, accessLevel }) },
+  )
+}
+
+export async function grantAssoDocumentFolder(
+  accessToken: string,
+  discordId: string,
+  folder: 'pv_ag' | 'pv_bureau',
+) {
+  return apiFetch<{ ok: boolean }>('/asso/documents/folder-grants', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ discordId, folder }),
+  })
+}
+
+export async function revokeAssoDocumentFolder(
+  accessToken: string,
+  discordId: string,
+  folder: 'pv_ag' | 'pv_bureau',
+) {
+  return apiFetch<{ ok: boolean }>('/asso/documents/folder-grants', accessToken, {
+    method: 'DELETE',
+    body: JSON.stringify({ discordId, folder }),
+  })
+}
+
+export interface CotisationRow {
+  id: number
+  pseudo: string
+  firstName: string
+  lastName: string
+  memberStatus: AssoDossierStatus
+  cotisationType: AssoCotisationType
+  cotisationStatus: AssoCotisationStatus
+  cotisationExemptionRef: string | null
+  cotisationExemptionNote: string | null
+  joinedAt: string
+}
+
+export interface CotisationsOverview {
+  fiscalYear: number
+  counts: Record<AssoCotisationStatus, number>
+  rows: CotisationRow[]
+  canEdit: boolean
+  cotisationsLevel: AssoAccessLevel
+}
+
+export async function getAssoCotisations(accessToken: string) {
+  return apiFetch<{ overview: CotisationsOverview }>('/asso/cotisations', accessToken)
+}
+
+export async function updateAssoCotisation(
+  accessToken: string,
+  dossierId: number,
+  data: {
+    cotisationType?: AssoCotisationType
+    cotisationStatus?: AssoCotisationStatus
+    cotisationExemptionRef?: string | null
+    cotisationExemptionNote?: string | null
+  },
+) {
+  return apiFetch<{ row: CotisationRow }>(`/asso/cotisations/${dossierId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export interface AssoAssociationSettings {
+  name: string
+  tagline?: string
+  objetSocial?: string
+  legalForm?: string
+  rna?: string
+  siren?: string
+  siret?: string
+  dateCreation?: string
+  datePublicationJo?: string
+  fiscalYear: string
+  address?: string
+  postalCode?: string
+  city?: string
+  country?: string
+  email?: string
+  phone?: string
+  website?: string
+  discordUrl?: string
+  presidentName?: string
+  treasurerName?: string
+  secretaryName?: string
+  bankName?: string
+  ibanMasked?: string
+  insuranceRef?: string
+  agrementJeunesse?: string
+}
+
+export async function getAssoSettings(accessToken: string) {
+  return apiFetch<{ settings: AssoAssociationSettings }>('/asso/settings', accessToken)
+}
+
+export async function updateAssoSettings(
+  accessToken: string,
+  data: Partial<AssoAssociationSettings>,
+) {
+  return apiFetch<{ settings: AssoAssociationSettings }>('/asso/settings', accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export type AssoAssemblyStatus = 'a_venir' | 'terminee'
+
+export interface AssoAssembly {
+  id: number
+  title: string
+  date: string
+  agenda: string[]
+  status: AssoAssemblyStatus
+  pvDocumentId: number | null
+  pvDocumentName: string | null
+}
+
+export async function listAssoAssemblies(accessToken: string) {
+  return apiFetch<{ assemblies: AssoAssembly[]; canEdit: boolean }>(
+    '/asso/assemblies',
+    accessToken,
+  )
+}
+
+export async function createAssoAssembly(
+  accessToken: string,
+  data: {
+    title: string
+    date: string
+    agenda: string[] | string
+    status: AssoAssemblyStatus
+    pvDocumentId?: number | null
+  },
+) {
+  return apiFetch<{ assembly: AssoAssembly }>('/asso/assemblies', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateAssoAssembly(
+  accessToken: string,
+  id: number,
+  data: {
+    title: string
+    date: string
+    agenda: string[] | string
+    status: AssoAssemblyStatus
+    pvDocumentId?: number | null
+  },
+) {
+  return apiFetch<{ assembly: AssoAssembly }>(`/asso/assemblies/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteAssoAssembly(accessToken: string, id: number) {
+  return apiFetch<{ ok: boolean }>(`/asso/assemblies/${id}`, accessToken, {
+    method: 'DELETE',
+  })
+}
+
+export interface AssoPermissionProfile {
+  id: string
+  label: string
+  description: string
+}
+
+export interface AssoBureauGrant {
+  discordId: string
+  grantedByDiscordId: string
+  grantedAt: string
+}
+
+export async function listAssoPermissions(accessToken: string) {
+  return apiFetch<{
+    permissions: AssoModulePermission[]
+    folderGrants: AssoDocumentFolderGrant[]
+    bureauGrants: AssoBureauGrant[]
+  }>('/asso/permissions', accessToken)
+}
+
+export async function listAssoPermissionProfiles(accessToken: string) {
+  return apiFetch<{ profiles: AssoPermissionProfile[] }>(
+    '/asso/permissions/profiles',
+    accessToken,
+  )
+}
+
+export async function setAssoModulePermission(
+  accessToken: string,
+  discordId: string,
+  module: AssoModule,
+  accessLevel: AssoAccessLevel,
+) {
+  return apiFetch<{ permission: AssoModulePermission }>('/asso/permissions', accessToken, {
+    method: 'PUT',
+    body: JSON.stringify({ discordId, module, accessLevel }),
+  })
+}
+
+export async function applyAssoPermissionProfile(
+  accessToken: string,
+  discordId: string,
+  profileId: string,
+) {
+  return apiFetch<{ ok: boolean }>('/asso/permissions/profile', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ discordId, profileId }),
+  })
+}
+
+export async function grantAssoBureau(accessToken: string, discordId: string) {
+  return apiFetch<{ ok: boolean }>('/asso/bureau/grants', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ discordId }),
+  })
+}
+
+export async function revokeAssoBureau(accessToken: string, discordId: string) {
+  return apiFetch<{ ok: boolean }>('/asso/bureau/grants', accessToken, {
+    method: 'DELETE',
+    body: JSON.stringify({ discordId }),
+  })
+}
+
+export async function exportMyAssoRgpd(accessToken: string) {
+  const res = await fetch(`${API_URL}/asso/me/export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+    throw new ApiError(data.error ?? 'Export impossible', res.status, data.code)
+  }
+  return res.blob()
+}
+
+export async function exportAssoDossierRgpd(accessToken: string, dossierId: number) {
+  const res = await fetch(`${API_URL}/asso/dossiers/${dossierId}/rgpd-export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+    throw new ApiError(data.error ?? 'Export impossible', res.status, data.code)
+  }
+  return res.blob()
 }
 

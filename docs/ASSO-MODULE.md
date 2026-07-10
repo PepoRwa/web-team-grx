@@ -35,4 +35,25 @@ Kill-switch `users.is_disabled` bloque aussi l’asso.
 
 ## Migration
 
-Appliquer `migrations/018_asso_module.sql` sur la base YorkHost partagée.
+Appliquer `migrations/018_asso_module.sql` puis `migrations/019_asso_documents.sql` sur la base YorkHost partagée.
+
+## Documents (019)
+
+| Dossier | Lecture | Écriture |
+|---------|---------|----------|
+| `statuts` | Tous adhérents actifs | Bureau / édition+ |
+| `pv_ag`, `pv_bureau` | Bureau ou grant explicite | Bureau / édition+ |
+| `conventions`, `interne` | Bureau / admin | Bureau / édition+ |
+
+**Niveaux module `documents`** : `aucun` · `lecture` · `edition` · `admin`  
+Stockage : bucket Supabase privé `association-documents` sur le **projet asso** (`SUPABASE_ASSO_URL`), pas le projet team auth.
+Import legacy : `cd api && npm run migrate:asso-documents` (métadonnées Postgres asso → MySQL).
+Routes : `GET/POST/DELETE /asso/documents/*`, `PUT /asso/permissions/documents`.
+
+## Cotisations
+
+Données sur `asso_dossiers` (`cotisation_type`, `cotisation_status`, dispenses).
+- **Partielle / dispensée** : `cotisation_exemption_ref` (n° délibération) **ou** `cotisation_exemption_note` (engagement staff + motifs) — obligatoire.
+- `GET /asso/cotisations` — synthèse + liste (bureau, niveau lecture+)
+- `PATCH /asso/cotisations/:id` — mise à jour (niveau édition+)
+- Permissions module `cotisations` : même échelle que documents (`aucun` → `admin`)
