@@ -28,8 +28,7 @@ export default function AssoParametresPage() {
 
         {!access.canManagePermissions && (
           <p className="text-sm text-[var(--text-muted)]">
-            La gestion des permissions est réservée aux administrateurs asso (niveau admin sur
-            paramètres ou documents).
+            La gestion des permissions est réservée au président ou aux admins paramètres.
           </p>
         )}
       </div>

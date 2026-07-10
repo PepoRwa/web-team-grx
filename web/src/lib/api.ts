@@ -1203,12 +1203,16 @@ export type AssoModule =
   | 'assemblees'
   | 'parametres'
 
+export type BureauRole = 'president' | 'secretaire' | 'tresorier' | 'membre_bureau'
+
 export interface AssoAccess {
   hasAccess: boolean
   isBureau: boolean
+  bureauRole?: BureauRole | null
   dossierId: number | null
   modules?: Record<AssoModule, AssoAccessLevel> | null
   canManagePermissions?: boolean
+  canManageDocumentGrants?: boolean
   documents?: {
     canAccess: boolean
     canUpload: boolean
@@ -1655,8 +1659,27 @@ export interface AssoPermissionProfile {
 
 export interface AssoBureauGrant {
   discordId: string
+  role: BureauRole
   grantedByDiscordId: string
   grantedAt: string
+}
+
+export interface AssoDocumentGrant {
+  discordId: string
+  documentId: number
+  documentName: string
+  documentFolder: AssoDocumentFolder
+  accessLevel: 'lecture' | 'edition'
+  grantedByDiscordId: string
+  grantedAt: string
+}
+
+export interface AssoBureauRoleDefinition {
+  id: BureauRole
+  label: string
+  description: string
+  canManagePermissions: boolean
+  canAccessCotisations: boolean
 }
 
 export async function listAssoPermissions(accessToken: string) {
@@ -1664,11 +1687,12 @@ export async function listAssoPermissions(accessToken: string) {
     permissions: AssoModulePermission[]
     folderGrants: AssoDocumentFolderGrant[]
     bureauGrants: AssoBureauGrant[]
+    documentGrants: AssoDocumentGrant[]
   }>('/asso/permissions', accessToken)
 }
 
 export async function listAssoPermissionProfiles(accessToken: string) {
-  return apiFetch<{ profiles: AssoPermissionProfile[] }>(
+  return apiFetch<{ profiles: AssoPermissionProfile[]; bureauRoles: AssoBureauRoleDefinition[] }>(
     '/asso/permissions/profiles',
     accessToken,
   )
@@ -1697,11 +1721,56 @@ export async function applyAssoPermissionProfile(
   })
 }
 
-export async function grantAssoBureau(accessToken: string, discordId: string) {
+export async function grantAssoBureau(
+  accessToken: string,
+  discordId: string,
+  role: BureauRole = 'membre_bureau',
+) {
   return apiFetch<{ ok: boolean }>('/asso/bureau/grants', accessToken, {
     method: 'POST',
-    body: JSON.stringify({ discordId }),
+    body: JSON.stringify({ discordId, role }),
   })
+}
+
+export async function updateAssoBureauRole(
+  accessToken: string,
+  discordId: string,
+  role: BureauRole,
+) {
+  return apiFetch<{ ok: boolean }>('/asso/bureau/grants', accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ discordId, role }),
+  })
+}
+
+export async function grantAssoDocumentAccess(
+  accessToken: string,
+  discordId: string,
+  documentId: number,
+  accessLevel: 'lecture' | 'edition' = 'lecture',
+) {
+  return apiFetch<{ ok: boolean }>('/asso/documents/grants', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ discordId, documentId, accessLevel }),
+  })
+}
+
+export async function revokeAssoDocumentAccess(
+  accessToken: string,
+  discordId: string,
+  documentId: number,
+) {
+  return apiFetch<{ ok: boolean }>('/asso/documents/grants', accessToken, {
+    method: 'DELETE',
+    body: JSON.stringify({ discordId, documentId }),
+  })
+}
+
+export async function listAssoDocumentGrants(accessToken: string, documentId: number) {
+  return apiFetch<{ grants: AssoDocumentGrant[] }>(
+    `/asso/documents/${documentId}/grants`,
+    accessToken,
+  )
 }
 
 export async function revokeAssoBureau(accessToken: string, discordId: string) {

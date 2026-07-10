@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { AssoDocTree } from '@/components/asso/asso-doc-tree'
+import { AssoDocumentGrantsPanel } from '@/components/asso/asso-document-grants-panel'
 import { AssoShell } from '@/components/asso/asso-shell'
 import { useAssoGate } from '@/hooks/useAssoGate'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,7 +17,7 @@ import { assoAccessLevelLabels } from '@/lib/asso-document-labels'
 
 export default function AssoDocumentsPage() {
   const { session } = useAuth()
-  const { ready } = useAssoGate()
+  const { access, ready } = useAssoGate()
   const token = session?.access_token
 
   const [meta, setMeta] = useState<AssoDocumentsMeta | null>(null)
@@ -71,13 +72,20 @@ export default function AssoDocumentsPage() {
         ) : error ? (
           <div className="card border-rose/30 p-6 text-sm text-rose">{error}</div>
         ) : meta ? (
-          <AssoDocTree
-            accessToken={token!}
-            documents={documents}
-            accessibleFolders={meta.accessibleFolders}
-            canUpload={meta.canUpload}
-            onChanged={() => void load()}
-          />
+          <div className="space-y-6">
+            <AssoDocTree
+              accessToken={token!}
+              documents={documents}
+              accessibleFolders={meta.accessibleFolders}
+              canUpload={meta.canUpload}
+              onChanged={() => void load()}
+            />
+            <AssoDocumentGrantsPanel
+              accessToken={token!}
+              enabled={Boolean(access.canManageDocumentGrants)}
+              documents={documents}
+            />
+          </div>
         ) : null}
       </div>
     </AssoShell>
