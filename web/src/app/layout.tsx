@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { DM_Sans, Great_Vibes } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ThemeProvider } from '@/components/providers'
@@ -12,10 +13,11 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
 })
 
-const displayFont = Great_Vibes({
-  subsets: ['latin'],
-  weight: '400',
+const displayFont = localFont({
+  src: '../fonts/GreatVibes-Regular.ttf',
   variable: '--font-display-script',
+  weight: '400',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
