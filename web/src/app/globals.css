@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Great Vibes";
+  src: url("/fonts/GreatVibes-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-lavender: #c4b5fd;
   --color-lavender-dark: #7c6bc4;
@@ -13,7 +21,7 @@
   --color-sky: #bae6fd;
   --color-coral: #fecaca;
   --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display-script), "Great Vibes", cursive;
+  --font-display: "Great Vibes", cursive;
 }
 
 :root,
