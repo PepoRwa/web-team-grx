@@ -13,7 +13,7 @@
   --color-sky: #bae6fd;
   --color-coral: #fecaca;
   --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-good-vibes), "Good Vibes", cursive;
+  --font-display: var(--font-display-script), "Great Vibes", cursive;
 }
 
 :root,
@@ -56,7 +56,7 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
-/* Titres hub / asso — Good Vibes */
+/* Titres hub / asso — Great Vibes (script) */
 .font-display,
 .hub-shell h1:not(.font-sans) {
   font-family: var(--font-display);
