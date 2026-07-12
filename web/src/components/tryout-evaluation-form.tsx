@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { TryoutEvaluationInput } from '@/lib/api'
-import { inputClass } from '@/lib/scouting'
+import { inputClass } from '@/lib/valorant'
 import { RECOMMENDATIONS } from '@/lib/tryouts'
 
 const CRITERIA = [

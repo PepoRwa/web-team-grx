@@ -8,9 +8,10 @@ import { HubShell } from '@/components/hub/hub-shell'
 import { ProfileCard } from '@/components/profile-card'
 import { useAuth } from '@/hooks/useAuth'
 import { ApiError, listProfiles, type Profile } from '@/lib/api'
+import { canViewTeamProfiles } from '@/lib/permissions'
 
 export default function ProfilesPage() {
-  const { session, user, loading: authLoading } = useAuth()
+  const { session, user, loading: authLoading, permissions } = useAuth()
   const router = useRouter()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [search, setSearch] = useState('')
@@ -19,10 +20,13 @@ export default function ProfilesPage() {
 
   useEffect(() => {
     if (!authLoading && !session) router.replace('/')
-  }, [authLoading, session, router])
+    if (!authLoading && permissions && !canViewTeamProfiles(permissions)) {
+      router.replace('/hub/profiles/me/')
+    }
+  }, [authLoading, session, permissions, router])
 
   const load = useCallback(async () => {
-    if (!session?.access_token) return
+    if (!session?.access_token || !canViewTeamProfiles(permissions)) return
     setLoading(true)
     setError(null)
     try {
@@ -33,7 +37,7 @@ export default function ProfilesPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, permissions])
 
   useEffect(() => {
     if (!authLoading && session?.access_token) void load()
@@ -60,7 +64,7 @@ export default function ProfilesPage() {
     <HubShell
       activeNav="profile"
       title="Profils équipe"
-      subtitle={`${profiles.length} membre${profiles.length !== 1 ? 's' : ''}`}
+      subtitle={`${profiles.length} membre${profiles.length !== 1 ? 's' : ''} · staff`}
     >
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

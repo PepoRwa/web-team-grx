@@ -100,7 +100,7 @@ export default function MyProfilePage() {
                   <h3 className="text-sm font-semibold">Mes données personnelles (RGPD)</h3>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
                     Télécharge une copie complète des données que Gowrax détient sur toi (profil,
-                    rôles, VODs, strats, scouting, notifications…) au format JSON.
+                    rôles, VODs, strats, notifications…) au format JSON.
                   </p>
                   {exportError && <p className="mt-2 text-xs text-red-500">{exportError}</p>}
                   <button

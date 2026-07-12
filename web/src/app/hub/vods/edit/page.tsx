@@ -42,7 +42,9 @@ function EditVodContent() {
     setLoading(true)
     Promise.all([
       getVod(session.access_token, id),
-      listProfiles(session.access_token),
+      permissions?.isStaff
+        ? listProfiles(session.access_token)
+        : Promise.resolve({ profiles: [] as Profile[] }),
     ])
       .then(([vodRes, profRes]) => {
         setVod(vodRes.vod)
@@ -52,7 +54,7 @@ function EditVodContent() {
         setError(err instanceof ApiError ? err.message : 'VOD introuvable')
       })
       .finally(() => setLoading(false))
-  }, [session?.access_token, id])
+  }, [session?.access_token, id, permissions?.isStaff])
 
   const handleSubmit = useCallback(
     async (data: VodInput) => {

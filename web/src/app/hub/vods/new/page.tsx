@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { ApiError, createVod, listProfiles, type Profile, type VodInput } from '@/lib/api'
 
 export default function NewVodPage() {
-  const { session, loading: authLoading } = useAuth()
+  const { session, loading: authLoading, permissions } = useAuth()
   const router = useRouter()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -20,11 +20,11 @@ export default function NewVodPage() {
   }, [authLoading, session, router])
 
   useEffect(() => {
-    if (!session?.access_token) return
+    if (!session?.access_token || !permissions?.isStaff) return
     listProfiles(session.access_token)
       .then((r) => setProfiles(r.profiles))
       .catch(() => setProfiles([]))
-  }, [session?.access_token])
+  }, [session?.access_token, permissions?.isStaff])
 
   const handleSubmit = useCallback(
     async (data: VodInput) => {

@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import {
-  Binoculars,
   BookOpen,
   Building2,
   Film,
@@ -16,7 +15,6 @@ export type HubNavKey =
   | 'hub'
   | 'vods'
   | 'strats'
-  | 'scouting'
   | 'tryouts'
   | 'asso'
   | 'announcements'
@@ -33,7 +31,6 @@ const ALL_NAV_ITEMS: {
   { key: 'hub', href: '/hub/', label: 'Hub', icon: LayoutDashboard },
   { key: 'vods', href: '/hub/vods/', label: 'VODs', icon: Film },
   { key: 'strats', href: '/hub/strats/', label: 'Strats', icon: BookOpen },
-  { key: 'scouting', href: '/hub/scouting/', label: 'Scout', icon: Binoculars },
   { key: 'tryouts', href: '/hub/tryouts/', label: 'Tryouts', icon: UserPlus, requiresTryout: true },
   { key: 'asso', href: '/hub/asso/', label: 'Asso', icon: Building2, requiresAsso: true },
   { key: 'announcements', href: '/hub/announcements/', label: 'News', icon: Megaphone },
@@ -53,17 +50,18 @@ export function HubNav({
   showTryouts = false,
   showAsso = false,
 }: HubNavProps) {
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter(
+  const navItems = ALL_NAV_ITEMS.filter(
     (item) =>
       (!item.requiresTryout || showTryouts) && (!item.requiresAsso || showAsso),
   )
+
   return (
     <nav
       className="hub-bottom-nav fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 backdrop-blur-md"
       aria-label="Navigation principale"
     >
       <div className="mx-auto flex max-w-2xl justify-around px-0.5 pt-1.5">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.key === active
           return (
             <Link

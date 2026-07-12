@@ -1,3 +1,7 @@
+import type { UserPermissions } from '@/lib/user-permissions'
+
+export type { UserPermissions }
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.team.gowrax.me'
 
 export class ApiError extends Error {
@@ -81,27 +85,6 @@ export async function apiFetch<T>(
   throw lastError ?? new Error('Erreur API')
 }
 
-export interface UserPermissions {
-  discordId: string
-  roleIds: string[]
-  roles: { roleId: string; name: string; category: string; permissionLevel: number }[]
-  isMember: boolean
-  isCEO: boolean
-  isTeamManager: boolean
-  isHeadCoach: boolean
-  isCoach: boolean
-  isStaff: boolean
-  isCaptain: boolean
-  isFounder: boolean
-  rosters: string[]
-  canTransmit: boolean
-  canModerate: boolean
-  canAccessSite: boolean
-  canScout: boolean
-  canTryoutRead: boolean
-  canTryoutWrite: boolean
-  canAdmin: boolean
-}
 
 export interface HubUser {
   discordId: string
@@ -351,6 +334,50 @@ export async function updateMyProfile(accessToken: string, data: ProfileUpdate) 
   })
 }
 
+export async function updateMemberProfile(
+  accessToken: string,
+  discordId: string,
+  data: ProfileUpdate,
+) {
+  return apiFetch<{ profile: Profile }>(`/profiles/${discordId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export type RosterCaptainTarget = 'high_roster' | 'game_changers' | 'high_roster_cs2'
+
+export interface RosterCaptain {
+  targetRoster: RosterCaptainTarget
+  discordId: string
+  assignedByDiscordId: string
+  assignedAt: string
+  updatedAt: string
+  username: string | null
+  publicName: string | null
+  avatarUrl: string | null
+}
+
+export async function listRosterCaptains(accessToken: string) {
+  return apiFetch<{ captains: RosterCaptain[] }>('/captains', accessToken)
+}
+
+export async function setRosterCaptain(
+  accessToken: string,
+  data: { targetRoster: RosterCaptainTarget; discordId: string },
+) {
+  return apiFetch<{ captains: RosterCaptain[] }>('/captains', accessToken, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function removeRosterCaptain(accessToken: string, targetRoster: RosterCaptainTarget) {
+  return apiFetch<{ captains: RosterCaptain[] }>(`/captains/${targetRoster}`, accessToken, {
+    method: 'DELETE',
+  })
+}
+
 // ─── RGPD — export de ses données ───────────────────────────────────────────
 
 /** Télécharge l'export RGPD (JSON) du membre connecté et déclenche le download. */
@@ -396,7 +423,6 @@ export interface AdminUserDetail extends AdminUser {
     vods: number
     comments: number
     strats: number
-    scouting: number
     announcements: number
   }
 }
@@ -630,280 +656,6 @@ export async function sendTransmission(
   )
 }
 
-// ─── Scouting ───────────────────────────────────────────────────────────────
-
-export type ScoutingRole = 'duellist' | 'initiator' | 'controller' | 'sentinel' | 'flex'
-export type ScoutingVerificationStatus = 'pending' | 'verified'
-
-export interface ScoutingAgentPoolEntry {
-  agent: string
-  pickRate: number | null
-}
-
-export interface ScoutingTeamStats {
-  verifiedCount: number
-  pendingCount: number
-  avgAcs: number | null
-  avgKda: number | null
-  avgWinrate: number | null
-  avgRank: number | null
-  medianRank: number | null
-  rankStdDev: number | null
-  strongestPlayerId: number | null
-  weakestPlayerId: number | null
-  trustScore: number | null
-}
-
-export interface ScoutingTournament {
-  id: number
-  name: string
-  startDate: string | null
-  endDate: string | null
-  format: string | null
-  rulesUrl: string | null
-  notes: string | null
-  createdByDiscordId: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface ScoutingTeam {
-  id: number
-  name: string
-  tag: string | null
-  notes: string | null
-  createdByDiscordId: string
-  createdAt: string
-  updatedAt: string
-  stats: ScoutingTeamStats | null
-  seed?: string | null
-  linkNotes?: string | null
-  playerCount?: number
-}
-
-export interface ScoutingPlayer {
-  id: number
-  teamId: number
-  riotId: string
-  riotTag: string
-  riotDisplay: string
-  role: ScoutingRole | null
-  isStarter: boolean | null
-  currentRank: string | null
-  peakRankCurrent: string | null
-  peakRankPrev: string | null
-  endRankPrev: string | null
-  currentRankValue: number | null
-  gamesThisSeason: number | null
-  recentWinrate: number | null
-  avgAcs: number | null
-  avgKda: number | null
-  agentPool: ScoutingAgentPoolEntry[] | null
-  formerTeam: string | null
-  notes: string | null
-  verificationStatus: ScoutingVerificationStatus
-  updatedByDiscordId: string
-  updatedByUsername: string | null
-  verifiedByDiscordId: string | null
-  verifiedByUsername: string | null
-  verifiedAt: string | null
-  trustFactor: number | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface ScoutingTournamentInput {
-  name: string
-  startDate?: string | null
-  endDate?: string | null
-  format?: string | null
-  rulesUrl?: string | null
-  notes?: string | null
-}
-
-export interface ScoutingTeamInput {
-  name: string
-  tag?: string | null
-  notes?: string | null
-}
-
-export interface ScoutingLinkTeamInput {
-  teamId?: number
-  name?: string
-  tag?: string | null
-  notes?: string | null
-  seed?: string | null
-  linkNotes?: string | null
-}
-
-export interface ScoutingPlayerInput {
-  riotId: string
-  riotTag: string
-  role?: ScoutingRole | null
-  isStarter?: boolean | null
-  currentRank?: string | null
-  peakRankCurrent?: string | null
-  peakRankPrev?: string | null
-  endRankPrev?: string | null
-  gamesThisSeason?: number | null
-  recentWinrate?: number | null
-  avgAcs?: number | null
-  avgKda?: number | null
-  agentPool?: ScoutingAgentPoolEntry[] | null
-  formerTeam?: string | null
-  notes?: string | null
-}
-
-export async function listScoutingTournaments(accessToken: string) {
-  return apiFetch<{ tournaments: ScoutingTournament[] }>('/scouting/tournaments', accessToken)
-}
-
-export async function getScoutingTournament(accessToken: string, id: number) {
-  return apiFetch<{ tournament: ScoutingTournament; teams: ScoutingTeam[] }>(
-    `/scouting/tournaments/${id}`,
-    accessToken,
-  )
-}
-
-export async function createScoutingTournament(accessToken: string, data: ScoutingTournamentInput) {
-  return apiFetch<{ tournament: ScoutingTournament }>('/scouting/tournaments', accessToken, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function updateScoutingTournament(
-  accessToken: string,
-  id: number,
-  data: Partial<ScoutingTournamentInput>,
-) {
-  return apiFetch<{ tournament: ScoutingTournament }>(`/scouting/tournaments/${id}`, accessToken, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function deleteScoutingTournament(accessToken: string, id: number) {
-  return apiFetch<void>(`/scouting/tournaments/${id}`, accessToken, { method: 'DELETE' })
-}
-
-export async function linkScoutingTeamToTournament(
-  accessToken: string,
-  tournamentId: number,
-  data: ScoutingLinkTeamInput,
-) {
-  return apiFetch<{ team: ScoutingTeam }>(
-    `/scouting/tournaments/${tournamentId}/teams`,
-    accessToken,
-    { method: 'POST', body: JSON.stringify(data) },
-  )
-}
-
-export async function unlinkScoutingTeamFromTournament(
-  accessToken: string,
-  tournamentId: number,
-  teamId: number,
-) {
-  return apiFetch<void>(
-    `/scouting/tournaments/${tournamentId}/teams/${teamId}`,
-    accessToken,
-    { method: 'DELETE' },
-  )
-}
-
-export async function listScoutingTeams(accessToken: string, search?: string) {
-  const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-  return apiFetch<{ teams: ScoutingTeam[] }>(`/scouting/teams${qs}`, accessToken)
-}
-
-export async function getScoutingTeam(accessToken: string, id: number) {
-  return apiFetch<{ team: ScoutingTeam; players: ScoutingPlayer[] }>(
-    `/scouting/teams/${id}`,
-    accessToken,
-  )
-}
-
-export async function createScoutingTeam(accessToken: string, data: ScoutingTeamInput) {
-  return apiFetch<{ team: ScoutingTeam }>('/scouting/teams', accessToken, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function updateScoutingTeam(
-  accessToken: string,
-  id: number,
-  data: Partial<ScoutingTeamInput>,
-) {
-  return apiFetch<{ team: ScoutingTeam }>(`/scouting/teams/${id}`, accessToken, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function deleteScoutingTeam(accessToken: string, id: number) {
-  return apiFetch<void>(`/scouting/teams/${id}`, accessToken, { method: 'DELETE' })
-}
-
-export async function getScoutingPlayer(accessToken: string, id: number) {
-  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}`, accessToken)
-}
-
-export async function createScoutingPlayer(
-  accessToken: string,
-  teamId: number,
-  data: ScoutingPlayerInput,
-) {
-  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/teams/${teamId}/players`, accessToken, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function updateScoutingPlayer(
-  accessToken: string,
-  id: number,
-  data: Partial<ScoutingPlayerInput>,
-) {
-  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}`, accessToken, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function verifyScoutingPlayer(accessToken: string, id: number) {
-  return apiFetch<{ player: ScoutingPlayer }>(`/scouting/players/${id}/verify`, accessToken, {
-    method: 'POST',
-  })
-}
-
-export async function deleteScoutingPlayer(accessToken: string, id: number) {
-  return apiFetch<void>(`/scouting/players/${id}`, accessToken, { method: 'DELETE' })
-}
-
-export interface ScoutingAiAnalysis {
-  teamId: number
-  tournamentId: number | null
-  model: string
-  generatedAt: string
-  text: string
-}
-
-export async function analyzeScoutingTeam(
-  accessToken: string,
-  teamId: number,
-  tournamentId?: number,
-) {
-  return apiFetch<{ analysis: ScoutingAiAnalysis }>(
-    `/scouting/teams/${teamId}/analyze`,
-    accessToken,
-    {
-      method: 'POST',
-      body: JSON.stringify(tournamentId ? { tournamentId } : {}),
-    },
-  )
-}
-
 // ─── Try Outs ─────────────────────────────────────────────────────────────────
 
 export type TryoutGame = 'valorant' | 'cs2' | 'other'
@@ -929,6 +681,13 @@ export type TryoutSessionType = 'scrim' | 'review' | 'interview' | 'other'
 export type TryoutSessionOutcome = 'pending' | 'positive' | 'neutral' | 'negative'
 export type TryoutRecommendation = 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no'
 
+export type ValorantRole = 'duellist' | 'initiator' | 'controller' | 'sentinel' | 'flex'
+
+export interface ValorantAgentPoolEntry {
+  agent: string
+  pickRate: number | null
+}
+
 export interface TryoutCampaign {
   id: number
   name: string
@@ -951,7 +710,7 @@ export interface TryoutCandidate {
   displayName: string | null
   trackerUrl: string | null
   discordId: string | null
-  role: ScoutingRole | null
+  role: ValorantRole | null
   currentRank: string | null
   peakRankCurrent: string | null
   peakRankPrev: string | null
@@ -960,7 +719,7 @@ export interface TryoutCandidate {
   recentWinrate: number | null
   avgAcs: number | null
   avgKda: number | null
-  agentPool: ScoutingAgentPoolEntry[] | null
+  agentPool: ValorantAgentPoolEntry[] | null
   source: TryoutCandidateSource
   notes: string | null
   createdByDiscordId: string
@@ -1021,7 +780,7 @@ export interface TryoutCandidateInput {
   displayName?: string | null
   trackerUrl?: string | null
   discordId?: string | null
-  role?: ScoutingRole | null
+  role?: ValorantRole | null
   currentRank?: string | null
   peakRankCurrent?: string | null
   peakRankPrev?: string | null
@@ -1030,7 +789,7 @@ export interface TryoutCandidateInput {
   recentWinrate?: number | null
   avgAcs?: number | null
   avgKda?: number | null
-  agentPool?: ScoutingAgentPoolEntry[] | null
+  agentPool?: ValorantAgentPoolEntry[] | null
   source?: TryoutCandidateSource
   notes?: string | null
   campaignId?: number

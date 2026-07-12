@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { TryoutCampaign, TryoutCampaignInput } from '@/lib/api'
-import { inputClass } from '@/lib/scouting'
+import { inputClass } from '@/lib/valorant'
 import { CAMPAIGN_STATUSES, TARGET_ROSTERS } from '@/lib/tryouts'
 
 interface TryoutCampaignFormProps {

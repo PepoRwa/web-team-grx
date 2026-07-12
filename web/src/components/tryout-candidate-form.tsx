@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { TryoutCandidateInput, TryoutPipelineStatus } from '@/lib/api'
-import { inputClass, SCOUTING_ROLES, VALORANT_RANKS } from '@/lib/scouting'
+import { inputClass, VALORANT_RANKS, VALORANT_ROLES } from '@/lib/valorant'
 import { CANDIDATE_SOURCES, PIPELINE_STATUSES } from '@/lib/tryouts'
 
 interface TryoutCandidateFormProps {
@@ -98,7 +98,7 @@ export function TryoutCandidateForm({
           <span className="text-sm font-medium">Rôle</span>
           <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">—</option>
-            {SCOUTING_ROLES.map((r) => (
+            {VALORANT_ROLES.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
               </option>

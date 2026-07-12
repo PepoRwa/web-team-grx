@@ -7,12 +7,13 @@ interface ProfileFormProps {
   initial: Profile
   submitting: boolean
   onSubmit: (data: ProfileUpdate) => Promise<void>
+  submitLabel?: string
 }
 
 const inputClass =
   'w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
 
-export function ProfileForm({ initial, submitting, onSubmit }: ProfileFormProps) {
+export function ProfileForm({ initial, submitting, onSubmit, submitLabel = 'Enregistrer mon profil' }: ProfileFormProps) {
   const [displayName, setDisplayName] = useState(initial.displayName ?? initial.publicName ?? '')
   const [trackerUrl, setTrackerUrl] = useState(initial.trackerUrl ?? '')
   const [riotId, setRiotId] = useState(initial.riotId ?? '')
@@ -120,7 +121,7 @@ export function ProfileForm({ initial, submitting, onSubmit }: ProfileFormProps)
       </fieldset>
 
       <button type="submit" className="btn-primary" disabled={submitting}>
-        Enregistrer mon profil
+        {submitLabel}
       </button>
     </form>
   )

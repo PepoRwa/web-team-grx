@@ -16,7 +16,7 @@ import {
   getTryoutCandidate,
   type TryoutCandidate,
 } from '@/lib/api'
-import { roleLabel } from '@/lib/scouting'
+import { roleLabel } from '@/lib/valorant'
 import {
   candidateDisplayName,
   pipelineBadgeClass,

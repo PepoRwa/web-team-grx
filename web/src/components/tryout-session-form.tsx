@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { TryoutSessionInput, Vod } from '@/lib/api'
 import { listVods } from '@/lib/api'
-import { inputClass } from '@/lib/scouting'
+import { inputClass } from '@/lib/valorant'
 import { SESSION_OUTCOMES, SESSION_TYPES } from '@/lib/tryouts'
 
 interface TryoutSessionFormProps {

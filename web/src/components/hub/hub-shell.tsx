@@ -60,7 +60,14 @@ export function HubShell({
                 />
               </div>
               {!showPageBar && (
-                <p className="hidden text-xs text-[var(--text-muted)] sm:block">Team Hub</p>
+                <p className="hidden text-xs text-[var(--text-muted)] sm:block">
+                  Team Hub
+                  {permissions?.isStaff && (
+                    <span className="ml-1.5 rounded-md bg-[var(--color-mint)]/25 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-mint-dark)]">
+                      Staff
+                    </span>
+                  )}
+                </p>
               )}
             </div>
           </Link>

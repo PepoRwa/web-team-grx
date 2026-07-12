@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowRight,
-  Binoculars,
   BookOpen,
   Building2,
   Calendar,
   ChevronRight,
+  Crown,
   Film,
   Megaphone,
   Plus,
@@ -26,7 +26,6 @@ import {
   getSeasonBanner,
   listAnnouncements,
   listProfiles,
-  listScoutingTournaments,
   listStrats,
   listVods,
   getTryoutStats,
@@ -37,13 +36,14 @@ import {
 import { formatMatchDate, statusBadgeClass, statusLabel } from '@/lib/format'
 import { hubGreeting, relativeTime } from '@/lib/greeting'
 import { gameBadgeClass, gameLabel } from '@/lib/profiles'
+import { canViewTeamProfiles, canManageCaptains } from '@/lib/permissions'
+import { targetRosterLabel } from '@/lib/tryouts'
 import { useAssoAccess } from '@/hooks/useAssoAccess'
 import type { LucideIcon } from 'lucide-react'
 
 interface DashboardStats {
   vodsTotal: number
   stratsTotal: number
-  scoutingTotal: number
   tryoutCandidates: number
   membersTotal: number
   unreadAnnouncements: number
@@ -55,7 +55,6 @@ interface DashboardStats {
 const EMPTY_STATS: DashboardStats = {
   vodsTotal: 0,
   stratsTotal: 0,
-  scoutingTotal: 0,
   tryoutCandidates: 0,
   membersTotal: 0,
   unreadAnnouncements: 0,
@@ -72,7 +71,7 @@ interface HubModule {
   gradient: string
   stat?: string
   badge?: number
-  staffOnly?: boolean
+  readOnly?: boolean
 }
 
 export function HubDashboard() {
@@ -81,32 +80,32 @@ export function HubDashboard() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
   const [loading, setLoading] = useState(true)
 
+  const staffView = canViewTeamProfiles(permissions)
+
   const load = useCallback(async () => {
     if (!session?.access_token) return
     setLoading(true)
     try {
-      const [vodsRes, stratsRes, announcementsRes, profilesRes, seasonRes, scoutingRes, tryoutRes] =
+      const [vodsRes, stratsRes, announcementsRes, seasonRes, tryoutRes, profilesRes] =
         await Promise.all([
-        listVods(session.access_token, { page: 1, limit: 4 }),
-        listStrats(session.access_token),
-        listAnnouncements(session.access_token),
-        listProfiles(session.access_token),
-        getSeasonBanner(session.access_token).catch(() => ({ banner: null })),
-        permissions?.canScout
-          ? listScoutingTournaments(session.access_token).catch(() => ({ tournaments: [] }))
-          : Promise.resolve({ tournaments: [] }),
-        permissions?.canTryoutRead
-          ? getTryoutStats(session.access_token).catch(() => ({
-              activeCampaigns: 0,
-              activeCandidates: 0,
-            }))
-          : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
-      ])
+          listVods(session.access_token, { page: 1, limit: 4 }),
+          listStrats(session.access_token),
+          listAnnouncements(session.access_token),
+          getSeasonBanner(session.access_token).catch(() => ({ banner: null })),
+          permissions?.canTryoutRead
+            ? getTryoutStats(session.access_token).catch(() => ({
+                activeCampaigns: 0,
+                activeCandidates: 0,
+              }))
+            : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
+          staffView
+            ? listProfiles(session.access_token).catch(() => ({ profiles: [] }))
+            : Promise.resolve({ profiles: [] }),
+        ])
 
       setStats({
         vodsTotal: vodsRes.total,
         stratsTotal: stratsRes.strats.length,
-        scoutingTotal: scoutingRes.tournaments.length,
         tryoutCandidates: tryoutRes.activeCandidates,
         membersTotal: profilesRes.profiles.length,
         unreadAnnouncements: announcementsRes.unreadCount,
@@ -119,7 +118,7 @@ export function HubDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, permissions?.canScout, permissions?.canTryoutRead])
+  }, [session?.access_token, permissions?.canTryoutRead, staffView])
 
   useEffect(() => {
     if (session?.access_token) void load()
@@ -129,7 +128,7 @@ export function HubDashboard() {
   const avatar = user?.avatarUrl ?? 'https://cdn.discordapp.com/embed/avatars/0.png'
   const greeting = hubGreeting()
 
-  const modules: HubModule[] = [
+  const memberModules: HubModule[] = [
     {
       icon: Film,
       title: 'VODs & Replays',
@@ -146,15 +145,44 @@ export function HubDashboard() {
       gradient: 'from-mint/45 via-sky/25 to-transparent',
       stat: loading ? '…' : String(stats.stratsTotal),
     },
-    ...(permissions?.canScout
+    {
+      icon: User,
+      title: 'Mon profil',
+      desc: 'Riot ID, tracker, préférences perso.',
+      href: '/hub/profiles/me/',
+      gradient: 'from-rose/40 via-gold/25 to-transparent',
+    },
+    {
+      icon: Megaphone,
+      title: 'Annonces',
+      desc: 'News staff, mises à jour équipe.',
+      href: '/hub/announcements/',
+      gradient: 'from-gold/40 via-coral/30 to-transparent',
+      badge: stats.unreadAnnouncements,
+    },
+    ...(assoAccess.hasAccess && !assoAccess.isBureau
       ? [
           {
-            icon: Binoculars,
-            title: 'Scouting',
-            desc: 'Tournois, équipes adverses, joueurs.',
-            href: '/hub/scouting/',
-            gradient: 'from-coral/40 via-sky/25 to-transparent',
-            stat: loading ? '…' : String(stats.scoutingTotal),
+            icon: Building2,
+            title: 'Mon dossier asso',
+            desc: 'Adhésion, documents, cotisations.',
+            href: '/hub/asso/me/',
+            gradient: 'from-gold/35 via-lavender/30 to-transparent',
+          } satisfies HubModule,
+        ]
+      : []),
+  ]
+
+  const staffModules: HubModule[] = [
+    ...(staffView
+      ? [
+          {
+            icon: Users,
+            title: 'Profils équipe',
+            desc: 'Annuaire staff — Riot ID, rôles, trackers.',
+            href: '/hub/profiles/',
+            gradient: 'from-rose/40 via-gold/25 to-transparent',
+            stat: loading ? '…' : String(stats.membersTotal),
           } satisfies HubModule,
         ]
       : []),
@@ -167,26 +195,21 @@ export function HubDashboard() {
             href: '/hub/tryouts/',
             gradient: 'from-mint/40 via-lavender/25 to-transparent',
             stat: loading ? '…' : String(stats.tryoutCandidates),
-            staffOnly: !permissions.canTryoutWrite,
+            readOnly: !permissions.canTryoutWrite,
           } satisfies HubModule,
         ]
       : []),
-    {
-      icon: User,
-      title: 'Profils',
-      desc: 'Riot ID, tracker, rôles synchronisés.',
-      href: '/hub/profiles/',
-      gradient: 'from-rose/40 via-gold/25 to-transparent',
-      stat: loading ? '…' : String(stats.membersTotal),
-    },
-    {
-      icon: Megaphone,
-      title: 'Annonces',
-      desc: 'News staff, mises à jour équipe.',
-      href: '/hub/announcements/',
-      gradient: 'from-gold/40 via-coral/30 to-transparent',
-      badge: stats.unreadAnnouncements,
-    },
+    ...(canManageCaptains(permissions)
+      ? [
+          {
+            icon: Crown,
+            title: 'Capitaines',
+            desc: 'Désigner un capitaine par roster (tryouts lecture).',
+            href: '/hub/captains/',
+            gradient: 'from-gold/40 via-coral/25 to-transparent',
+          } satisfies HubModule,
+        ]
+      : []),
     ...(permissions?.canTransmit
       ? [
           {
@@ -195,7 +218,6 @@ export function HubDashboard() {
             desc: 'Diffuser vers Discord & le site.',
             href: '/hub/transmissions/',
             gradient: 'from-lavender/50 via-rose/30 to-transparent',
-            staffOnly: true,
           } satisfies HubModule,
         ]
       : []),
@@ -207,21 +229,17 @@ export function HubDashboard() {
             desc: 'Comptes, emails, accès. Fondateur.',
             href: '/hub/admin/',
             gradient: 'from-rose/45 via-coral/30 to-transparent',
-            staffOnly: true,
           } satisfies HubModule,
         ]
       : []),
-    ...(assoAccess.hasAccess
+    ...(assoAccess.hasAccess && assoAccess.isBureau
       ? [
           {
             icon: Building2,
             title: 'Gestion asso',
-            desc: assoAccess.isBureau
-              ? 'Dossiers adhérents, liaison Discord.'
-              : 'Mon dossier d\'adhésion.',
-            href: assoAccess.isBureau ? '/hub/asso/dossiers/' : '/hub/asso/me/',
+            desc: 'Dossiers adhérents, liaison Discord.',
+            href: '/hub/asso/dossiers/',
             gradient: 'from-gold/35 via-lavender/30 to-transparent',
-            staffOnly: assoAccess.isBureau,
           } satisfies HubModule,
         ]
       : []),
@@ -267,7 +285,12 @@ export function HubDashboard() {
                   {r.name}
                 </span>
               ))}
-              {permissions?.isCaptain && <span className="badge badge-gold">Capitaine</span>}
+              {permissions?.captainRosters.map((r) => (
+                <span key={r} className="badge badge-gold">
+                  Capitaine · {targetRosterLabel(r)}
+                </span>
+              ))}
+              {permissions?.isStaff && <span className="badge badge-mint">Staff</span>}
             </div>
           </div>
 
@@ -324,54 +347,41 @@ export function HubDashboard() {
           href="/hub/announcements/"
           highlight={stats.unreadAnnouncements > 0}
         />
-        <StatPill icon={Users} label="Membres" value={loading ? '—' : stats.membersTotal} href="/hub/profiles/" />
+        {staffView ? (
+          <StatPill
+            icon={Users}
+            label="Membres"
+            value={loading ? '—' : stats.membersTotal}
+            href="/hub/profiles/"
+          />
+        ) : (
+          <StatPill
+            icon={User}
+            label="Mon profil"
+            value="→"
+            href="/hub/profiles/me/"
+          />
+        )}
       </section>
 
-      {/* Modules */}
-      <section className="hub-stagger mt-8">
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Modules</h2>
-            <p className="text-sm text-[var(--text-muted)]">Tout ce dont l&apos;équipe a besoin</p>
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map((mod) => (
-            <Link
-              key={mod.title}
-              href={mod.href}
-              className={`hub-module-card group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br ${mod.gradient} p-5`}
-            >
-              <div className="flex items-start justify-between">
-                <mod.icon className="text-[var(--accent)]" size={26} />
-                <div className="flex items-center gap-2">
-                  {mod.badge !== undefined && mod.badge > 0 && (
-                    <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-white">
-                      {mod.badge}
-                    </span>
-                  )}
-                  {mod.stat !== undefined && (
-                    <span className="hub-stat-value text-2xl font-bold">{mod.stat}</span>
-                  )}
-                </div>
-              </div>
-              <h3 className="card-title mt-4">{mod.title}</h3>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">{mod.desc}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent)] opacity-0 transition group-hover:opacity-100">
-                Ouvrir
-                <ArrowRight size={14} />
-              </span>
-              {mod.staffOnly && (
-                <span className="absolute right-3 top-3 badge badge-mint text-[10px]">
-                  {mod.title === 'Try Outs' && permissions?.canTryoutRead && !permissions?.canTryoutWrite
-                    ? 'Lecture'
-                    : 'Staff'}
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* Modules membre */}
+      <ModuleSection
+        title="Espace membre"
+        subtitle="Contenus partagés par l'équipe"
+        modules={memberModules}
+        zoneClass="hub-member-zone"
+      />
+
+      {/* Modules staff */}
+      {staffModules.length > 0 && (
+        <ModuleSection
+          title="Espace staff"
+          subtitle="Outils réservés au staff Gowrax"
+          modules={staffModules}
+          zoneClass="hub-staff-zone"
+          staff
+        />
+      )}
 
       {/* Activity */}
       <section className="hub-stagger mt-8 grid gap-6 lg:grid-cols-2">
@@ -445,6 +455,68 @@ export function HubDashboard() {
         </ActivityBlock>
       </section>
     </main>
+  )
+}
+
+function ModuleSection({
+  title,
+  subtitle,
+  modules,
+  zoneClass,
+  staff = false,
+}: {
+  title: string
+  subtitle: string
+  modules: HubModule[]
+  zoneClass: string
+  staff?: boolean
+}) {
+  return (
+    <section className={`hub-stagger mt-8 rounded-2xl border p-4 md:p-5 ${zoneClass}`}>
+      <div className="mb-4 flex items-end justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">{title}</h2>
+            {staff && <span className="badge badge-mint text-[10px]">Staff</span>}
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">{subtitle}</p>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {modules.map((mod) => (
+          <Link
+            key={mod.title}
+            href={mod.href}
+            className={`hub-module-card group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br ${mod.gradient} p-5`}
+          >
+            <div className="flex items-start justify-between">
+              <mod.icon className={staff ? 'text-[var(--color-mint-dark)]' : 'text-[var(--accent)]'} size={26} />
+              <div className="flex items-center gap-2">
+                {mod.badge !== undefined && mod.badge > 0 && (
+                  <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-white">
+                    {mod.badge}
+                  </span>
+                )}
+                {mod.stat !== undefined && (
+                  <span className="hub-stat-value text-2xl font-bold">{mod.stat}</span>
+                )}
+              </div>
+            </div>
+            <h3 className="card-title mt-4">{mod.title}</h3>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{mod.desc}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent)] opacity-0 transition group-hover:opacity-100">
+              Ouvrir
+              <ArrowRight size={14} />
+            </span>
+            {staff && (
+              <span className="absolute right-3 top-3 badge badge-mint text-[10px]">
+                {mod.readOnly ? 'Lecture' : 'Staff'}
+              </span>
+            )}
+          </Link>
+        ))}
+      </div>
+    </section>
   )
 }
 
