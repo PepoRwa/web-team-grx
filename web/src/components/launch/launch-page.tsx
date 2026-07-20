@@ -5,16 +5,16 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
-  BookOpen,
+  Building2,
   Film,
   LayoutDashboard,
   Megaphone,
   Moon,
   Sun,
-  User,
+  UserPlus,
 } from 'lucide-react'
 import { LaunchCountdown } from '@/components/launch/launch-countdown'
-import { OrbitalHub } from '@/components/landing/landing-visuals'
+import { HoloHeroMark } from '@/components/landing/landing-visuals'
 import { SystemOutage } from '@/components/system-outage'
 import { useTheme } from '@/components/providers'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,8 +29,8 @@ interface LaunchPageProps {
 
 const TEASERS = [
   { icon: Film, label: 'VODs' },
-  { icon: BookOpen, label: 'Strats' },
-  { icon: User, label: 'Profils' },
+  { icon: UserPlus, label: 'Tryouts' },
+  { icon: Building2, label: 'Asso' },
   { icon: Megaphone, label: 'News' },
 ]
 
@@ -87,7 +87,7 @@ export function LaunchPage({ onLogin, loginLoading, loginError }: LaunchPageProp
 
       <main className="launch-main">
         <div className="launch-visual-xl">
-          <OrbitalHub />
+          <HoloHeroMark />
         </div>
 
         {phase === 'countdown' && (

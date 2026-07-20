@@ -90,9 +90,9 @@ export async function checkSystemHealth(): Promise<
         code,
         title: isTimeout ? 'API injoignable (timeout)' : 'API injoignable',
         message: isTimeout
-          ? 'L’API met trop longtemps à répondre — probable panne réseau ou hébergeur (Render / YorkHost).'
-          : 'Impossible de joindre l’API (api.team.gowrax.me). Vérifie ta connexion ou réessaie plus tard.',
-        component: 'API Render · réseau',
+          ? `L’API met trop longtemps à répondre (${API_URL}).`
+          : `Impossible de joindre l’API (${API_URL}). En local : lance \`cd api && npm run dev\` (port 4000), ou pointe NEXT_PUBLIC_API_URL vers https://api.team.gowrax.me.`,
+        component: API_URL.includes('localhost') ? 'API locale · :4000' : 'API Render · réseau',
         checkedAt,
       },
     }

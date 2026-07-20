@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowRight,
-  BookOpen,
   Building2,
   ChevronRight,
   Crown,
@@ -17,46 +16,37 @@ import {
   Sparkles,
   User,
   UserPlus,
-  Users,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import {
   listAnnouncements,
   listVods,
   getTryoutStats,
-  type SeasonBanner,
   type SiteAnnouncement,
   type Vod,
 } from '@/lib/api'
 import { formatMatchDate, statusBadgeClass, statusLabel } from '@/lib/format'
 import { hubGreeting, relativeTime } from '@/lib/greeting'
 import { gameBadgeClass, gameLabel } from '@/lib/profiles'
-import { canViewTeamProfiles, canManageCaptains } from '@/lib/permissions'
-import { isFeatureEnabled } from '@/lib/feature-flags'
+import { canManageCaptains } from '@/lib/permissions'
 import { targetRosterLabel } from '@/lib/tryouts'
 import { useAssoAccess } from '@/hooks/useAssoAccess'
 import type { LucideIcon } from 'lucide-react'
 
 interface DashboardStats {
   vodsTotal: number
-  stratsTotal: number
   tryoutCandidates: number
-  membersTotal: number
   unreadAnnouncements: number
   recentVods: Vod[]
   recentAnnouncements: SiteAnnouncement[]
-  seasonBanner: SeasonBanner | null
 }
 
 const EMPTY_STATS: DashboardStats = {
   vodsTotal: 0,
-  stratsTotal: 0,
   tryoutCandidates: 0,
-  membersTotal: 0,
   unreadAnnouncements: 0,
   recentVods: [],
   recentAnnouncements: [],
-  seasonBanner: null,
 }
 
 interface HubModule {
@@ -76,32 +66,27 @@ export function HubDashboard() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
   const [loading, setLoading] = useState(true)
 
-  const staffView = canViewTeamProfiles(permissions)
-
   const load = useCallback(async () => {
     if (!session?.access_token) return
     setLoading(true)
     try {
       const [vodsRes, announcementsRes, tryoutRes] = await Promise.all([
-          listVods(session.access_token, { page: 1, limit: 4 }),
-          listAnnouncements(session.access_token),
-          permissions?.canTryoutRead
-            ? getTryoutStats(session.access_token).catch(() => ({
-                activeCampaigns: 0,
-                activeCandidates: 0,
-              }))
-            : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
-        ])
+        listVods(session.access_token, { page: 1, limit: 4 }),
+        listAnnouncements(session.access_token),
+        permissions?.canTryoutRead
+          ? getTryoutStats(session.access_token).catch(() => ({
+              activeCampaigns: 0,
+              activeCandidates: 0,
+            }))
+          : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
+      ])
 
       setStats({
         vodsTotal: vodsRes.total,
-        stratsTotal: 0,
         tryoutCandidates: tryoutRes.activeCandidates,
-        membersTotal: 0,
         unreadAnnouncements: announcementsRes.unreadCount,
         recentVods: vodsRes.items.slice(0, 3),
         recentAnnouncements: announcementsRes.announcements.slice(0, 3),
-        seasonBanner: null,
       })
     } catch {
       setStats(EMPTY_STATS)
@@ -127,32 +112,20 @@ export function HubDashboard() {
       gradient: 'from-sky/45 via-lavender/30 to-transparent',
       stat: loading ? '…' : String(stats.vodsTotal),
     },
-    ...(isFeatureEnabled('strats')
-      ? [
-          {
-            icon: BookOpen,
-            title: 'Strat-Book',
-            desc: 'Tactiques par map, ValoPlant, images.',
-            href: '/hub/strats/',
-            gradient: 'from-mint/45 via-sky/25 to-transparent',
-            stat: loading ? '…' : String(stats.stratsTotal),
-          } satisfies HubModule,
-        ]
-      : []),
-    {
-      icon: User,
-      title: 'Mon profil',
-      desc: 'Riot ID, tracker, préférences perso.',
-      href: '/hub/profiles/me/',
-      gradient: 'from-rose/40 via-gold/25 to-transparent',
-    },
     {
       icon: Megaphone,
-      title: 'Annonces',
-      desc: 'News staff, mises à jour équipe.',
+      title: 'News',
+      desc: 'Annonces staff, mises à jour équipe.',
       href: '/hub/announcements/',
       gradient: 'from-gold/40 via-coral/30 to-transparent',
       badge: stats.unreadAnnouncements,
+    },
+    {
+      icon: User,
+      title: 'Mon profil',
+      desc: 'Riot ID, tracker, préférences, RGPD.',
+      href: '/hub/profiles/me/',
+      gradient: 'from-rose/40 via-gold/25 to-transparent',
     },
     ...(assoAccess.hasAccess && !assoAccess.isBureau
       ? [
@@ -168,24 +141,12 @@ export function HubDashboard() {
   ]
 
   const staffModules: HubModule[] = [
-    ...(staffView
-      ? [
-          {
-            icon: Users,
-            title: 'Profils équipe',
-            desc: 'Annuaire staff — Riot ID, rôles, trackers.',
-            href: '/hub/profiles/',
-            gradient: 'from-rose/40 via-gold/25 to-transparent',
-            stat: loading ? '…' : String(stats.membersTotal),
-          } satisfies HubModule,
-        ]
-      : []),
     ...(permissions?.canTryoutRead
       ? [
           {
             icon: UserPlus,
             title: 'Try Outs',
-            desc: 'Recrutement, candidats, pipeline staff.',
+            desc: 'Recrutement, candidats, pipeline.',
             href: '/hub/tryouts/',
             gradient: 'from-mint/40 via-lavender/25 to-transparent',
             stat: loading ? '…' : String(stats.tryoutCandidates),
@@ -198,7 +159,7 @@ export function HubDashboard() {
           {
             icon: Crown,
             title: 'Capitaines',
-            desc: 'Désigner un capitaine par roster (tryouts lecture).',
+            desc: 'Un capitaine par roster.',
             href: '/hub/captains/',
             gradient: 'from-gold/40 via-coral/25 to-transparent',
           } satisfies HubModule,
@@ -209,7 +170,7 @@ export function HubDashboard() {
           {
             icon: Radio,
             title: 'Transmissions',
-            desc: 'Diffuser vers Discord & le site.',
+            desc: 'Discord & news site.',
             href: '/hub/transmissions/',
             gradient: 'from-lavender/50 via-rose/30 to-transparent',
           } satisfies HubModule,
@@ -220,7 +181,7 @@ export function HubDashboard() {
           {
             icon: ShieldAlert,
             title: 'Administration',
-            desc: 'Comptes, emails, accès. Fondateur.',
+            desc: 'Comptes, accès, RGPD.',
             href: '/hub/admin/',
             gradient: 'from-rose/45 via-coral/30 to-transparent',
           } satisfies HubModule,
@@ -241,25 +202,23 @@ export function HubDashboard() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
-      {/* Hero */}
-      <section className="hub-stagger relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-[var(--shadow)] md:p-8">
+      <section className="hub-stagger hub-hero-holo relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-[var(--shadow)] md:p-8">
+        <div className="hub-hero-holo-strip" aria-hidden />
         <div className="hub-blob absolute -right-6 -top-8 h-44 w-44 rounded-full bg-lavender/25 blur-2xl" />
         <div className="hub-blob-delayed absolute -bottom-10 left-8 h-36 w-36 rounded-full bg-mint/20 blur-2xl" />
         <div className="hub-blob absolute right-1/3 top-1/2 h-24 w-24 rounded-full bg-rose/15 blur-xl" />
 
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center">
           <div className="relative shrink-0">
+            <div className="hub-avatar-foil" aria-hidden />
             <Image
               src={avatar}
               alt=""
               width={88}
               height={88}
-              className="rounded-2xl ring-4 ring-[var(--accent-soft)]"
+              className="relative z-[1] rounded-2xl ring-4 ring-[var(--accent-soft)]"
               unoptimized
             />
-            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-base shadow-md">
-              ✨
-            </span>
           </div>
 
           <div className="min-w-0 flex-1">
@@ -267,9 +226,7 @@ export function HubDashboard() {
               <Sparkles size={14} />
               {greeting}
             </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">
-              {displayName}
-            </h1>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{displayName}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {user?.game && (
                 <span className={`badge ${gameBadgeClass(user.game)}`}>{gameLabel(user.game)}</span>
@@ -301,9 +258,6 @@ export function HubDashboard() {
         </div>
       </section>
 
-      {/* Season banner — désactivé (feature season) */}
-
-      {/* Stats */}
       <section className="hub-stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatPill icon={Film} label="VODs" value={loading ? '—' : stats.vodsTotal} href="/hub/vods/" />
         <StatPill
@@ -313,34 +267,35 @@ export function HubDashboard() {
           href="/hub/announcements/"
           highlight={stats.unreadAnnouncements > 0}
         />
-        <StatPill
-          icon={User}
-          label="Mon profil"
-          value="→"
-          href="/hub/profiles/me/"
-        />
+        {permissions?.canTryoutRead ? (
+          <StatPill
+            icon={UserPlus}
+            label="Tryouts"
+            value={loading ? '—' : stats.tryoutCandidates}
+            href="/hub/tryouts/"
+          />
+        ) : (
+          <StatPill icon={User} label="Mon profil" value="→" href="/hub/profiles/me/" />
+        )}
       </section>
 
-      {/* Modules membre */}
       <ModuleSection
         title="Espace membre"
-        subtitle="Contenus partagés par l'équipe"
+        subtitle="VODs, news, profil — le quotidien roster"
         modules={memberModules}
         zoneClass="hub-member-zone"
       />
 
-      {/* Modules staff */}
       {staffModules.length > 0 && (
         <ModuleSection
           title="Espace staff"
-          subtitle="Outils réservés au staff Gowrax"
+          subtitle="Tryouts, transmissions, admin"
           modules={staffModules}
           zoneClass="hub-staff-zone"
           staff
         />
       )}
 
-      {/* Activity */}
       <section className="hub-stagger mt-8 grid gap-6 lg:grid-cols-2">
         <ActivityBlock
           title="Dernières VODs"
@@ -373,7 +328,7 @@ export function HubDashboard() {
         </ActivityBlock>
 
         <ActivityBlock
-          title="Annonces récentes"
+          title="News récentes"
           href="/hub/announcements/"
           emptyIcon={Megaphone}
           emptyText="Pas d'annonce récente"
