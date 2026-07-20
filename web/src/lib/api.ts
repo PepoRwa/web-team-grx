@@ -393,6 +393,18 @@ export async function downloadMyData(accessToken: string): Promise<void> {
   triggerDownload(blob, 'mes-donnees-gowrax.json')
 }
 
+/** Demande de suppression RGPD — coupe l'accès immédiat, anonymisation à ~6 mois. */
+export async function requestMyAccountDeletion(accessToken: string, reason?: string) {
+  return apiFetch<{
+    disabled: boolean
+    deletionScheduledAt: string
+    retentionDays: number
+  }>('/profiles/me/deletion-request', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason ?? null }),
+  })
+}
+
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -414,6 +426,9 @@ export interface AdminUser extends Profile {
   disabledAt: string | null
   disabledByDiscordId: string | null
   disabledReason: string | null
+  deletionRequestedAt: string | null
+  deletionScheduledAt: string | null
+  anonymizedAt: string | null
   lastLoginAt: string | null
   roleCount: number
 }
@@ -467,6 +482,14 @@ export async function adminSetAccess(
       method: 'PATCH',
       body: JSON.stringify({ disabled, reason }),
     },
+  )
+}
+
+export async function adminAnonymizeUser(accessToken: string, discordId: string) {
+  return apiFetch<{ ok: true; label: string }>(
+    `/admin/users/${encodeURIComponent(discordId)}/anonymize`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify({}) },
   )
 }
 

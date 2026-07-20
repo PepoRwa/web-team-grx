@@ -7,7 +7,6 @@ import {
   ArrowRight,
   BookOpen,
   Building2,
-  Calendar,
   ChevronRight,
   Crown,
   Film,
@@ -16,17 +15,13 @@ import {
   Radio,
   ShieldAlert,
   Sparkles,
-  Target,
   User,
   UserPlus,
   Users,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  getSeasonBanner,
   listAnnouncements,
-  listProfiles,
-  listStrats,
   listVods,
   getTryoutStats,
   type SeasonBanner,
@@ -37,6 +32,7 @@ import { formatMatchDate, statusBadgeClass, statusLabel } from '@/lib/format'
 import { hubGreeting, relativeTime } from '@/lib/greeting'
 import { gameBadgeClass, gameLabel } from '@/lib/profiles'
 import { canViewTeamProfiles, canManageCaptains } from '@/lib/permissions'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { targetRosterLabel } from '@/lib/tryouts'
 import { useAssoAccess } from '@/hooks/useAssoAccess'
 import type { LucideIcon } from 'lucide-react'
@@ -86,39 +82,33 @@ export function HubDashboard() {
     if (!session?.access_token) return
     setLoading(true)
     try {
-      const [vodsRes, stratsRes, announcementsRes, seasonRes, tryoutRes, profilesRes] =
-        await Promise.all([
+      const [vodsRes, announcementsRes, tryoutRes] = await Promise.all([
           listVods(session.access_token, { page: 1, limit: 4 }),
-          listStrats(session.access_token),
           listAnnouncements(session.access_token),
-          getSeasonBanner(session.access_token).catch(() => ({ banner: null })),
           permissions?.canTryoutRead
             ? getTryoutStats(session.access_token).catch(() => ({
                 activeCampaigns: 0,
                 activeCandidates: 0,
               }))
             : Promise.resolve({ activeCampaigns: 0, activeCandidates: 0 }),
-          staffView
-            ? listProfiles(session.access_token).catch(() => ({ profiles: [] }))
-            : Promise.resolve({ profiles: [] }),
         ])
 
       setStats({
         vodsTotal: vodsRes.total,
-        stratsTotal: stratsRes.strats.length,
+        stratsTotal: 0,
         tryoutCandidates: tryoutRes.activeCandidates,
-        membersTotal: profilesRes.profiles.length,
+        membersTotal: 0,
         unreadAnnouncements: announcementsRes.unreadCount,
         recentVods: vodsRes.items.slice(0, 3),
         recentAnnouncements: announcementsRes.announcements.slice(0, 3),
-        seasonBanner: seasonRes.banner,
+        seasonBanner: null,
       })
     } catch {
       setStats(EMPTY_STATS)
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token, permissions?.canTryoutRead, staffView])
+  }, [session?.access_token, permissions?.canTryoutRead])
 
   useEffect(() => {
     if (session?.access_token) void load()
@@ -137,14 +127,18 @@ export function HubDashboard() {
       gradient: 'from-sky/45 via-lavender/30 to-transparent',
       stat: loading ? '…' : String(stats.vodsTotal),
     },
-    {
-      icon: BookOpen,
-      title: 'Strat-Book',
-      desc: 'Tactiques par map, ValoPlant, images.',
-      href: '/hub/strats/',
-      gradient: 'from-mint/45 via-sky/25 to-transparent',
-      stat: loading ? '…' : String(stats.stratsTotal),
-    },
+    ...(isFeatureEnabled('strats')
+      ? [
+          {
+            icon: BookOpen,
+            title: 'Strat-Book',
+            desc: 'Tactiques par map, ValoPlant, images.',
+            href: '/hub/strats/',
+            gradient: 'from-mint/45 via-sky/25 to-transparent',
+            stat: loading ? '…' : String(stats.stratsTotal),
+          } satisfies HubModule,
+        ]
+      : []),
     {
       icon: User,
       title: 'Mon profil',
@@ -307,39 +301,11 @@ export function HubDashboard() {
         </div>
       </section>
 
-      {/* Season banner */}
-      {stats.seasonBanner && (
-        <section className="hub-stagger mt-6">
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-r from-gold/30 via-lavender/25 to-mint/20 p-5 md:p-6">
-            <div className="flex gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]/80 text-2xl">
-                {stats.seasonBanner.icon ?? '🎯'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
-                  <Target size={12} />
-                  Objectif saison
-                </div>
-                <h2 className="mt-1 text-lg font-bold">{stats.seasonBanner.title}</h2>
-                {stats.seasonBanner.description && (
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">{stats.seasonBanner.description}</p>
-                )}
-                {stats.seasonBanner.deadline && (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                    <Calendar size={12} />
-                    Échéance : {formatMatchDate(stats.seasonBanner.deadline)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Season banner — désactivé (feature season) */}
 
       {/* Stats */}
-      <section className="hub-stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="hub-stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatPill icon={Film} label="VODs" value={loading ? '—' : stats.vodsTotal} href="/hub/vods/" />
-        <StatPill icon={BookOpen} label="Strats" value={loading ? '—' : stats.stratsTotal} href="/hub/strats/" />
         <StatPill
           icon={Megaphone}
           label="Non lues"
@@ -347,21 +313,12 @@ export function HubDashboard() {
           href="/hub/announcements/"
           highlight={stats.unreadAnnouncements > 0}
         />
-        {staffView ? (
-          <StatPill
-            icon={Users}
-            label="Membres"
-            value={loading ? '—' : stats.membersTotal}
-            href="/hub/profiles/"
-          />
-        ) : (
-          <StatPill
-            icon={User}
-            label="Mon profil"
-            value="→"
-            href="/hub/profiles/me/"
-          />
-        )}
+        <StatPill
+          icon={User}
+          label="Mon profil"
+          value="→"
+          href="/hub/profiles/me/"
+        />
       </section>
 
       {/* Modules membre */}

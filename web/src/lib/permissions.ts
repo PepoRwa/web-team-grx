@@ -1,7 +1,9 @@
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import type { UserPermissions } from '@/lib/user-permissions'
 
-/** Liste et fiches des autres membres — réservé au staff. */
+/** Liste et fiches des autres membres — réservé au staff (désactivé soft via feature flag). */
 export function canViewTeamProfiles(permissions: UserPermissions | null | undefined): boolean {
+  if (!isFeatureEnabled('teamProfiles')) return false
   return Boolean(permissions?.isStaff)
 }
 

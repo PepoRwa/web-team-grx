@@ -25,6 +25,7 @@ import {
   adminListUsers,
   adminSendTestEmail,
   adminSetAccess,
+  adminAnonymizeUser,
   type AdminUser,
   type AuditEntry,
 } from '@/lib/api'
@@ -100,9 +101,12 @@ export default function AdminPage() {
       const label = user.publicName ?? user.username ?? user.discordId
       if (willDisable) {
         const ok = window.confirm(
-          `Désactiver l'accès de « ${label} » ?\nLa personne sera déconnectée et bloquée partout, quels que soient ses rôles Discord.`,
+          `Désactiver l'accès de « ${label} » ?\nLa personne sera bloquée immédiatement. Ses données seront anonymisées dans ~6 mois (sauf réactivation avant).`,
         )
         if (!ok) return
+      } else if (user.anonymizedAt) {
+        window.alert('Compte déjà anonymisé — réactivation impossible.')
+        return
       }
       const reason = willDisable
         ? window.prompt('Motif (optionnel, visible dans l\'audit log) :') ?? undefined
@@ -133,6 +137,30 @@ export default function AdminPage() {
       }
     },
     [session?.access_token, loadAudit],
+  )
+
+  const handleAnonymize = useCallback(
+    async (user: AdminUser) => {
+      if (!session?.access_token) return
+      const label = user.publicName ?? user.username ?? user.discordId
+      const ok = window.confirm(
+        `Anonymiser maintenant « ${label} » ?\nIrréversible : email, pseudo, IDs jeu et données asso civiles effacés. Les VODs restent sans identité.`,
+      )
+      if (!ok) return
+      setBusyId(user.discordId)
+      setError(null)
+      try {
+        await adminAnonymizeUser(session.access_token, user.discordId)
+        setNotice(`Compte anonymisé : ${label}`)
+        void load()
+        void loadAudit()
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Anonymisation impossible')
+      } finally {
+        setBusyId(null)
+      }
+    },
+    [session?.access_token, load, loadAudit],
   )
 
   const handleSyncEmails = useCallback(async () => {
@@ -299,6 +327,7 @@ export default function AdminPage() {
                 busy={busyId === user.discordId}
                 onToggleAccess={() => handleToggleAccess(user)}
                 onExport={() => handleExport(user)}
+                onAnonymize={() => handleAnonymize(user)}
               />
             ))}
           </div>
@@ -316,22 +345,38 @@ export default function AdminPage() {
   )
 }
 
+function formatRetentionCountdown(scheduledAt: string | null): string | null {
+  if (!scheduledAt) return null
+  const end = new Date(scheduledAt).getTime()
+  const ms = end - Date.now()
+  if (ms <= 0) return 'Échéance atteinte — anonymisation imminente'
+  const days = Math.ceil(ms / (24 * 60 * 60 * 1000))
+  if (days >= 30) {
+    const months = Math.round(days / 30)
+    return `Anonymisation dans ~${months} mois (${new Date(scheduledAt).toLocaleDateString('fr-FR')})`
+  }
+  return `Anonymisation dans ${days} j (${new Date(scheduledAt).toLocaleDateString('fr-FR')})`
+}
+
 function AdminUserRow({
   user,
   busy,
   onToggleAccess,
   onExport,
+  onAnonymize,
 }: {
   user: AdminUser
   busy: boolean
   onToggleAccess: () => void
   onExport: () => void
+  onAnonymize: () => void
 }) {
   const avatar = user.avatarUrl ?? 'https://cdn.discordapp.com/embed/avatars/0.png'
   const name = user.publicName ?? user.username ?? 'Sans pseudo'
   const roles = user.roles ?? []
   const roleCount = user.roleCount ?? roles.length
   const isUnknown = roleCount === 0
+  const retention = formatRetentionCountdown(user.deletionScheduledAt)
 
   return (
     <div
@@ -342,7 +387,10 @@ function AdminUserRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-semibold">{name}</p>
-            {user.isDisabled && <span className="badge badge-coral text-[10px]">Désactivé</span>}
+            {user.anonymizedAt && <span className="badge badge-coral text-[10px]">Anonymisé</span>}
+            {user.isDisabled && !user.anonymizedAt && (
+              <span className="badge badge-coral text-[10px]">Désactivé</span>
+            )}
             {isUnknown && !user.isDisabled && (
               <span className="badge badge-gold text-[10px]">Inconnu · 0 rôle</span>
             )}
@@ -383,6 +431,9 @@ function AdminUserRow({
           {user.isDisabled && user.disabledReason && (
             <p className="mt-2 text-xs text-red-500">Motif : {user.disabledReason}</p>
           )}
+          {user.isDisabled && !user.anonymizedAt && retention && (
+            <p className="mt-1 text-xs font-medium text-amber-600">{retention}</p>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-col gap-2">
@@ -395,28 +446,40 @@ function AdminUserRow({
             <Download size={14} />
             Export
           </button>
-          <button
-            type="button"
-            onClick={onToggleAccess}
-            disabled={busy}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
-              user.isDisabled
-                ? 'bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25'
-                : 'bg-red-500/15 text-red-600 hover:bg-red-500/25'
-            }`}
-          >
-            {user.isDisabled ? (
-              <>
-                <CheckCircle2 size={14} />
-                Réactiver
-              </>
-            ) : (
-              <>
-                <Ban size={14} />
-                Désactiver
-              </>
-            )}
-          </button>
+          {!user.anonymizedAt && (
+            <button
+              type="button"
+              onClick={onToggleAccess}
+              disabled={busy}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                user.isDisabled
+                  ? 'bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25'
+                  : 'bg-red-500/15 text-red-600 hover:bg-red-500/25'
+              }`}
+            >
+              {user.isDisabled ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  Réactiver
+                </>
+              ) : (
+                <>
+                  <Ban size={14} />
+                  Désactiver
+                </>
+              )}
+            </button>
+          )}
+          {user.isDisabled && !user.anonymizedAt && (
+            <button
+              type="button"
+              onClick={onAnonymize}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600/90 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+            >
+              Anonymiser maintenant
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -426,6 +489,8 @@ function AdminUserRow({
 const ACTION_LABELS: Record<string, string> = {
   'user.disable': 'Accès désactivé',
   'user.enable': 'Accès réactivé',
+  'user.deletion_request': 'Demande suppression',
+  'user.anonymize': 'Anonymisation RGPD',
   'emails.backfill': 'Sync emails Supabase',
   'email.test_disabled': 'Test mail de blocage',
   'email.test': 'Test email',

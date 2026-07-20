@@ -7,6 +7,7 @@ import { BookOpen, Plus, Search, Shield, Swords } from 'lucide-react'
 import { HubShell } from '@/components/hub/hub-shell'
 import { useAuth } from '@/hooks/useAuth'
 import { ApiError, listStrats, type Strat, type StratSide } from '@/lib/api'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { sideLabel, statusLabel } from '@/lib/strats'
 
 type SideFilter = 'all' | StratSide
@@ -27,6 +28,7 @@ export default function StratsPage() {
 
   useEffect(() => {
     if (!authLoading && !session) router.replace('/')
+    if (!authLoading && !isFeatureEnabled('strats')) router.replace('/hub/')
   }, [authLoading, session, router])
 
   useEffect(() => {

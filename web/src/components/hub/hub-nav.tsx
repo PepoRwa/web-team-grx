@@ -10,6 +10,7 @@ import {
   User,
   UserPlus,
 } from 'lucide-react'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 export type HubNavKey =
   | 'hub'
@@ -27,10 +28,11 @@ const ALL_NAV_ITEMS: {
   icon: typeof Film
   requiresTryout?: boolean
   requiresAsso?: boolean
+  feature?: 'strats'
 }[] = [
   { key: 'hub', href: '/hub/', label: 'Hub', icon: LayoutDashboard },
   { key: 'vods', href: '/hub/vods/', label: 'VODs', icon: Film },
-  { key: 'strats', href: '/hub/strats/', label: 'Strats', icon: BookOpen },
+  { key: 'strats', href: '/hub/strats/', label: 'Strats', icon: BookOpen, feature: 'strats' },
   { key: 'tryouts', href: '/hub/tryouts/', label: 'Tryouts', icon: UserPlus, requiresTryout: true },
   { key: 'asso', href: '/hub/asso/', label: 'Asso', icon: Building2, requiresAsso: true },
   { key: 'announcements', href: '/hub/announcements/', label: 'News', icon: Megaphone },
@@ -52,7 +54,9 @@ export function HubNav({
 }: HubNavProps) {
   const navItems = ALL_NAV_ITEMS.filter(
     (item) =>
-      (!item.requiresTryout || showTryouts) && (!item.requiresAsso || showAsso),
+      (!item.requiresTryout || showTryouts) &&
+      (!item.requiresAsso || showAsso) &&
+      (!item.feature || isFeatureEnabled(item.feature)),
   )
 
   return (
