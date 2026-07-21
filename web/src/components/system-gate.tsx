@@ -1,24 +1,49 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
 import { SystemOutage } from '@/components/system-outage'
 import { useSystemStatus } from '@/hooks/useSystemStatus'
+import { lifecycleLabel } from '@/lib/system-health'
 
 export function SystemGate({ children }: { children: ReactNode }) {
-  const { isInitializing, incident, retrying, blockApp, showBanner, retry } = useSystemStatus()
+  const {
+    isInitializing,
+    lifecycle,
+    incident,
+    retrying,
+    blockApp,
+    showBanner,
+    retry,
+    attempt,
+    nextRetryInSec,
+    lastLatencyMs,
+  } = useSystemStatus()
 
-  if (isInitializing) {
+  if (isInitializing || lifecycle === 'checking') {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-3">
-        <div className="h-12 w-12 animate-pulse rounded-2xl bg-lavender/40" />
-        <p className="text-sm text-[var(--text-muted)]">Vérification des services…</p>
+      <div className="flex h-dvh flex-col items-center justify-center gap-3 px-4">
+        <Loader2 size={36} className="animate-spin text-[var(--accent)]" />
+        <p className="text-sm font-medium text-[var(--text)]">Vérification de l’API…</p>
+        <p className="max-w-sm text-center text-xs text-[var(--text-muted)]">
+          Connexion Discord désactivée jusqu’à ce que le serveur réponde.
+        </p>
       </div>
     )
   }
 
   if (blockApp && incident) {
-    return <SystemOutage incident={incident} onRetry={() => void retry()} retrying={retrying} />
+    return (
+      <SystemOutage
+        incident={incident}
+        onRetry={() => void retry()}
+        retrying={retrying}
+        lifecycle={lifecycle}
+        attempt={attempt}
+        nextRetryInSec={nextRetryInSec}
+        lastLatencyMs={lastLatencyMs}
+      />
+    )
   }
 
   return (
@@ -30,7 +55,8 @@ export function SystemGate({ children }: { children: ReactNode }) {
         >
           <AlertTriangle size={16} className="shrink-0 text-amber-600" />
           <span className="text-[var(--text)]">
-            {incident.title} — les données peuvent ne pas se sauvegarder.
+            {incident.title} ({lifecycleLabel(lifecycle)}) — les données peuvent ne pas se
+            sauvegarder.
           </span>
           <button
             type="button"

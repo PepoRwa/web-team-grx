@@ -2127,6 +2127,38 @@ body::before {
   margin-bottom: 1rem;
 }
 
+.outage-icon-warming {
+  color: var(--accent);
+}
+
+.outage-lifecycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+}
+
+.outage-warmup-hint {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: left;
+  color: var(--text);
+  background: color-mix(in srgb, var(--color-mint) 18%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--color-mint) 40%, var(--border));
+}
+
 .outage-title {
   font-size: 1.35rem;
   font-weight: 800;

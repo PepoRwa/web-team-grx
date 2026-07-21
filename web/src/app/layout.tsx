@@ -6,6 +6,7 @@ import { AuthProvider } from '@/hooks/useAuth'
 import { ThemeProvider } from '@/components/providers'
 import { SiteOverlays } from '@/components/site-overlays'
 import { SystemGate } from '@/components/system-gate'
+import { SystemStatusProvider } from '@/hooks/useSystemStatus'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -44,12 +45,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${dmSans.variable} antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
+          <SystemStatusProvider>
             <SystemGate>
-              {children}
-              <SiteOverlays />
+              <AuthProvider>
+                {children}
+                <SiteOverlays />
+              </AuthProvider>
             </SystemGate>
-          </AuthProvider>
+          </SystemStatusProvider>
         </ThemeProvider>
       </body>
     </html>

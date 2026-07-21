@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Copy, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Copy, Loader2, RefreshCw, Server } from 'lucide-react'
 import {
   incidentDevSummary,
+  lifecycleLabel,
+  type ApiLifecycle,
   type SystemIncident,
 } from '@/lib/system-health'
 
@@ -11,10 +13,23 @@ interface SystemOutageProps {
   incident: SystemIncident
   onRetry: () => void
   retrying?: boolean
+  lifecycle?: ApiLifecycle
+  attempt?: number
+  nextRetryInSec?: number | null
+  lastLatencyMs?: number | null
 }
 
-export function SystemOutage({ incident, onRetry, retrying }: SystemOutageProps) {
+export function SystemOutage({
+  incident,
+  onRetry,
+  retrying,
+  lifecycle = 'down',
+  attempt = 1,
+  nextRetryInSec = null,
+  lastLatencyMs = null,
+}: SystemOutageProps) {
   const [copied, setCopied] = useState(false)
+  const warming = lifecycle === 'warming' || incident.likelyColdStart || incident.code === 'API_WARMING'
 
   const copyRef = async () => {
     const text = incidentDevSummary(incident)
@@ -35,13 +50,38 @@ export function SystemOutage({ incident, onRetry, retrying }: SystemOutageProps)
       </div>
 
       <main className="outage-card">
-        <div className="outage-icon-wrap">
-          <AlertTriangle size={32} className="text-[var(--accent)]" />
+        <div className={`outage-icon-wrap ${warming ? 'outage-icon-warming' : ''}`}>
+          {warming ? (
+            <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
+          ) : (
+            <AlertTriangle size={32} className="text-[var(--accent)]" />
+          )}
         </div>
 
-        <h1 className="outage-title">Service temporairement indisponible</h1>
+        <p className="outage-lifecycle">
+          <Server size={14} />
+          {lifecycleLabel(warming ? 'warming' : lifecycle)}
+          {attempt > 1 && <span className="opacity-70"> · essai {attempt}</span>}
+        </p>
+
+        <h1 className="outage-title">
+          {warming ? 'Démarrage de l’API' : 'Service temporairement indisponible'}
+        </h1>
         <p className="outage-subtitle">{incident.title}</p>
         <p className="outage-message">{incident.message}</p>
+
+        {warming && (
+          <p className="outage-warmup-hint">
+            La connexion Discord est <strong>bloquée</strong> tant que l’API n’est pas prête —
+            ça évite les sessions à moitié synchronisées.
+            {nextRetryInSec != null && nextRetryInSec > 0 && (
+              <>
+                {' '}
+                Prochain essai dans <strong>{nextRetryInSec}s</strong>.
+              </>
+            )}
+          </p>
+        )}
 
         <div className="outage-meta">
           <div className="outage-meta-row">
@@ -56,6 +96,12 @@ export function SystemOutage({ incident, onRetry, retrying }: SystemOutageProps)
             <div className="outage-meta-row">
               <span className="outage-meta-label">HTTP</span>
               <code className="outage-code">{incident.httpStatus}</code>
+            </div>
+          )}
+          {lastLatencyMs != null && (
+            <div className="outage-meta-row">
+              <span className="outage-meta-label">Latence check</span>
+              <code className="outage-code">{lastLatencyMs} ms</code>
             </div>
           )}
           <div className="outage-meta-row">
@@ -76,7 +122,7 @@ export function SystemOutage({ incident, onRetry, retrying }: SystemOutageProps)
             disabled={retrying}
           >
             <RefreshCw size={18} className={retrying ? 'animate-spin' : ''} />
-            {retrying ? 'Vérification…' : 'Réessayer'}
+            {retrying ? 'Vérification…' : 'Réessayer maintenant'}
           </button>
           <button type="button" className="outage-btn outage-btn-ghost" onClick={() => void copyRef()}>
             <Copy size={18} />
@@ -85,7 +131,7 @@ export function SystemOutage({ incident, onRetry, retrying }: SystemOutageProps)
         </div>
 
         <p className="outage-foot">
-          Gowrax Team Hub · incident détecté{' '}
+          Gowrax Team Hub · check{' '}
           {new Date(incident.checkedAt).toLocaleString('fr-FR', {
             dateStyle: 'short',
             timeStyle: 'short',

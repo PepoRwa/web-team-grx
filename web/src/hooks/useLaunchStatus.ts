@@ -13,6 +13,7 @@ function launchIncidentFromError(): SystemIncident {
       'Impossible de lire l’état du lancement (countdown / ouverture). L’API ou la base de données est probablement indisponible.',
     component: 'API · /launch/status',
     checkedAt: new Date().toISOString(),
+    likelyColdStart: true,
   }
 }
 

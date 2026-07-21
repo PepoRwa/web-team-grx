@@ -12,6 +12,7 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { ApiError, getMe, resyncRoles, syncSession, type HubUser, type UserPermissions } from '@/lib/api'
 import { getSiteUrl, supabase } from '@/lib/supabase'
+import { useSystemStatus } from '@/hooks/useSystemStatus'
 
 interface AuthState {
   session: Session | null
@@ -30,6 +31,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { isReady } = useSystemStatus()
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<HubUser | null>(null)
   const [permissions, setPermissions] = useState<UserPermissions | null>(null)
@@ -60,17 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refresh = useCallback(async () => {
+    if (!isReady) return
     const { data } = await supabase.auth.getSession()
     if (data.session?.access_token) {
       await syncWithApi(data.session.access_token, false)
     }
-  }, [syncWithApi])
+  }, [syncWithApi, isReady])
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
       if (newSession?.access_token) {
         setLoading(false)
+        if (!isReady) return
         const isInitial = event === 'INITIAL_SESSION' || event === 'SIGNED_IN'
         void syncWithApi(newSession.access_token, isInitial)
       } else {
@@ -81,10 +85,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => sub.subscription.unsubscribe()
-  }, [syncWithApi])
+  }, [syncWithApi, isReady])
+
+  // Quand l’API devient prête après un cold start, synchroniser la session existante.
+  useEffect(() => {
+    if (!isReady || !session?.access_token || user) return
+    void syncWithApi(session.access_token, true)
+  }, [isReady, session?.access_token, user, syncWithApi])
 
   const signInWithDiscord = useCallback(async () => {
     setError(null)
+    if (!isReady) {
+      setError('API pas encore prête — attends la fin du démarrage avant de te connecter.')
+      return
+    }
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
@@ -92,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
     if (authError) setError(authError.message)
-  }, [])
+  }, [isReady])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
